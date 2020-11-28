@@ -1,0 +1,161 @@
+---
+title: "script_US_survey"
+author: "CH"
+date: "28/11/2020"
+output: html_document
+---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+# packages
+library(here)
+library(readr)
+library(tidyverse)
+library(dplyr)
+
+# dataset
+data <- here::here("data/US_data.csv")
+US_data <- readr::read_csv(data) %>%
+  as_tibble() 
+US_data$time <- factor(US_data$time)
+US_data$vote <- factor(US_data$vote)
+US_data$unexp <- factor(US_data$unexp)
+```
+
+# Data inspection
+
+```{r boxplots, include=TRUE}
+
+# cn
+box_cn_1 <- boxplot(US_data$cn_1)
+box_cn_2 <- boxplot (US_data$cn_2)
+box_cn_3 <- boxplot(US_data$cn_3)
+box_cn_4 <- boxplot(US_data$cn_4)
+box_cn_5 <- boxplot(US_data$cn_5)
+# 1 outlier in cn_1
+
+# secident
+box_secident_1 <- boxplot(US_data$secident_1)
+box_secident_2 <- boxplot(US_data$secident_2)
+box_secident_3 <- boxplot(US_data$secident_3)
+box_secident_4 <- boxplot(US_data$secident_4)
+box_secident_5 <- boxplot(US_data$secident_5)
+box_secident_6 <- boxplot(US_data$secident_6)
+box_secident_7 <- boxplot(US_data$secident_7)
+box_secident_8 <- boxplot(US_data$secident_8)
+box_secident_9 <- boxplot(US_data$secident_9)
+box_secident_10 <- boxplot(US_data$secident_10)
+# Striking is that items secident _7 to _10 show the same boxplot. I checked the raw data to make sure that the values were not accidently doublicated and copy-pasted but the items are unique in values, yet similar to each other in expression. Potentially colinear?
+
+# xeno
+box_xeno_1 <- boxplot(US_data$xeno_1)
+box_xeno_2 <- boxplot(US_data$xeno_2)
+box_xeno_3 <- boxplot(US_data$xeno_3)
+box_xeno_4 <- boxplot(US_data$xeno_4)
+box_xeno_5 <- boxplot(US_data$xeno_5)
+box_xeno_6 <- boxplot(US_data$xeno_6)
+# 1 outlier in xeno_1, 1 in xeno_2, 3 in xeno_3
+
+# joy
+box_joy_1 <- boxplot(US_data$joy_1)
+box_joy_2 <- boxplot(US_data$joy_2)
+
+# eff
+box_eff_1 <- boxplot(US_data$eff_1)
+box_eff_2 <- boxplot(US_data$eff_2)
+# 1 outlier in eff_1
+```
+
+```{r histograms, include=TRUE}
+# cn 
+ggplot(US_data, aes(x=cn_1))+
+  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+
+ggplot(US_data, aes(x=cn_2))+
+  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+
+ggplot(US_data, aes(x=cn_3))+
+  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+
+ggplot(US_data, aes(x=cn_4))+
+  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+
+ggplot(US_data, aes(x=cn_5))+
+  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+
+
+# xeno 
+ggplot(US_data, aes(x=xeno_1))+
+  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+
+ggplot(US_data, aes(x=xeno_2))+
+  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+
+ggplot(US_data, aes(x=xeno_3))+
+  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+
+ggplot(US_data, aes(x=xeno_4))+
+  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+
+ggplot(US_data, aes(x=xeno_5))+
+  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+
+ggplot(US_data, aes(x=xeno_6))+
+  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+
+
+# secident
+ggplot(US_data, aes(x=secident_1))+
+  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+
+ggplot(US_data, aes(x=secident_2))+
+  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+
+ggplot(US_data, aes(x=secident_3))+
+  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+
+ggplot(US_data, aes(x=secident_4))+
+  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+
+ggplot(US_data, aes(x=secident_5))+
+  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+
+ggplot(US_data, aes(x=secident_6))+
+  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+
+ggplot(US_data, aes(x=secident_7))+
+  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+
+ggplot(US_data, aes(x=secident_8))+
+  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+
+ggplot(US_data, aes(x=secident_9))+
+  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+
+ggplot(US_data, aes(x=secident_10))+
+  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+
+
+# joy
+ggplot(US_data, aes(x=joy_1))+
+  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+
+ggplot(US_data, aes(x=joy_2))+
+  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+
+
+# eff
+ggplot(US_data, aes(x=eff_1))+
+  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+
+ggplot(US_data, aes(x=eff_2))+
+  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+```
+
+```{r histograms by group}
+ggplot(US_data, aes(x=cn_1, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+```
+
+
