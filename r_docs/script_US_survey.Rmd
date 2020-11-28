@@ -153,9 +153,172 @@ ggplot(US_data, aes(x=eff_2))+
 ```
 
 ```{r histograms by group}
+
+# cn by vote
 ggplot(US_data, aes(x=cn_1, fill=vote))+
   geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
 
+ggplot(US_data, aes(x=cn_2, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=cn_3, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=cn_4, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=cn_5, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+# cn by time
+ggplot(US_data, aes(x=cn_1, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=cn_2, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=cn_3, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=cn_4, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=cn_5, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+# xeno by vote
+ggplot(US_data, aes(x=xeno_1, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=xeno_2, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=xeno_3, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=xeno_4, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=xeno_5, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=xeno_6, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+
+# xeno by time
+ggplot(US_data, aes(x=xeno_1, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=xeno_2, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=xeno_3, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=xeno_4, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=xeno_5, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=xeno_6, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+
+# secident by vote
+ggplot(US_data, aes(x=secident_1, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=secident_2, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=secident_3, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=secident_4, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=secident_5, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=secident_6, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=secident_7, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=secident_8, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=secident_9, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=secident_10, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+
+# secident by time
+ggplot(US_data, aes(x=secident_1, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=secident_2, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=secident_3, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=secident_4, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=secident_5, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=secident_6, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=secident_7, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=secident_8, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=secident_9, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=secident_10, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+
+# joy by vote
+ggplot(US_data, aes(x=joy_1, fill= vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=joy_2, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+
+# joy by time
+ggplot(US_data, aes(x=joy_1, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=joy_2, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+
+# eff by vote
+ggplot(US_data, aes(x=eff_1, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=eff_2, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+# eff by time
+ggplot(US_data, aes(x=eff_1, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+
+ggplot(US_data, aes(x=eff_2, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
 ```
 
 
