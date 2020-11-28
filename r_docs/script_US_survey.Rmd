@@ -12,6 +12,8 @@ library(here)
 library(readr)
 library(tidyverse)
 library(dplyr)
+library(remotes)
+library(Routliers)
 
 # dataset
 data <- here::here("data/US_data.csv")
@@ -152,7 +154,7 @@ ggplot(US_data, aes(x=eff_2))+
   stat_bin(colour="black",fill="darkgreen", geom = "bar")
 ```
 
-```{r histograms by group}
+```{r histograms by group, include=TRUE}
 
 # cn by vote
 ggplot(US_data, aes(x=cn_1, fill=vote))+
@@ -321,4 +323,13 @@ ggplot(US_data, aes(x=eff_2, fill=time))+
   geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
 ```
 
+
+```{r outlier detection using MAD}
+
+# cn
+cn <- rowMeans(US_data[, c("cn_1", "cn_2", "cn_3", "cn_4", "cn_5")])
+cn_mad <- outliers_mad(x = cn)
+cn_mad
+
+```
 
