@@ -330,6 +330,31 @@ ggplot(US_data, aes(x=eff_2, fill=time))+
 cn <- rowMeans(US_data[, c("cn_1", "cn_2", "cn_3", "cn_4", "cn_5")])
 cn_mad <- outliers_mad(x = cn)
 cn_mad
+# no outliers detected
 
+# secident
+secident <- rowMeans(US_data[, c("secident_1", "secident_2", "secident_3", "secident_4", "secident_5", "secident_6", "secident_7", "secident_8", "secident_9", "secident_10")])
+secident_mad <- outliers_mad(x = secident)
+secident_mad
+# no outliers detected
+
+# xeno
+xeno <- rowMeans(US_data[, c("xeno_1", "xeno_2", "xeno_3", "xeno_4", "xeno_5", "xeno_6")])
+xeno_mad <- outliers_mad(x = xeno)
+xeno_mad
+# 6 outliers detected
+plot_outliers_mad(xeno_mad, x = xeno)
+
+# joy
+joy <- rowMeans(US_data[, c("joy_1", "joy_2")])
+joy_mad <- outliers_mad(x = joy)
+joy_mad
+# no outliers detected
+
+# eff
+eff <- rowMeans(US_data[, c("eff_1", "eff_2")])
+eff_mad <- outliers_mad(x = eff)
+eff_mad
+# no outliers detected
 ```
 
