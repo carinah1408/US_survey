@@ -8,12 +8,13 @@ output: html_document
 ```{r setup, include=TRUE}
 knitr::opts_chunk$set(echo = TRUE)
 # packages
-library(here)
-library(readr)
-library(tidyverse)
-library(dplyr)
+library(here) # find relative path
+library(readr) # read dataset
+library(tidyverse) 
+library(dplyr) 
 library(remotes)
-library(Routliers)
+library(Routliers) # outlier detection
+library(psych) # normality, reliability
 
 # dataset
 data <- here::here("data/US_data.csv")
@@ -324,7 +325,7 @@ ggplot(US_data, aes(x=eff_2, fill=time))+
 ```
 
 
-```{r outlier detection using MAD}
+```{r outlier detection using MAD, include = TRUE}
 
 # cn
 cn <- rowMeans(US_data[, c("cn_1", "cn_2", "cn_3", "cn_4", "cn_5")])
@@ -356,5 +357,74 @@ eff <- rowMeans(US_data[, c("eff_1", "eff_2")])
 eff_mad <- outliers_mad(x = eff)
 eff_mad
 # no outliers detected
+```
+
+
+# reliability (internal consistency)
+
+```{r, reliability, include=TRUE}
+# cn
+key <- list(
+  CN = c("cn_1", "cn_2", "cn_3", "cn_4", "cn_5")
+)
+
+# Cronbach´s alpha
+scoreItems(key, US_data)
+
+# Reliability if item is dropped (--> raw alpha)
+
+US_data %>%
+  select(5:9) %>%
+  psych::alpha()
+```
+
+# normality test for those items, a normal distribution is expected (use ML estimation, for those items no normal distribution is expected (xenophobia), use MLR in CFA
+
+# action required if skewness > 2, kurtosis > 7, multivariate kurtosis (Mardia´s coefficient) > 3
+# psych package: describe() --> skew and kurtosis, mardia ()
+
+```{r}
+
+```
+
+
+# validity (CFA) based on items that were chosen to be kept
+# data has to be data matrix
+
+```{r}
+# cn
+cn.model <- 'CollectNar =~ cn_1 + cn_2 + cn_3 + cn_4 + cn_5'
+
+# fit the model
+
+fit <- cfa(cn.model, data = US_data, estimator = "ML")
+
+# Check the results, quick check with "User Model versus
+# Baseline Model," which should have values above 0.9 or
+# possibly 0.95
+
+fit %>% summary(fit.measures = TRUE)
+
+# xeno
+
+xeno.model <- 'Xenophobia =~ xeno_1 + xeno_2 + xeno_3 + xeno_4 + 
+xeno_5 + xeno_6'
+
+# fit the model
+
+fit <- cfa(xeno.model, data = US_data, estimator = "MLR")
+
+# Check the results, quick check with "User Model versus
+# Baseline Model," which should have values above 0.9 or
+# possibly 0.95
+
+fit %>% summary(fit.measures = TRUE)
+
+# secident is multidimensional
+
+sec.model <- 'satisfac =~ secident_4 + secident_5 + secident_6 + secident_7 
+              solidar =~ secident_1 + secident_2 + secident_3 
+              central  =~ secident_8 + secident_9 + secident_10'
+
 ```
 
