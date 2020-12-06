@@ -15,6 +15,7 @@ library(dplyr)
 library(remotes)
 library(Routliers) # outlier detection
 library(psych) # normality, reliability
+library(lavaan)
 
 # dataset
 data <- here::here("data/US_data.csv")
@@ -376,6 +377,74 @@ scoreItems(key, US_data)
 US_data %>%
   select(5:9) %>%
   psych::alpha()
+
+# cronbach´s alpha for cn = 0.84
+
+
+# secident
+key <- list(
+  secident = c("secident_1", "secident_2", "secident_3", "secident_4", "secident_5", "secident_6", "secident_7", "secident_8", "secident_9", "secident_10")
+)
+
+# Cronbach´s alpha
+scoreItems(key, US_data)
+
+# Reliability if item is dropped (--> raw alpha)
+
+US_data %>%
+  select(16:25) %>%
+  psych::alpha()
+
+# cronbach´s alpha for secident = 0.96
+
+# xeno
+key <- list(
+  xeno = c("xeno_1", "xeno_2", "xeno_3", "xeno_4", "xeno_5", "xeno_6")
+)
+
+# Cronbach´s alpha
+scoreItems(key, US_data)
+
+# Reliability if item is dropped (--> raw alpha)
+
+US_data %>%
+  select(10:15) %>%
+  psych::alpha()
+
+# cronbach´s alpha for xeno = 0.71
+
+# joy
+key <- list(
+  joy = c("joy_1", "joy_2")
+)
+
+# Cronbach´s alpha
+scoreItems(key, US_data)
+
+# Reliability if item is dropped (--> raw alpha)
+
+US_data %>%
+  select(35:36) %>%
+  psych::alpha()
+
+# cronbach´s alpha for joy = 0.81
+
+# eff
+key <- list(
+  eff = c("eff_1", "eff_2")
+)
+
+# Cronbach´s alpha
+scoreItems(key, US_data)
+
+# Reliability if item is dropped (--> raw alpha)
+
+US_data %>%
+  select(37:38) %>%
+  psych::alpha()
+
+# cronbach´s alpha for eff = 0.81
+
 ```
 
 # normality test for those items, a normal distribution is expected (use ML estimation, for those items no normal distribution is expected (xenophobia), use MLR in CFA
@@ -391,19 +460,19 @@ US_data %>%
 # validity (CFA) based on items that were chosen to be kept
 # data has to be data matrix
 
-```{r}
+```{r, cfa, include=TRUE}
 # cn
 cn.model <- 'CollectNar =~ cn_1 + cn_2 + cn_3 + cn_4 + cn_5'
 
 # fit the model
 
-fit <- cfa(cn.model, data = US_data, estimator = "ML")
+fit_cn <- cfa(cn.model, data = US_data, estimator = "ML")
 
 # Check the results, quick check with "User Model versus
 # Baseline Model," which should have values above 0.9 or
 # possibly 0.95
 
-fit %>% summary(fit.measures = TRUE)
+fit_cn %>% summary(fit.measures = TRUE)
 
 # xeno
 
@@ -412,13 +481,13 @@ xeno_5 + xeno_6'
 
 # fit the model
 
-fit <- cfa(xeno.model, data = US_data, estimator = "MLR")
+fit_xeno <- cfa(xeno.model, data = US_data, estimator = "MLR")
 
 # Check the results, quick check with "User Model versus
 # Baseline Model," which should have values above 0.9 or
 # possibly 0.95
 
-fit %>% summary(fit.measures = TRUE)
+fit_xeno %>% summary(fit.measures = TRUE)
 
 # secident is multidimensional
 
