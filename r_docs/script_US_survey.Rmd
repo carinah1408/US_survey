@@ -16,6 +16,7 @@ library(remotes)
 library(Routliers) # outlier detection
 library(psych) # normality, reliability
 library(lavaan)
+library(ggplot2)
 
 # dataset
 data <- here::here("data/US_data.csv")
@@ -73,7 +74,8 @@ box_eff_2 <- boxplot(US_data$eff_2)
 ```{r histograms, include=TRUE}
 # cn 
 ggplot(US_data, aes(x=cn_1))+
-  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "CN", y = "Frequency")
 
 ggplot(US_data, aes(x=cn_2))+
   stat_bin(colour="black",fill="darkgreen", geom = "bar")
@@ -518,7 +520,9 @@ US_data1 <- US_data %>%
 # descriptive statistics
 
 ```{r, frequencies}
-
+US_data %>% 
+  select(vote) %>%
+  table()
 ```
 
 ```{r, continous, grouped}
