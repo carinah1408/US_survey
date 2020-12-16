@@ -7,18 +7,18 @@ output: html_document
 
 ```{r setup, include=TRUE}
 knitr::opts_chunk$set(echo = TRUE)
-# packages
+# packages ####
 library(here) # find relative path
 library(readr) # read dataset
 library(tidyverse) 
 library(dplyr) 
-library(remotes)
+library(remotes) 
 library(Routliers) # outlier detection
 library(psych) # normality, reliability
-library(lavaan)
-library(ggplot2)
+library(lavaan) # CFA
+library(ggplot2) # graphs
 
-# dataset
+# dataset ####
 data <- here::here("data/US_data.csv")
 US_data <- readr::read_csv(data) %>%
   as_tibble() 
@@ -27,87 +27,113 @@ US_data$vote <- factor(US_data$vote)
 US_data$unexp <- factor(US_data$unexp)
 ```
 
-# Data inspection
+# Data inspection ####
 
+# boxplots 
 ```{r boxplots, include=TRUE}
 
 # cn
-box_cn_1 <- boxplot(US_data$cn_1)
-box_cn_2 <- boxplot (US_data$cn_2)
-box_cn_3 <- boxplot(US_data$cn_3)
-box_cn_4 <- boxplot(US_data$cn_4)
-box_cn_5 <- boxplot(US_data$cn_5)
+box_cn_1 <- boxplot(US_data$cn_1) # "American people deserve special treatment."
 # 1 outlier in cn_1
 
+box_cn_2 <- boxplot (US_data$cn_2) # "I will never be satisfied until American people get all they deserve."
+box_cn_3 <- boxplot(US_data$cn_3) # "It really makes me angry when others criticize American people."
+box_cn_4 <- boxplot(US_data$cn_4) # "If American people had a major say in the world, the world would be a much better place."
+box_cn_5 <- boxplot(US_data$cn_5) # "Not many people seem to fully understand the importance of American people."
+
+
+
 # secident
-box_secident_1 <- boxplot(US_data$secident_1)
-box_secident_2 <- boxplot(US_data$secident_2)
-box_secident_3 <- boxplot(US_data$secident_3)
-box_secident_4 <- boxplot(US_data$secident_4)
-box_secident_5 <- boxplot(US_data$secident_5)
-box_secident_6 <- boxplot(US_data$secident_6)
-box_secident_7 <- boxplot(US_data$secident_7)
-box_secident_8 <- boxplot(US_data$secident_8)
-box_secident_9 <- boxplot(US_data$secident_9)
-box_secident_10 <- boxplot(US_data$secident_10)
-# Striking is that items secident _7 to _10 show the same boxplot. I checked the raw data to make sure that the values were not accidently doublicated and copy-pasted but the items are unique in values, yet similar to each other in expression. Potentially colinear?
+box_secident_1 <- boxplot(US_data$secident_1) # "I feel a bond with Americans."
+box_secident_2 <- boxplot(US_data$secident_2) # "I feel solidarity with Americans."
+box_secident_3 <- boxplot(US_data$secident_3) # "I feel committed to Americans."
+box_secident_4 <- boxplot(US_data$secident_4) # "I am glad to be American."
+box_secident_5 <- boxplot(US_data$secident_5) # "I think that Americans have a lot to be proud of."
+box_secident_6 <- boxplot(US_data$secident_6) # "It is pleasant to be American."
+box_secident_7 <- boxplot(US_data$secident_7) # "Being American gives me a good feeling."
+box_secident_8 <- boxplot(US_data$secident_8) # "I often think about the fact that I am American."
+box_secident_9 <- boxplot(US_data$secident_9) # "The fact that I am American is an important part of my identity."
+box_secident_10 <- boxplot(US_data$secident_10) # "Being American is an important part of how I see myself."
+# Striking is that items secident _7 to _10 show the same boxplot. I checked the raw data to make sure that the values were not accidently doublicated and copy-pasted but the items are unique in values, yet similar to each other in expression. Potentially colinear? ####
 
 # xeno
-box_xeno_1 <- boxplot(US_data$xeno_1)
-box_xeno_2 <- boxplot(US_data$xeno_2)
-box_xeno_3 <- boxplot(US_data$xeno_3)
-box_xeno_4 <- boxplot(US_data$xeno_4)
-box_xeno_5 <- boxplot(US_data$xeno_5)
-box_xeno_6 <- boxplot(US_data$xeno_6)
-# 1 outlier in xeno_1, 1 in xeno_2, 3 in xeno_3
+box_xeno_1 <- boxplot(US_data$xeno_1) # "It would be ok for me if my child married a person of color."
+box_xeno_2 <- boxplot(US_data$xeno_2) # "It would be ok for me if my child married a person that immigrated to America."
+box_xeno_3 <- boxplot(US_data$xeno_3) # "To be truly American you have to be White."
+box_xeno_4 <- boxplot(US_data$xeno_4) # "America has benefited from diversity."
+box_xeno_5 <- boxplot(US_data$xeno_5) # "When I think about the Black Lives Matter movement, I think that all lives matter."
+box_xeno_6 <- boxplot(US_data$xeno_6) # "I support the Black Lives Matter movement."
+# 1 outlier in xeno_1, 1 in xeno_2, 3 in xeno_3 ####
 
 # joy
-box_joy_1 <- boxplot(US_data$joy_1)
-box_joy_2 <- boxplot(US_data$joy_2)
+box_joy_1 <- boxplot(US_data$joy_1) # "The US presidential election 2020 makes me feel joyful."
+box_joy_2 <- boxplot(US_data$joy_2) # "The US presidential election 2020 makes me feel excited."
 
 # eff
-box_eff_1 <- boxplot(US_data$eff_1)
-box_eff_2 <- boxplot(US_data$eff_2)
+box_eff_1 <- boxplot(US_data$eff_1) # "Thinking about the US presidential election 2020, I believe that we Americans can change society."
+box_eff_2 <- boxplot(US_data$eff_2) # "Thinking about the US presidential election 2020, I believe that we Americans can realize our values."
 # 1 outlier in eff_1
 ```
 
+# histogram
 ```{r histograms, include=TRUE}
 # cn 
 ggplot(US_data, aes(x=cn_1))+
   stat_bin(colour="grey",fill="steelblue", geom = "bar") +
-  labs(x = "CN", y = "Frequency")
+  labs(x = "CN_1", y = "Frequency") +
+  theme_light()
 
 ggplot(US_data, aes(x=cn_2))+
-  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "CN_2", y = "Frequency") +
+  theme_light()
 
 ggplot(US_data, aes(x=cn_3))+
-  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "CN_3", y = "Frequency") +
+  theme_light()
 
 ggplot(US_data, aes(x=cn_4))+
-  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "CN_4", y = "Frequency") +
+  theme_light()
 
 ggplot(US_data, aes(x=cn_5))+
-  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "CN_5", y = "Frequency") +
+  theme_light()
 
 
 # xeno 
 ggplot(US_data, aes(x=xeno_1))+
-  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Xeno_1", y = "Frequency") +
+  theme_light()
 
 ggplot(US_data, aes(x=xeno_2))+
-  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Xeno_2", y = "Frequency") +
+  theme_light()
 
 ggplot(US_data, aes(x=xeno_3))+
-  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Xeno_3", y = "Frequency") +
+  theme_light()
 
 ggplot(US_data, aes(x=xeno_4))+
-  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Xeno_4", y = "Frequency") +
+  theme_light()
 
 ggplot(US_data, aes(x=xeno_5))+
-  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Xeno_5", y = "Frequency") +
+  theme_light()
 
 ggplot(US_data, aes(x=xeno_6))+
-  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Xeno_6", y = "Frequency") +
+  theme_light()
 
 
 # secident
@@ -327,7 +353,7 @@ ggplot(US_data, aes(x=eff_2, fill=time))+
   geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
 ```
 
-
+# outlier detection
 ```{r outlier detection using MAD, include = TRUE}
 
 # cn
@@ -347,7 +373,7 @@ xeno <- rowMeans(US_data[, c("xeno_1", "xeno_2", "xeno_3", "xeno_4", "xeno_5", "
 xeno_mad <- outliers_mad(x = xeno)
 xeno_mad
 plot_outliers_mad(xeno_mad, x = xeno, pos_display = TRUE)
-# 6 outliers detected: the value of 2.8926 was compared with the median of xeno_1 - xeno_6 in dataset and the following ids were identified as > 2.8926: p090 (t1), p189, p192 (t2), p196
+# 6 outliers detected: the value of 2.8926 was compared with the median of xeno_1 - xeno_6 in dataset and the following ids were identified as > 2.8926: p090 (t1), p189, p192 (t2), p196 ####
 
 # joy
 joy <- rowMeans(US_data[, c("joy_1", "joy_2")])
@@ -363,7 +389,7 @@ eff_mad
 ```
 
 
-# reliability (internal consistency)
+# reliability (internal consistency) 
 
 ```{r, reliability, include=TRUE}
 # cn
