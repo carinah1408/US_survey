@@ -26,10 +26,11 @@ US_data <- readr::read_csv(data) %>%
   as_tibble() 
 US_data$time <- factor(US_data$time)
 US_data$vote <- factor(US_data$vote)
-US_data %>%
-  mutate(vote=recode(vote, 
-                     "1" = "Democrats",
-                     "2" = "Republicans"))
+US_data <- US_data %>%
+  mutate(vote = case_when(
+  vote=='1' ~ 'Democrats',
+  vote=='2' ~ 'Republicans',
+  TRUE ~ 'Other'))
 US_data$unexp <- factor(US_data$unexp)
 ```
 
@@ -794,8 +795,42 @@ US_data %>%
 # action required if skewness > 2, kurtosis > 7, multivariate kurtosis (Mardia´s coefficient) > 3
 # psych package: describe() --> skew and kurtosis, mardia ()
 
-```{r}
+```{r, normality, include=TRUE}
+# cn 
+describe(US_data$cn_1)
+describe(US_data$cn_2)
+describe(US_data$cn_3)
+describe(US_data$cn_4)
+describe(US_data$cn_5)
 
+# secident
+describe(US_data$secident_1)
+describe(US_data$secident_2)
+describe(US_data$secident_3)
+describe(US_data$secident_4)
+describe(US_data$secident_5)
+describe(US_data$secident_6)
+describe(US_data$secident_7)
+describe(US_data$secident_8)
+describe(US_data$secident_9)
+describe(US_data$secident_10)
+
+# xeno
+describe(US_data$xeno_1)
+describe(US_data$xeno_2)
+describe(US_data$xeno_3)
+describe(US_data$xeno_4)
+describe(US_data$xeno_5)
+describe(US_data$xeno_6)
+# xeno_3 shows issues: use MLR in estimation since non-normality is excepted here
+
+# joy
+describe(US_data$joy_1)
+describe(US_data$joy_2)
+
+# eff
+describe(US_data$eff_1)
+describe(US_data$joy_2)
 ```
 
 
