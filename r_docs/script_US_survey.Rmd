@@ -19,6 +19,7 @@ library(lavaan) # CFA
 library(ggplot2) # graphs
 library(car)
 library(forcats)
+library(MVN) # assumption check CFA
 
 # dataset ####
 data <- here::here("data/US_data.csv")
@@ -718,7 +719,7 @@ scoreItems(key, US_data)
 # Reliability if item is dropped (--> raw alpha)
 
 US_data %>%
-  select(5:9) %>%
+  dplyr::select(5:9) %>%
   psych::alpha()
 
 # cronbach´s alpha for cn = 0.84
@@ -736,7 +737,7 @@ scoreItems(key, US_data)
 # Reliability if item is dropped (--> raw alpha)
 
 US_data %>%
-  select(16:25) %>%
+  dplyr::select(16:25) %>%
   psych::alpha()
 
 # cronbach´s alpha for secident = 0.96
@@ -752,14 +753,12 @@ scoreItems(key, US_data)
 # Reliability if item is dropped (--> raw alpha)
 
 US_data %>%
-  select(10:15) %>%
+  dplyr::select(10:15) %>%
   psych::alpha()
 
-# cronbach´s alpha for xeno = 0.71
-
-# joy
+# xeno without xeno_5
 key <- list(
-  joy = c("joy_1", "joy_2")
+  xeno_1 = c("xeno_1", "xeno_2", "xeno_3", "xeno_4", "xeno_6")
 )
 
 # Cronbach´s alpha
@@ -768,26 +767,21 @@ scoreItems(key, US_data)
 # Reliability if item is dropped (--> raw alpha)
 
 US_data %>%
-  select(35:36) %>%
+  dplyr::select(10, 11, 12, 13, 15) %>%
   psych::alpha()
 
-# cronbach´s alpha for joy = 0.81
 
-# eff
-key <- list(
-  eff = c("eff_1", "eff_2")
-)
+# cronbach´s alpha for xeno without xeno_5 = 0.71
 
-# Cronbach´s alpha
-scoreItems(key, US_data)
+# joy (Spearman-Brown statistic)
+cor.test(US_data$joy_1, US_data$joy_2,
+         method = "spearman")
+# Spearman rho = .69
 
-# Reliability if item is dropped (--> raw alpha)
-
-US_data %>%
-  select(37:38) %>%
-  psych::alpha()
-
-# cronbach´s alpha for eff = 0.81
+# eff (Spearman-Brown statistic)
+cor.test(US_data$eff_1, US_data$eff_2,
+         method = "spearman")
+# Spearman rho = .65
 ```
 
 # normality test for those items, a normal distribution is expected (use ML estimation, for those items no normal distribution is expected (xenophobia), use MLR in CFA
@@ -838,41 +832,75 @@ describe(US_data$joy_2)
 # data has to be data matrix
 
 ```{r, cfa, include=TRUE}
-# cn
-cn.model <- 'CollectNar =~ cn_1 + cn_2 + cn_3 + cn_4 + cn_5'
-
-# fit the model
-
-fit_cn <- cfa(cn.model, data = US_data, estimator = "ML")
-
 # Check the results, quick check with "User Model versus
 # Baseline Model," which should have values above 0.9 or
 # possibly 0.95
+
+# cn
+cn.model <- 'CollectNar =~ cn_1 + cn_2 + cn_3 + cn_4 + cn_5'
+
+fit_cn <- cfa(cn.model, data = US_data, estimator = "ML")
 
 fit_cn %>% summary(fit.measures = TRUE)
 
 # xeno
 
-xeno.model <- 'Xenophobia =~ xeno_1 + xeno_2 + xeno_3 + xeno_4 + 
-xeno_5 + xeno_6'
-
-# fit the model
+xeno.model <- 'Xenophobia =~ xeno_1 + xeno_2 + xeno_3 + xeno_4 + xeno_5 +
+xeno_6'
 
 fit_xeno <- cfa(xeno.model, data = US_data, estimator = "MLR")
 
-# Check the results, quick check with "User Model versus
-# Baseline Model," which should have values above 0.9 or
-# possibly 0.95
-
 fit_xeno %>% summary(fit.measures = TRUE)
+
+# xeno without xeno_5
+
+xeno.model2 <- 'Xenophobia =~ xeno_1 + xeno_2 + xeno_3 + xeno_4 +
+xeno_6'
+
+fit_xeno2 <- cfa(xeno.model2, data = US_data, estimator = "MLR")
+
+fit_xeno2 %>% summary(fit.measures = TRUE)
 
 # secident is multidimensional
 
 sec.model <- 'satisfac =~ secident_4 + secident_5 + secident_6 + secident_7 
               solidar =~ secident_1 + secident_2 + secident_3 
               central  =~ secident_8 + secident_9 + secident_10'
+
 fit_secident <- cfa(sec.model, data = US_data, estimator = "ML")
+
 fit_secident %>% summary(fit.measures = TRUE)
+
+# joy
+
+joy.model <- 'Joy at Success =~ a*joy_1 + a*joy_2'
+
+fit_joy <- cfa(joy.model, data = US_data, estimator = "ML", std.lv = TRUE)
+
+fit_joy %>% summary(fit.measures = TRUE)
+
+# --> fit of model is not accessible due to two-item construction
+
+# eff
+
+eff.model <- 'Group efficacy =~ a*eff_1 + a*eff_2'
+
+fit_eff <- cfa(eff.model, data = US_data, estimator = "ML", std.lv = TRUE)
+
+fit_eff %>% summary(fit.measures = TRUE)
+
+# --> fit of model is not accessible due to two-item construction
+
+# empowerment
+
+emp.model <- 'Empowerment =~ joy_1 + joy_2 + eff_1 + eff_2'
+
+fit_emp <- cfa(emp.model, data = US_data, estimator = "ML")
+
+fit_emp %>% summary(fit.measures = TRUE)
+
+# --> overall empowerment shows low construct validity (.82)
+
 ```
 
 # creating new variables (cn, secident, xeno, joy & eff)
