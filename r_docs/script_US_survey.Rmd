@@ -17,6 +17,8 @@ library(Routliers) # outlier detection
 library(psych) # normality, reliability
 library(lavaan) # CFA
 library(ggplot2) # graphs
+library(car)
+library(forcats)
 
 # dataset ####
 data <- here::here("data/US_data.csv")
@@ -24,6 +26,10 @@ US_data <- readr::read_csv(data) %>%
   as_tibble() 
 US_data$time <- factor(US_data$time)
 US_data$vote <- factor(US_data$vote)
+US_data %>%
+  mutate(vote=recode(vote, 
+                     "1" = "Democrats",
+                     "2" = "Republicans"))
 US_data$unexp <- factor(US_data$unexp)
 ```
 
@@ -32,7 +38,8 @@ US_data$unexp <- factor(US_data$unexp)
 # boxplots 
 ```{r boxplots, include=TRUE}
 
-# cn
+# cn; 1 = strongly disagree - 7 = strongly agree
+
 box_cn_1 <- boxplot(US_data$cn_1) # "American people deserve special treatment."
 # 1 outlier in cn_1
 
@@ -41,9 +48,8 @@ box_cn_3 <- boxplot(US_data$cn_3) # "It really makes me angry when others critic
 box_cn_4 <- boxplot(US_data$cn_4) # "If American people had a major say in the world, the world would be a much better place."
 box_cn_5 <- boxplot(US_data$cn_5) # "Not many people seem to fully understand the importance of American people."
 
+# secident; 1 = strongly disagree - 7 = strongly agree
 
-
-# secident
 box_secident_1 <- boxplot(US_data$secident_1) # "I feel a bond with Americans."
 box_secident_2 <- boxplot(US_data$secident_2) # "I feel solidarity with Americans."
 box_secident_3 <- boxplot(US_data$secident_3) # "I feel committed to Americans."
@@ -56,7 +62,8 @@ box_secident_9 <- boxplot(US_data$secident_9) # "The fact that I am American is 
 box_secident_10 <- boxplot(US_data$secident_10) # "Being American is an important part of how I see myself."
 # Striking is that items secident _7 to _10 show the same boxplot. I checked the raw data to make sure that the values were not accidently doublicated and copy-pasted but the items are unique in values, yet similar to each other in expression. Potentially colinear? ####
 
-# xeno
+# xeno; 1 = "strongly disagree
+
 box_xeno_1 <- boxplot(US_data$xeno_1) # "It would be ok for me if my child married a person of color."
 box_xeno_2 <- boxplot(US_data$xeno_2) # "It would be ok for me if my child married a person that immigrated to America."
 box_xeno_3 <- boxplot(US_data$xeno_3) # "To be truly American you have to be White."
@@ -65,11 +72,13 @@ box_xeno_5 <- boxplot(US_data$xeno_5) # "When I think about the Black Lives Matt
 box_xeno_6 <- boxplot(US_data$xeno_6) # "I support the Black Lives Matter movement."
 # 1 outlier in xeno_1, 1 in xeno_2, 3 in xeno_3 ####
 
-# joy
+# joy; 1 = strongly disagree - 7 = strongly agree
+
 box_joy_1 <- boxplot(US_data$joy_1) # "The US presidential election 2020 makes me feel joyful."
 box_joy_2 <- boxplot(US_data$joy_2) # "The US presidential election 2020 makes me feel excited."
 
-# eff
+# eff; 1 = strongly disagree - 7 = strongly disagree
+
 box_eff_1 <- boxplot(US_data$eff_1) # "Thinking about the US presidential election 2020, I believe that we Americans can change society."
 box_eff_2 <- boxplot(US_data$eff_2) # "Thinking about the US presidential election 2020, I believe that we Americans can realize our values."
 # 1 outlier in eff_1
@@ -80,277 +89,582 @@ box_eff_2 <- boxplot(US_data$eff_2) # "Thinking about the US presidential electi
 # cn 
 ggplot(US_data, aes(x=cn_1))+
   stat_bin(colour="grey",fill="steelblue", geom = "bar") +
-  labs(x = "CN_1", y = "Frequency") +
+  labs(x = "I will never be satisfied until American people get all they deserve.", y = "Frequency") +
   theme_light()
 
 ggplot(US_data, aes(x=cn_2))+
   stat_bin(colour="grey",fill="steelblue", geom = "bar") +
-  labs(x = "CN_2", y = "Frequency") +
+  labs(x = "I will never be satisfied until American people get all they deserve.", y = "Frequency") +
   theme_light()
 
 ggplot(US_data, aes(x=cn_3))+
   stat_bin(colour="grey",fill="steelblue", geom = "bar") +
-  labs(x = "CN_3", y = "Frequency") +
+  labs(x = "It really makes me angry when others criticize American people.", y = "Frequency") +
   theme_light()
 
 ggplot(US_data, aes(x=cn_4))+
   stat_bin(colour="grey",fill="steelblue", geom = "bar") +
-  labs(x = "CN_4", y = "Frequency") +
+  labs(x = "If American people had a major say in the world, the world would be a much better place.", y = "Frequency") +
   theme_light()
 
 ggplot(US_data, aes(x=cn_5))+
   stat_bin(colour="grey",fill="steelblue", geom = "bar") +
-  labs(x = "CN_5", y = "Frequency") +
+  labs(x = "Not many people seem to fully understand the importance of American people.", y = "Frequency") +
   theme_light()
 
 
 # xeno 
 ggplot(US_data, aes(x=xeno_1))+
   stat_bin(colour="grey",fill="steelblue", geom = "bar") +
-  labs(x = "Xeno_1", y = "Frequency") +
+  labs(x = "rev_It would be ok for me if my child married a person of color.", y = "Frequency") +
   theme_light()
 
 ggplot(US_data, aes(x=xeno_2))+
   stat_bin(colour="grey",fill="steelblue", geom = "bar") +
-  labs(x = "Xeno_2", y = "Frequency") +
+  labs(x = "rev_It would be ok for me if my child married a person that immigrated to America.", y = "Frequency") +
   theme_light()
 
 ggplot(US_data, aes(x=xeno_3))+
   stat_bin(colour="grey",fill="steelblue", geom = "bar") +
-  labs(x = "Xeno_3", y = "Frequency") +
+  labs(x = "To be truly American you have to be White.", y = "Frequency") +
   theme_light()
 
 ggplot(US_data, aes(x=xeno_4))+
   stat_bin(colour="grey",fill="steelblue", geom = "bar") +
-  labs(x = "Xeno_4", y = "Frequency") +
+  labs(x = "rev_America has benefited from diversity.", y = "Frequency") +
   theme_light()
 
 ggplot(US_data, aes(x=xeno_5))+
   stat_bin(colour="grey",fill="steelblue", geom = "bar") +
-  labs(x = "Xeno_5", y = "Frequency") +
+  labs(x = "When I think about the Black Lives Matter movement, I think that all lives matter.", y = "Frequency") +
   theme_light()
+# potentially problematic wording!
 
 ggplot(US_data, aes(x=xeno_6))+
   stat_bin(colour="grey",fill="steelblue", geom = "bar") +
-  labs(x = "Xeno_6", y = "Frequency") +
+  labs(x = "rev_I support the Black Lives Matter movement.", y = "Frequency") +
   theme_light()
 
 
 # secident
 ggplot(US_data, aes(x=secident_1))+
-  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "I feel a bond with Americans.", y = "Frequency") +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_2))+
-  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "I feel solidarity with Americans.", y = "Frequency") +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_3))+
-  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "I feel committed to Americans.", y = "Frequency") +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_4))+
-  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "I am glad to be American.", y = "Frequency") +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_5))+
-  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "I think that Americans have a lot to be proud of.", y = "Frequency") +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_6))+
-  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "It is pleasant to be American.", y = "Frequency") +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_7))+
-  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Being American gives me a good feeling.", y = "Frequency") +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_8))+
-  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "I often think about the fact that I am American.", y = "Frequency") +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_9))+
-  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "The fact that I am American is an important part of my identity.", y = "Frequency") +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_10))+
-  stat_bin(colour="black",fill="darkgreen", geom = "bar")
-
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Being American is an important part of how I see myself.", y = "Frequency") +
+  theme_light()
 
 # joy
 ggplot(US_data, aes(x=joy_1))+
-  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "The US presidential election 2020 makes me feel joyful.", y = "Frequency") +
+  theme_light()
 
 ggplot(US_data, aes(x=joy_2))+
-  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "The US presidential election 2020 makes me feel excited.", y = "Frequency") +
+  theme_light()
 
 
 # eff
 ggplot(US_data, aes(x=eff_1))+
-  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Thinking about the US presidential election 2020, I believe that we Americans can change society.", y = "Frequency") +
+  theme_light()
 
 ggplot(US_data, aes(x=eff_2))+
-  stat_bin(colour="black",fill="darkgreen", geom = "bar")
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Thinking about the US presidential election 2020, I believe that we Americans can realize our values.", y = "Frequency") +
+  theme_light()
 ```
 
 ```{r histograms by group, include=TRUE}
 
 # cn by vote
 ggplot(US_data, aes(x=cn_1, fill=vote))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "American people deserve special treatment.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
 
 ggplot(US_data, aes(x=cn_2, fill=vote))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I will never be satisfied until American people get all they deserve.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
 
 ggplot(US_data, aes(x=cn_3, fill=vote))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "It really makes me angry when others criticize American people.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
 
 ggplot(US_data, aes(x=cn_4, fill=vote))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "If American people had a major say in the world, the world would be a much better place.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
 
 ggplot(US_data, aes(x=cn_5, fill=vote))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Not many people seem to fully understand the importance of American people.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
 
 # cn by time
 ggplot(US_data, aes(x=cn_1, fill=time))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "American people deserve special treatment.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
 
 ggplot(US_data, aes(x=cn_2, fill=time))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I will never be satisfied until American people get all they deserve.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
 
 ggplot(US_data, aes(x=cn_3, fill=time))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "It really makes me angry when others criticize American people.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
 
 ggplot(US_data, aes(x=cn_4, fill=time))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "If American people had a major say in the world, the world would be a much better place.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
 
 ggplot(US_data, aes(x=cn_5, fill=time))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Not many people seem to fully understand the importance of American people.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
 
 # xeno by vote
 ggplot(US_data, aes(x=xeno_1, fill=vote))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "rev_It would be ok for me if my child married a person of color.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
 
 ggplot(US_data, aes(x=xeno_2, fill=vote))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "rev_It would be ok for me if my child married a person that immigrated to America.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
 
 ggplot(US_data, aes(x=xeno_3, fill=vote))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "To be truly American you have to be White.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
 
 ggplot(US_data, aes(x=xeno_4, fill=vote))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "rev_America has benefited from diversity.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
 
 ggplot(US_data, aes(x=xeno_5, fill=vote))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "When I think about the Black Lives Matter movement, I think that all lives matter.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
 
 ggplot(US_data, aes(x=xeno_6, fill=vote))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "rev_I support the Black Lives Matter movement.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
 
 
 # xeno by time
 ggplot(US_data, aes(x=xeno_1, fill=time))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "rev_It would be ok for me if my child married a person of color.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
 
 ggplot(US_data, aes(x=xeno_2, fill=time))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "rev_It would be ok for me if my child married a person that immigrated to America.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
 
 ggplot(US_data, aes(x=xeno_3, fill=time))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "To be truly American you have to be White.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
 
 ggplot(US_data, aes(x=xeno_4, fill=time))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "rev_America has benefited from diversity.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
 
 ggplot(US_data, aes(x=xeno_5, fill=time))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "When I think about the Black Lives Matter movement, I think that all lives matter.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
 
 ggplot(US_data, aes(x=xeno_6, fill=time))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "rev_I support the Black Lives Matter movement.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
 
 
 # secident by vote
 ggplot(US_data, aes(x=secident_1, fill=vote))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I feel a bond with Americans.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_2, fill=vote))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I feel solidarity with Americans.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_3, fill=vote))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I feel committed to Americans.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_4, fill=vote))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I am glad to be American.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_5, fill=vote))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I think that Americans have a lot to be proud of.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_6, fill=vote))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "It is pleasant to be American.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_7, fill=vote))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Being American gives me a good feeling.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_8, fill=vote))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I often think about the fact that I am American.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_9, fill=vote))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "The fact that I am American is an important part of my identity.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_10, fill=vote))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Being American is an important part of how I see myself.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
 
 
 # secident by time
 ggplot(US_data, aes(x=secident_1, fill=time))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I feel a bond with Americans.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_2, fill=time))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I feel solidarity with Americans.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_3, fill=time))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I feel committed to Americans.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_4, fill=time))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I am glad to be American.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_5, fill=time))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I think that Americans have a lot to be proud of.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_6, fill=time))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "It is pleasant to be American.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_7, fill=time))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Being American gives me a good feeling.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_8, fill=time))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I often think about the fact that I am American.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_9, fill=time))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "The fact that I am American is an important part of my identity.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
 
 ggplot(US_data, aes(x=secident_10, fill=time))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Being American is an important part of how I see myself.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
 
 
 # joy by vote
-ggplot(US_data, aes(x=joy_1, fill= vote))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+ggplot(US_data, aes(x=joy_1, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "The US presidential election 2020 makes me feel joyful.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
 
 ggplot(US_data, aes(x=joy_2, fill=vote))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "The US presidential election 2020 makes me feel excited.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
 
 
 # joy by time
 ggplot(US_data, aes(x=joy_1, fill=time))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "The US presidential election 2020 makes me feel joyful.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
 
 ggplot(US_data, aes(x=joy_2, fill=time))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "The US presidential election 2020 makes me feel excited.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
 
 
 # eff by vote
 ggplot(US_data, aes(x=eff_1, fill=vote))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Thinking about the US presidential election 2020, I believe that we Americans can change society.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
 
 ggplot(US_data, aes(x=eff_2, fill=vote))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Thinking about the US presidential election 2020, I believe that we Americans can realize our values.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
 
 # eff by time
 ggplot(US_data, aes(x=eff_1, fill=time))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Thinking about the US presidential election 2020, I believe that we Americans can change society.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
 
 ggplot(US_data, aes(x=eff_2, fill=time))+
-  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity")
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Thinking about the US presidential election 2020, I believe that we Americans can realize our values.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
 ```
 
 # outlier detection
