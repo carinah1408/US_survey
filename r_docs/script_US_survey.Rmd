@@ -10,29 +10,29 @@ knitr::opts_chunk$set(echo = TRUE)
 # packages ####
 library(here) # find relative path
 library(readr) # read dataset
-library(tidyverse) 
-library(dplyr) 
-library(remotes) 
+library(tidyverse) # data wrangling
+library(dplyr) # data wrangling
+library(remotes) # for downloading packages not on CRAN
 library(Routliers) # outlier detection
 library(psych) # normality, reliability
 library(lavaan) # CFA
 library(ggplot2) # graphs
-library(car)
-library(forcats)
 library(MVN) # assumption check CFA
 
 # dataset ####
 data <- here::here("data/US_data.csv")
+
 US_data <- readr::read_csv(data) %>%
   as_tibble() 
+
 US_data$time <- factor(US_data$time)
+US_data$unexp <- factor(US_data$unexp)
 US_data$vote <- factor(US_data$vote)
 US_data <- US_data %>%
   mutate(vote = case_when(
   vote=='1' ~ 'Democrats',
   vote=='2' ~ 'Republicans',
   TRUE ~ 'Other'))
-US_data$unexp <- factor(US_data$unexp)
 ```
 
 # Data inspection ####
@@ -40,7 +40,7 @@ US_data$unexp <- factor(US_data$unexp)
 # boxplots 
 ```{r boxplots, include=TRUE}
 
-# cn; 1 = strongly disagree - 7 = strongly agree
+# cn
 
 box_cn_1 <- boxplot(US_data$cn_1) # "American people deserve special treatment."
 # 1 outlier in cn_1
@@ -50,7 +50,7 @@ box_cn_3 <- boxplot(US_data$cn_3) # "It really makes me angry when others critic
 box_cn_4 <- boxplot(US_data$cn_4) # "If American people had a major say in the world, the world would be a much better place."
 box_cn_5 <- boxplot(US_data$cn_5) # "Not many people seem to fully understand the importance of American people."
 
-# secident; 1 = strongly disagree - 7 = strongly agree
+# secident
 
 box_secident_1 <- boxplot(US_data$secident_1) # "I feel a bond with Americans."
 box_secident_2 <- boxplot(US_data$secident_2) # "I feel solidarity with Americans."
@@ -64,7 +64,7 @@ box_secident_9 <- boxplot(US_data$secident_9) # "The fact that I am American is 
 box_secident_10 <- boxplot(US_data$secident_10) # "Being American is an important part of how I see myself."
 # Striking is that items secident _7 to _10 show the same boxplot. I checked the raw data to make sure that the values were not accidently doublicated and copy-pasted but the items are unique in values, yet similar to each other in expression. Potentially colinear? ####
 
-# xeno; 1 = "strongly disagree
+# xeno
 
 box_xeno_1 <- boxplot(US_data$xeno_1) # "It would be ok for me if my child married a person of color."
 box_xeno_2 <- boxplot(US_data$xeno_2) # "It would be ok for me if my child married a person that immigrated to America."
@@ -74,12 +74,12 @@ box_xeno_5 <- boxplot(US_data$xeno_5) # "When I think about the Black Lives Matt
 box_xeno_6 <- boxplot(US_data$xeno_6) # "I support the Black Lives Matter movement."
 # 1 outlier in xeno_1, 1 in xeno_2, 3 in xeno_3 ####
 
-# joy; 1 = strongly disagree - 7 = strongly agree
+# joy
 
 box_joy_1 <- boxplot(US_data$joy_1) # "The US presidential election 2020 makes me feel joyful."
 box_joy_2 <- boxplot(US_data$joy_2) # "The US presidential election 2020 makes me feel excited."
 
-# eff; 1 = strongly disagree - 7 = strongly disagree
+# eff
 
 box_eff_1 <- boxplot(US_data$eff_1) # "Thinking about the US presidential election 2020, I believe that we Americans can change society."
 box_eff_2 <- boxplot(US_data$eff_2) # "Thinking about the US presidential election 2020, I believe that we Americans can realize our values."
@@ -313,6 +313,7 @@ ggplot(US_data, aes(x=cn_5, fill=time))+
   facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
   theme_light()
 
+
 # xeno by vote
 ggplot(US_data, aes(x=xeno_1, fill=vote))+
   geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
@@ -501,7 +502,6 @@ ggplot(US_data, aes(x=secident_10, fill=vote))+
   theme_light()
 
 
-
 # secident by time
 ggplot(US_data, aes(x=secident_1, fill=time))+
   geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
@@ -671,18 +671,16 @@ ggplot(US_data, aes(x=eff_2, fill=time))+
 
 # outlier detection
 ```{r outlier detection using MAD, include = TRUE}
-
 # cn
 cn <- rowMeans(US_data[, c("cn_1", "cn_2", "cn_3", "cn_4", "cn_5")])
 cn_mad <- outliers_mad(x = cn)
 cn_mad
-# no outliers detected
+
 
 # secident
 secident <- rowMeans(US_data[, c("secident_1", "secident_2", "secident_3", "secident_4", "secident_5", "secident_6", "secident_7", "secident_8", "secident_9", "secident_10")])
 secident_mad <- outliers_mad(x = secident)
 secident_mad
-# no outliers detected
 
 # xeno
 xeno <- rowMeans(US_data[, c("xeno_1", "xeno_2", "xeno_3", "xeno_4", "xeno_5", "xeno_6")])
@@ -695,19 +693,19 @@ plot_outliers_mad(xeno_mad, x = xeno, pos_display = TRUE)
 joy <- rowMeans(US_data[, c("joy_1", "joy_2")])
 joy_mad <- outliers_mad(x = joy)
 joy_mad
-# no outliers detected
+
 
 # eff
 eff <- rowMeans(US_data[, c("eff_1", "eff_2")])
 eff_mad <- outliers_mad(x = eff)
 eff_mad
-# no outliers detected
 ```
 
 
-# reliability (internal consistency) 
-
+# reliability (internal consistency and Spearman rho) 
 ```{r, reliability, include=TRUE}
+# Reliability if item is dropped (--> raw alpha)
+
 # cn
 key <- list(
   CN = c("cn_1", "cn_2", "cn_3", "cn_4", "cn_5")
@@ -715,8 +713,6 @@ key <- list(
 
 # Cronbach´s alpha
 scoreItems(key, US_data)
-
-# Reliability if item is dropped (--> raw alpha)
 
 US_data %>%
   dplyr::select(5:9) %>%
@@ -734,8 +730,6 @@ key <- list(
 # Cronbach´s alpha
 scoreItems(key, US_data)
 
-# Reliability if item is dropped (--> raw alpha)
-
 US_data %>%
   dplyr::select(16:25) %>%
   psych::alpha()
@@ -750,13 +744,11 @@ key <- list(
 # Cronbach´s alpha
 scoreItems(key, US_data)
 
-# Reliability if item is dropped (--> raw alpha)
-
 US_data %>%
   dplyr::select(10:15) %>%
   psych::alpha()
 
-# xeno without xeno_5
+# xeno without xeno_5 (CFA resulted in better values without xeno_5)
 key <- list(
   xeno_1 = c("xeno_1", "xeno_2", "xeno_3", "xeno_4", "xeno_6")
 )
@@ -764,14 +756,13 @@ key <- list(
 # Cronbach´s alpha
 scoreItems(key, US_data)
 
-# Reliability if item is dropped (--> raw alpha)
-
 US_data %>%
   dplyr::select(10, 11, 12, 13, 15) %>%
   psych::alpha()
 
 
 # cronbach´s alpha for xeno without xeno_5 = 0.71
+
 
 # joy (Spearman-Brown statistic)
 cor.test(US_data$joy_1, US_data$joy_2,
@@ -788,7 +779,6 @@ cor.test(US_data$eff_1, US_data$eff_2,
 
 # action required if skewness > 2, kurtosis > 7, multivariate kurtosis (Mardia´s coefficient) > 3
 # psych package: describe() --> skew and kurtosis, mardia ()
-
 ```{r, normality, include=TRUE}
 # cn 
 describe(US_data$cn_1)
@@ -830,7 +820,6 @@ describe(US_data$joy_2)
 
 # validity (CFA) based on items that were chosen to be kept
 # data has to be data matrix
-
 ```{r, cfa, include=TRUE}
 # Check the results, quick check with "User Model versus
 # Baseline Model," which should have values above 0.9 or
@@ -900,16 +889,15 @@ fit_emp <- cfa(emp.model, data = US_data, estimator = "ML")
 fit_emp %>% summary(fit.measures = TRUE)
 
 # --> overall empowerment shows low construct validity (.82)
-
 ```
 
 # creating new variables (cn, secident, xeno, joy & eff)
 ```{r, new variables, include=TRUE}
-US_data1 <- US_data %>%
+US_ <- US_data %>%
   mutate(cn = (cn_1 + cn_2 + cn_3 + cn_4 + cn_5)/5,
         secident = (secident_1 + secident_2 + secident_3 + secident_4 + secident_5 +
         secident_6 + secident_7 + secident_8 + secident_9 + secident_10)/10,
-        xeno = (xeno_1 + xeno_2 + xeno_3 + xeno_4 + xeno_5 + xeno_6)/6, # depending on cfa, not all items will be considered here
+        xeno = (xeno_1 + xeno_2 + xeno_3 + xeno_4 + xeno_6)/5, 
         joy = (joy_1 + joy_2)/2,
         eff = (eff_1 + eff_2)/2)
 ```
