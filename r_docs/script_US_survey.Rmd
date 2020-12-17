@@ -687,7 +687,7 @@ xeno <- rowMeans(US_data[, c("xeno_1", "xeno_2", "xeno_3", "xeno_4", "xeno_5", "
 xeno_mad <- outliers_mad(x = xeno)
 xeno_mad
 plot_outliers_mad(xeno_mad, x = xeno, pos_display = TRUE)
-# 6 outliers detected: the value of 2.8926 was compared with the median of xeno_1 - xeno_6 in dataset and the following ids were identified as > 2.8926: p090 (t1), p189, p192 (t2), p196 ####
+# 6 outliers detected: the value of 2.9826 was compared with the median of xeno_1 - xeno_6 in dataset and the following ids were identified as > 2.8926: p090 t1 (xeno_1 & xeno_2), p189 (xeno_1 & xeno_2), p192 t2 (xeno_2 & xeno_3), p196 (xeno_1, xeno_2, xeno_3) ####
 
 # joy
 joy <- rowMeans(US_data[, c("joy_1", "joy_2")])
@@ -881,27 +881,17 @@ resid(fit_cn, type = "standardized")
 # xeno
 
 xeno.cfa <- US_data %>%
-  dplyr::select(xeno_1, xeno_2, xeno_3, xeno_4, xeno_5, xeno_6) 
+  dplyr::filter(id != "p090" & id != "189" & id != "192" & id != "196") %>%
+  dplyr::select(xeno_1, xeno_2, xeno_3, xeno_4, xeno_5, xeno_6)
+  
 
-mardia(xeno.cfa, plot = TRUE)
+# 6 outliers detected: the value of 2.9826 was compared with the median of xeno_1 - xeno_6 in dataset and the following ids were identified as > 2.8926: p090 t1 (xeno_1 & xeno_2), p189 (xeno_1 & xeno_2), p192 t2 (xeno_2 & xeno_3), p196 (xeno_1, xeno_2, xeno_3) ####
 
-keep <- function(x) {
-(x >= mean(x) - 3*sd(x)) & 
-(x <= mean(x) + 3*sd(x))  
-}
-
-xeno.cfa_clean <- xeno.cfa %>%
-  filter(keep(xeno_1) &
-           keep(xeno_2) &
-           keep(xeno_3) &
-           keep(xeno_4) &
-           keep(xeno_5) &
-           keep(xeno_6))
 
 xeno.model <- 'Xenophobia =~ xeno_1 + xeno_2 + xeno_3 + xeno_4 + xeno_5 +
 xeno_6'
 
-fit_xeno <- cfa(xeno.model, data = xeno.cfa_clean, estimator = "MLR")
+fit_xeno <- cfa(xeno.model, data = xeno.cfa, estimator = "MLR")
 
 fit_xeno %>% summary(fit.measures = TRUE)
 
@@ -915,26 +905,13 @@ resid(fit_xeno, type = "standardized")
 # xeno without xeno_5
 
 xeno2.cfa <- US_data %>%
-  dplyr::select(xeno_1, xeno_2, xeno_3, xeno_4, xeno_6) 
-
-mardia(xeno2.cfa, plot = TRUE)
-
-keep <- function(x) {
-(x >= mean(x) - 3*sd(x)) & 
-(x <= mean(x) + 3*sd(x))  
-}
-
-xeno2.cfa_clean <- xeno2.cfa %>%
-  filter(keep(xeno_1) &
-           keep(xeno_2) &
-           keep(xeno_3) &
-           keep(xeno_4) &
-           keep(xeno_6))
-
-xeno.model2 <- 'Xenophobia =~ xeno_1 + xeno_2 + xeno_3 + xeno_4 +
+  dplyr::filter(id != "p090" & id != "189" & id != "192" & id != "196") %>%
+  dplyr::select(xeno_1, xeno_2, xeno_3, xeno_4, xeno_6)
+  
+xeno2.model <- 'Xenophobia =~ xeno_1 + xeno_2 + xeno_3 + xeno_4 +
 xeno_6'
 
-fit_xeno2 <- cfa(xeno.model2, data = xeno2.cfa_clean, estimator = "MLR")
+fit_xeno2 <- cfa(xeno2.model, data = xeno2.cfa, estimator = "MLR")
 
 fit_xeno2 %>% summary(fit.measures = TRUE)
 
@@ -948,24 +925,12 @@ resid(fit_xeno2, type = "standardized")
 # xeno without xeno_5 and xeno_6
 
 xeno3.cfa <- US_data %>%
-  dplyr::select(xeno_1, xeno_2, xeno_3, xeno_4) 
+  dplyr::filter(id != "p090" & id != "189" & id != "192" & id != "196") %>%
+  dplyr::select(xeno_1, xeno_2, xeno_3, xeno_4)
+  
+xeno3.model <- 'Xenophobia =~ xeno_1 + xeno_2 + xeno_3 + xeno_4'
 
-mardia(xeno3.cfa, plot = TRUE)
-
-keep <- function(x) {
-(x >= mean(x) - 3*sd(x)) & 
-(x <= mean(x) + 3*sd(x))  
-}
-
-xeno3.cfa_clean <- xeno2.cfa %>%
-  filter(keep(xeno_1) &
-           keep(xeno_2) &
-           keep(xeno_3) &
-           keep(xeno_4))
-
-xeno.model3 <- 'Xenophobia =~ xeno_1 + xeno_2 + xeno_3 + xeno_4'
-
-fit_xeno3 <- cfa(xeno.model3, data = xeno3.cfa_clean, estimator = "MLR")
+fit_xeno3 <- cfa(xeno3.model, data = xeno3.cfa, estimator = "MLR")
 
 fit_xeno3 %>% summary(fit.measures = TRUE)
 
@@ -975,7 +940,6 @@ residual_xeno3 <- lavInspect(fit_xeno3, what = "sampstat") $cov -
   lavInspect(fit_xeno3, what = "implied") $cov
 residual_xeno3
 resid(fit_xeno3, type = "standardized")
-
 
 # secident is multidimensional
 
@@ -1074,17 +1038,74 @@ resid(fit_emp, type = "standardized")
 
 # creating new variables (cn, secident, xeno, joy & eff)
 ```{r, new variables, include=TRUE}
-US_ <- US_data %>%
+US <- US_data %>%
   mutate(cn = (cn_1 + cn_2 + cn_3 + cn_4 + cn_5)/5,
         secident = (secident_1 + secident_2 + secident_3 + secident_4 + secident_5 +
         secident_6 + secident_7 + secident_8 + secident_9 + secident_10)/10,
         xeno = (xeno_1 + xeno_2 + xeno_3 + xeno_4)/4, 
         joy = (joy_1 + joy_2)/2,
         eff = (eff_1 + eff_2)/2)
+psych::describe(US$cn)
+psych::describe(US$secident)
+psych::describe(US$xeno) # kurtosis < -1
+psych::describe(US$joy) 
+psych::describe(US$eff)
+# for further analyses with xeno, use non-parametric tools
+
+ggplot(US, aes(x=cn))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Collective Narcissism", y = "Frequency") +
+  theme_light()
+
+ggplot(US, aes(x=secident))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Secure Ingroup Identity", y = "Frequency") +
+  theme_light()
+
+ggplot(US, aes(x=xeno))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Xenophobia", y = "Frequency") +
+  theme_light()
+
+ggplot(US, aes(x=joy))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Joy at Success", y = "Frequency") +
+  theme_light()
+
+ggplot(US, aes(x=eff))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Group Efficacy", y = "Frequency") +
+  theme_light()
+
+# cn
+cn <- rowMeans(US[,"cn"])
+cn_mad <- outliers_mad(x = cn)
+cn_mad
+
+# secident
+secident <- rowMeans(US[,"secident"])
+secident_mad <- outliers_mad(x = secident)
+secident_mad
+
+# xeno
+xeno <- rowMeans(US[,"xeno"])
+xeno_mad <- outliers_mad(x = xeno)
+xeno_mad
+# 121 outliers (extremly high)
+
+# joy
+joy <- rowMeans(US[,"joy"])
+joy_mad <- outliers_mad(x = joy)
+joy_mad
+
+# eff
+eff <- rowMeans(US[,"eff"])
+eff_mad <- outliers_mad(x = eff)
+eff_mad
 ```
 
 # acquiescent responding
-```{r}
+```{r, acquiescent responding}
 cor.test(US_data$xeno_3, US_data$xeno_4,
          method = "spearman")
 
@@ -1094,13 +1115,318 @@ cor.test(US_data$xeno_5, US_data$xeno_6,
 
 
 # assumption checks for PI, FC & corona (do not sum!) items
-
 ```{r, assumption checks PI, FC, corona}
+# pi_own
+psych::describe(US$pi_1_own)
+psych::describe(US$pi_2_own)
 
+ggplot(US, aes(x=pi_1_own))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "How comfortable would you feel with carrying a weapon if you lived in a diverse neighborhood?", y = "Frequency") +
+  theme_light()
+
+ggplot(US, aes(x=pi_2_own))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "How comfortable would you feel with doing whatever it takes to protect yourself and other Americans?", y = "Frequency") +
+  theme_light()
+
+# pi_own by vote
+ggplot(US_data, aes(x=pi_1_own, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "How comfortable would you feel with carrying a weapon if you lived in a diverse neighborhood?", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=pi_2_own, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "How comfortable would you feel with doing whatever it takes to protect yourself and other Americans?", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+# pi_own by vote and time
+ggplot(US_data, aes(x=pi_1_own, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "How comfortable would you feel with carrying a weapon if you lived in a diverse neighborhood?", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=pi_2_own, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "How comfortable would you feel with doing whatever it takes to protect yourself and other Americans?", y= "Frequency") +
+  scale_fill_manual(name = "Time",
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+# pi_ave
+ggplot(US, aes(x=pi_1_ave))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "How comfortable would the average American feel with carrying a weapon if they lived in a diverse neighborhood?", y = "Frequency") +
+  theme_light()
+
+ggplot(US, aes(x=pi_2_ave))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "How comfortable would the average American with doing whatever it takes to protect themselves and other Americans?", y = "Frequency") +
+  theme_light()
+
+# pi_ave by vote
+ggplot(US_data, aes(x=pi_1_ave, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "How comfortable would the average American feel with carrying a weapon if they lived in a diverse neighborhood?", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=pi_2_ave, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "How comfortable would the average American with doing whatever it takes to protect themselves and other Americans?", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+# pi_ave by vote and time
+ggplot(US_data, aes(x=pi_1_ave, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "How comfortable would the average American feel with carrying a weapon if they lived in a diverse neighborhood?", y= "Frequency") +
+  scale_fill_manual(name = "Time",
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=pi_2_ave, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "How comfortable would the average American with doing whatever it takes to protect themselves and other Americans?", y= "Frequency") +
+  scale_fill_manual(name = "Time",
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+# fc
+psych::describe(US$fc_1_s)
+psych::describe(US$fc_1_o_agr)
+psych::describe(US$fc_2_s) # kurtosis > 1
+psych::describe(US$fc_2_o_agr)
+
+# fc_s
+ggplot(US, aes(x=fc_1_s))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Harsh measures against immigrants and refugees are necessary.", y = "Frequency") +
+  theme_light()
+
+ggplot(US, aes(x=fc_2_s))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Social policies, such as affirmative action, discriminate unfairly against White people.", y = "Frequency") +
+  theme_light()
+
+# fc_s by vote
+ggplot(US_data, aes(x=fc_1_s, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Harsh measures against immigrants and refugees are necessary.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=fc_2_s, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Social policies, such as affirmative action, discriminate unfairly against White people.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+# fc_s by vote and time
+ggplot(US_data, aes(x=fc_1_s, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Harsh measures against immigrants and refugees are necessary.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=fc_2_s, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Social policies, such as affirmative action, discriminate unfairly against White people.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+# fc_other_agree
+ggplot(US, aes(x=fc_1_o_agr))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Others agree: Harsh measures against immigrants and refugees are necessary.", y = "Frequency") +
+  theme_light()
+
+ggplot(US, aes(x=fc_2_o_agr))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Others agree: Social policies, such as affirmative action, discriminate unfairly against White people.", y = "Frequency") +
+  theme_light()
+
+# fc_other_agree by vote
+ggplot(US_data, aes(x=fc_1_o_agr, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Others agree: Harsh measures against immigrants and refugees are necessary.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=fc_2_o_agr, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Others agree: Social policies, such as affirmative action, discriminate unfairly against White people.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+# fc_other_agree by vote and time
+ggplot(US_data, aes(x=fc_1_o_agr, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Others agree: Harsh measures against immigrants and refugees are necessary.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=fc_2_o_agr, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Others agree: Social policies, such as affirmative action, discriminate unfairly against White people.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+# corona
+
+psych::describe(US$cor_health)
+psych::describe(US$cor_values)
+
+# cor health
+ggplot(US, aes(x=cor_health))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "How much of a threat, if any, is the coronavirus outbreak for the health of the U.S. population as a whole?", y = "Frequency") +
+  theme_light()
+
+# cor health by vote
+ggplot(US_data, aes(x=cor_health, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "How much of a threat, if any, is the coronavirus outbreak for the health of the U.S. population as a whole?", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+# cor health by vote and time
+
+ggplot(US_data, aes(x=cor_health, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "How much of a threat, if any, is the coronavirus outbreak for the health of the U.S. population as a whole?", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+# cor values
+ggplot(US, aes(x=cor_values))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "How much of a threat, if any, is the coronavirus outbreak for American values and traditions?", y = "Frequency") +
+  theme_light()
+
+# cor values by vote
+ggplot(US_data, aes(x=cor_values, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "How much of a threat, if any, is the coronavirus outbreak for American values and traditions?", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+# cor values by vote and time
+ggplot(US_data, aes(x=cor_values, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "How much of a threat, if any, is the coronavirus outbreak for American values and traditions?", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+```
+
+# outlier detection
+```{r, outlier detection}
+# pi_own
+pi <- rowMeans(US[,"pi_1_own"])
+pi_mad <- outliers_mad(x = pi)
+pi_mad
+
+pi2 <- rowMeans(US[,"pi_2_own"])
+pi2_mad <- outliers_mad(x = pi2)
+pi2_mad
+
+# pi_ave
+pi3 <- rowMeans(US[,"pi_1_ave"])
+pi3_mad <- outliers_mad(x = pi3)
+pi3_mad
+
+pi4 <- rowMeans(US[,"pi_2_ave"])
+pi4_mad <- outliers_mad(x = pi4)
+pi4_mad
+
+# fc_s
+fc <- rowMeans(US[,"fc_1_s"])
+fc_mad <- outliers_mad(x = fc)
+fc_mad
+# 9 outlier
+
+# the value 6.4478 was compared with fc_1_s in raw dataset and the following outlier detected: p022 t1 & t2, p079 t2, p101 t1, p140 t1, p156 t1 &t2, p167 t1, p192 t2
+
+fc2 <- rowMeans(US[,"fc_2_s"])
+fc2_mad <- outliers_mad(x = fc2)
+fc2_mad
+
+# fc_other_agree
+fc3 <- rowMeans(US[,"fc_1_o_agr"])
+fc3_mad <- outliers_mad(x = fc3)
+fc3_mad
+# 2 outlier
+
+# the value 15.522 was compared with fc_1_o_agr in raw dataset and the following outlier detected: p160 t1 & t2 
+
+fc4 <- rowMeans(US[,"fc_2_o_agr"])
+fc4_mad <- outliers_mad(x = fc4)
+fc4_mad
+
+# cor_health
+cor <- rowMeans(US[,"cor_health"])
+cor_mad <- outliers_mad(x = cor)
+cor_mad
+# 122 outliers (low)
+
+# cor_values
+cor2 <- rowMeans(US[,"cor_values"])
+cor2_mad <- outliers_mad(x = cor2)
+cor2_mad
 ```
 
 # descriptive statistics
-
 ```{r, frequencies}
 US_data %>% 
   select(vote) %>%
