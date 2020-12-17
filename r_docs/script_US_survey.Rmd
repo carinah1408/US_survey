@@ -748,7 +748,7 @@ US_data %>%
   dplyr::select(10:15) %>%
   psych::alpha()
 
-# xeno without xeno_5 (CFA resulted in better values without xeno_5)
+# xeno without xeno_5 (see CFA)
 key <- list(
   xeno_1 = c("xeno_1", "xeno_2", "xeno_3", "xeno_4", "xeno_6")
 )
@@ -763,15 +763,33 @@ US_data %>%
 
 # cronbach´s alpha for xeno without xeno_5 = 0.71
 
+# xeno without xeno_5 and xeno_6 (see CFA)
+key <- list(
+  xeno_2 = c("xeno_1", "xeno_2", "xeno_3", "xeno_4")
+)
+
+# Cronbach´s alpha
+scoreItems(key, US_data)
+
+US_data %>%
+  dplyr::select(10, 11, 12, 13) %>%
+  psych::alpha()
+
+
+# cronbach´s alpha for xeno without xeno_5 = 0.71
 
 # joy (Spearman-Brown statistic)
+
 cor.test(US_data$joy_1, US_data$joy_2,
          method = "spearman")
+
 # Spearman rho = .69
 
 # eff (Spearman-Brown statistic)
+
 cor.test(US_data$eff_1, US_data$eff_2,
          method = "spearman")
+
 # Spearman rho = .65
 ```
 
@@ -826,39 +844,179 @@ describe(US_data$joy_2)
 # possibly 0.95
 
 # cn
+
+cn.cfa <- US_data %>%
+  dplyr::select(cn_1, cn_2, cn_3, cn_4, cn_5) 
+
+mardia(cn.cfa, plot = TRUE)
+
+keep <- function(x) {
+(x >= mean(x) - 3*sd(x)) & 
+(x <= mean(x) + 3*sd(x))  
+}
+
+cn.cfa_clean <- cn.cfa %>%
+  filter(keep(cn_1) &
+           keep(cn_2) &
+           keep(cn_3) &
+           keep(cn_4) &
+           keep(cn_5))
+
 cn.model <- 'CollectNar =~ cn_1 + cn_2 + cn_3 + cn_4 + cn_5'
 
-fit_cn <- cfa(cn.model, data = US_data, estimator = "ML")
+fit_cn <- cfa(cn.model, data = cn.cfa_clean)
 
-fit_cn %>% summary(fit.measures = TRUE)
+fit_cn %>% summary(fit.measures = TRUE, standardized = TRUE)
+
+lavInspect(fit_cn, what = "sampstat")
+lavInspect(fit_cn, what = "implied")
+residual_cn <- lavInspect(fit_cn, what = "sampstat") $cov - 
+  lavInspect(fit_cn, what = "implied") $cov
+residual_cn
+
+# Residual divided by an estimate of its standard error.
+# If greater than 2, it is significantly different from zero.
+resid(fit_cn, type = "standardized")
 
 # xeno
+
+xeno.cfa <- US_data %>%
+  dplyr::select(xeno_1, xeno_2, xeno_3, xeno_4, xeno_5, xeno_6) 
+
+mardia(xeno.cfa, plot = TRUE)
+
+keep <- function(x) {
+(x >= mean(x) - 3*sd(x)) & 
+(x <= mean(x) + 3*sd(x))  
+}
+
+xeno.cfa_clean <- xeno.cfa %>%
+  filter(keep(xeno_1) &
+           keep(xeno_2) &
+           keep(xeno_3) &
+           keep(xeno_4) &
+           keep(xeno_5) &
+           keep(xeno_6))
 
 xeno.model <- 'Xenophobia =~ xeno_1 + xeno_2 + xeno_3 + xeno_4 + xeno_5 +
 xeno_6'
 
-fit_xeno <- cfa(xeno.model, data = US_data, estimator = "MLR")
+fit_xeno <- cfa(xeno.model, data = xeno.cfa_clean, estimator = "MLR")
 
 fit_xeno %>% summary(fit.measures = TRUE)
 
+lavInspect(fit_xeno, what = "sampstat")
+lavInspect(fit_xeno, what = "implied")
+residual_xeno <- lavInspect(fit_xeno, what = "sampstat") $cov - 
+  lavInspect(fit_xeno, what = "implied") $cov
+residual_xeno
+resid(fit_xeno, type = "standardized")
+
 # xeno without xeno_5
+
+xeno2.cfa <- US_data %>%
+  dplyr::select(xeno_1, xeno_2, xeno_3, xeno_4, xeno_6) 
+
+mardia(xeno2.cfa, plot = TRUE)
+
+keep <- function(x) {
+(x >= mean(x) - 3*sd(x)) & 
+(x <= mean(x) + 3*sd(x))  
+}
+
+xeno2.cfa_clean <- xeno2.cfa %>%
+  filter(keep(xeno_1) &
+           keep(xeno_2) &
+           keep(xeno_3) &
+           keep(xeno_4) &
+           keep(xeno_6))
 
 xeno.model2 <- 'Xenophobia =~ xeno_1 + xeno_2 + xeno_3 + xeno_4 +
 xeno_6'
 
-fit_xeno2 <- cfa(xeno.model2, data = US_data, estimator = "MLR")
+fit_xeno2 <- cfa(xeno.model2, data = xeno2.cfa_clean, estimator = "MLR")
 
 fit_xeno2 %>% summary(fit.measures = TRUE)
 
+lavInspect(fit_xeno2, what = "sampstat")
+lavInspect(fit_xeno2, what = "implied")
+residual_xeno2 <- lavInspect(fit_xeno2, what = "sampstat") $cov - 
+  lavInspect(fit_xeno2, what = "implied") $cov
+residual_xeno2
+resid(fit_xeno2, type = "standardized")
+
+# xeno without xeno_5 and xeno_6
+
+xeno3.cfa <- US_data %>%
+  dplyr::select(xeno_1, xeno_2, xeno_3, xeno_4) 
+
+mardia(xeno3.cfa, plot = TRUE)
+
+keep <- function(x) {
+(x >= mean(x) - 3*sd(x)) & 
+(x <= mean(x) + 3*sd(x))  
+}
+
+xeno3.cfa_clean <- xeno2.cfa %>%
+  filter(keep(xeno_1) &
+           keep(xeno_2) &
+           keep(xeno_3) &
+           keep(xeno_4))
+
+xeno.model3 <- 'Xenophobia =~ xeno_1 + xeno_2 + xeno_3 + xeno_4'
+
+fit_xeno3 <- cfa(xeno.model3, data = xeno3.cfa_clean, estimator = "MLR")
+
+fit_xeno3 %>% summary(fit.measures = TRUE)
+
+lavInspect(fit_xeno3, what = "sampstat")
+lavInspect(fit_xeno3, what = "implied")
+residual_xeno3 <- lavInspect(fit_xeno3, what = "sampstat") $cov - 
+  lavInspect(fit_xeno3, what = "implied") $cov
+residual_xeno3
+resid(fit_xeno3, type = "standardized")
+
+
 # secident is multidimensional
+
+sec.cfa <- US_data %>%
+  dplyr::select(secident_1, secident_2, secident_3, secident_4, secident_5, secident_6,
+                secident_7, secident_8, secident_9, secident_10) 
+
+mardia(sec.cfa, plot = TRUE)
+
+keep <- function(x) {
+(x >= mean(x) - 3*sd(x)) & 
+(x <= mean(x) + 3*sd(x))  
+}
+
+sec.cfa_clean <- sec.cfa %>%
+  filter(keep(secident_1) &
+           keep(secident_2) &
+           keep(secident_3) &
+           keep(secident_4) &
+           keep(secident_5) &
+           keep(secident_6) &
+           keep(secident_7) &
+           keep(secident_8) &
+           keep(secident_9) &
+           keep(secident_10))
+sec.cfa_clean
 
 sec.model <- 'satisfac =~ secident_4 + secident_5 + secident_6 + secident_7 
               solidar =~ secident_1 + secident_2 + secident_3 
               central  =~ secident_8 + secident_9 + secident_10'
 
-fit_secident <- cfa(sec.model, data = US_data, estimator = "ML")
+fit_secident <- cfa(sec.model, data = sec.cfa_clean)
 
 fit_secident %>% summary(fit.measures = TRUE)
+
+lavInspect(fit_secident, what = "sampstat")
+lavInspect(fit_secident, what = "implied")
+residual_secident <- lavInspect(fit_secident, what = "sampstat") $cov - 
+  lavInspect(fit_secident, what = "implied") $cov
+residual_secident
+resid(fit_secident, type = "standardized")
 
 # joy
 
@@ -882,11 +1040,34 @@ fit_eff %>% summary(fit.measures = TRUE)
 
 # empowerment
 
+emp.cfa <- US_data %>%
+  dplyr::select(joy_1, joy_2, eff_1, eff_2) 
+
+mardia(emp.cfa, plot = TRUE)
+
+keep <- function(x) {
+(x >= mean(x) - 3*sd(x)) & 
+(x <= mean(x) + 3*sd(x))  
+}
+
+emp.cfa_clean <- emp.cfa %>%
+  filter(keep(joy_1) &
+           keep(joy_2) &
+           keep(eff_1) &
+           keep(eff_2))
+
 emp.model <- 'Empowerment =~ joy_1 + joy_2 + eff_1 + eff_2'
 
-fit_emp <- cfa(emp.model, data = US_data, estimator = "ML")
+fit_emp <- cfa(emp.model, data = emp.cfa_clean)
 
 fit_emp %>% summary(fit.measures = TRUE)
+
+lavInspect(fit_emp, what = "sampstat")
+lavInspect(fit_emp, what = "implied")
+residual_emp <- lavInspect(fit_emp, what = "sampstat") $cov - 
+  lavInspect(fit_emp, what = "implied") $cov
+residual_emp
+resid(fit_emp, type = "standardized")
 
 # --> overall empowerment shows low construct validity (.82)
 ```
@@ -897,10 +1078,16 @@ US_ <- US_data %>%
   mutate(cn = (cn_1 + cn_2 + cn_3 + cn_4 + cn_5)/5,
         secident = (secident_1 + secident_2 + secident_3 + secident_4 + secident_5 +
         secident_6 + secident_7 + secident_8 + secident_9 + secident_10)/10,
-        xeno = (xeno_1 + xeno_2 + xeno_3 + xeno_4 + xeno_6)/5, 
+        xeno = (xeno_1 + xeno_2 + xeno_3 + xeno_4)/4, 
         joy = (joy_1 + joy_2)/2,
         eff = (eff_1 + eff_2)/2)
 ```
+
+# acquiescent responding
+```{r}
+
+```
+
 
 # assumption checks for PI, FC & corona (do not sum!) items
 
