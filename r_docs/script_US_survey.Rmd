@@ -1085,7 +1085,11 @@ US_ <- US_data %>%
 
 # acquiescent responding
 ```{r}
+cor.test(US_data$xeno_3, US_data$xeno_4,
+         method = "spearman")
 
+cor.test(US_data$xeno_5, US_data$xeno_6,
+         method = "spearman")
 ```
 
 
