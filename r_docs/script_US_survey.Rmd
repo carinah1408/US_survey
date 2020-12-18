@@ -36,6 +36,63 @@ US_data <- US_data %>%
   vote=='1' ~ 'Democrats',
   vote=='2' ~ 'Republicans',
   TRUE ~ 'Other'))
+
+US_data <- US_data %>%
+  mutate(unexp = case_when(
+    unexp == "0" ~ "Expected",
+    unexp == "1" ~ "Unexpected",
+    unexp == "2" ~ "Neither expected nor unexpected"))
+
+US_data <- US_data %>%
+  mutate(gend = case_when(
+    gend == "1" ~ "Female",
+    gend == "2" ~ "Male",
+    gend == "3" ~ "Non-binary"
+  ))
+
+US_data <- US_data %>%
+  mutate(ethn = case_when(
+    ethn == "1" ~ "Asian-American",
+    ethn == "2" ~ "Black or African American",
+    ethn == "3" ~ "Hispanic or Latino American",
+    ethn == "4" ~ "Native American",
+    ethn == "5" ~ "White or European American",
+    ethn == "6" ~ "Other"
+  ))
+
+US_data <- US_data %>%
+  mutate(degree =case_when(
+    degree == "1" ~ "No degree",
+    degree == "2" ~ "High School",
+    degree == "3" ~ "Bachelor´s degree",
+    degree == "4" ~ "Master´s degree",
+    degree == "5" ~ "Doctoral degree",
+    degree == "6" ~ "Professional degree",
+    degree == "7" ~ "Other"
+  ))
+
+US_data <- US_data %>%
+  mutate(employ = case_when(
+    employ == "1" ~ "Working - paid employee",
+    employ == "2" ~ "Working - self-employed",
+    employ == "3" ~ "Not working - temporary layoff from a job",
+    employ == "4" ~ "Not working - looking for a job",
+    employ == "5" ~ "Not working - retired",
+    employ == "6" ~ "Not working - disabled",
+    employ == "7" ~ "Not working - student",
+    employ == "8" ~ "Other"
+  ))
+
+US_data <- US_data %>%
+  mutate(income = case_when(
+    income == "1" ~ "$0 - $10,000",
+    income == "2" ~ "$10,000 - $20,000",
+    income == "3" ~ "$20,000 - $30,000",
+    income == "4" ~ "$30,000 - $40,000",
+    income == "5" ~ "$40,000 - $50,000",
+    income == "6" ~ "over $50,000"
+  ))
+
 ```
 
 ## Data inspection
@@ -1453,28 +1510,45 @@ ggplot(US_data, aes(x=cor_values, fill=time))+
 
 # descriptives for participants
 ```{r, participants, include= TRUE}
-age <- select(.data = US, age) %>%
-summarise(mean_age = mean(age), sd_age = sd(age))
+age <- group_by(.data = US, time) %>%
+  select(., age) %>%
+  summarise(mean_age = mean(age), sd_age = sd(age))
 age
 
-gend <- select(.data = US, gend) %>%
-   table()
+gend <- group_by(.data = US, time) %>%
+  select(., gend) %>%
+  table()
 gend
 
-age_gend <- group_by(.data = US, gend) %>%
-  select(., age) %>%
-  summarise(., mean_age = mean(age), sd_age = sd(age))
-age_gend
-
-par_support <- select(.data = US, vote) %>%
-   table()
+par_support <- group_by(.data = US, time) %>%
+  select(., vote) %>%
+  table()
 par_support
 
-par_support_gend <- group_by(.data = US, gend) %>%
+par_support_gend <- group_by(.data = US, time, gend) %>%
   select(., vote) %>%
   table()
 par_support_gend
 
+ethn <- group_by(.data = US, time) %>%
+  select(., ethn) %>%
+  table()
+ethn
+
+employ <- group_by(.data = US, time) %>%
+  select(., employ) %>%
+  table()
+employ
+
+income <- group_by(.data = US, time) %>%
+  select(., income) %>%
+  table()
+income
+
+degree <- group_by(.data = US, time) %>%
+  select(., degree) %>%
+  table()
+degree
 ```
 
 # descriptive statistics variables
@@ -1643,7 +1717,7 @@ correlation_matrix <- function(df,
 }
 
 corr <- US %>%
-  select(., cn, secident, xeno, joy, eff, pi_1_own, pi_1_ave, pi_2_own, pi_2_ave, fc_1_s, fc_1_o_agr, fc_2_s, fc_2_o_agr)
+  select(., cn, secident, xeno, joy, eff, pi_1_own, pi_1_ave, pi_2_own, pi_2_ave, fc_1_s, fc_1_o_agr, fc_2_s, fc_2_o_agr, age)
 
 correlation_matrix(corr)
 
