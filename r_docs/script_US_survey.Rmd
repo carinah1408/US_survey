@@ -18,6 +18,8 @@ library(psych) # normality, reliability
 library(lavaan) # CFA
 library(ggplot2) # graphs
 library(MVN) # assumption check CFA
+library(papaja) # APA tables
+library(knitr) # kable function
 
 # dataset ####
 data <- here::here("data/US_data.csv")
@@ -1108,7 +1110,7 @@ eff_mad
 ```
 
 # acquiescent responding
-```{r, acquiescent responding}
+```{r, acquiescent responding, include= TRUE}
 cor.test(US_data$xeno_3, US_data$xeno_4,
          method = "spearman")
 
@@ -1118,7 +1120,7 @@ cor.test(US_data$xeno_5, US_data$xeno_6,
 
 # assumption checks for PI, FC & corona (do not sum!) items
 PI_own shows issues with normality, however no outlier detected. PI_ave is fine. FC_s shows issues with normality, in fc_1_s were 9 outlier detected. Fc_o_agr normality seems ok but one outlier detected in fc_1_o_agr. Corona_health shows issues with normality and corona_health shows 122 outliers (extremely high, come back to that). 
-```{r, assumption checks PI, FC, corona}
+```{r, assumption checks PI, FC, corona, include = TRUE}
 # pi_own
 ggplot(US, aes(x=pi_1_own))+
   stat_bin(colour="grey",fill="steelblue", geom = "bar") +
@@ -1449,7 +1451,7 @@ ggplot(US_data, aes(x=cor_values, fill=time))+
 ## Descriptives
 
 # descriptives for participants
-```{r, participants}
+```{r, participants, include= TRUE}
 age <- select(.data = US, age) %>%
 summarise(mean_age = mean(age), sd_age = sd(age))
 age
@@ -1474,17 +1476,84 @@ par_support_gend
 
 ```
 
-descriptive statistics --> APA tables!!
-```{r}
+# descriptive statistics variables
+```{r, descriptive statistics, include= TRUE}
+# hasnt worked yet
+descriptives <- US %>%
+  select(., cn, secident, xeno, joy, eff, pi_1_own, pi_1_ave, pi_2_own, pi_2_ave, fc_1_s, fc_1_o_agr, fc_2_s, fc_2_o_agr) %>%
+  summarise(., mean_cn = mean(cn), sd_cn = sd(cn), 
+            mean_secident = mean(secident), sd_secident = sd(secident), 
+            mean_xeno = mean(xeno), sd_xeno = sd(xeno),
+            mean_joy = mean(joy), sd_joy = sd(joy),
+            mean_eff = mean(eff), sd_eff = sd(eff),
+            mean_pi_1_own = mean(pi_1_own), sd_pi_1_own = sd(pi_1_own),
+            mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave),
+            mean_pi_2_own = mean(pi_2_own), sd_pi_2_own = sd(pi_2_own),
+            mean_pi_2_ave = mean(pi_2_ave), sd_pi_2_ave = sd(pi_2_ave),
+            mean_fc_1_s = mean(fc_1_s), sd_fc_1_s = sd(fc_1_s),
+            mean_fc_1_o_agr = mean(fc_1_o_agr), sd_fc_1_o_agr = sd(fc_1_o_agr),
+            mean_fc_2_s = mean(fc_2_s), sd_fc_2_s = sd(fc_2_s),
+            mean_fc_2_o_agr = mean(fc_2_o_agr), sd_fc_2_o_agr = sd(fc_2_o_agr))
+apa_table(descriptives)
+
+
+# descriptive statistic variables
+descriptives2 <- c("cn", "secident", "xeno", "joy", "eff", "pi_1_own", "pi_1_ave", "pi_2_own", "pi_2_ave", "fc_1_s", "fc_1_o_agr", "fc_2_s", "fc_2_o_agr")
+
+v_mean <- lapply(US[descriptives2], mean, na.rm = TRUE)
+v_mean <- round(as.numeric(v_mean),2)
+v_sd <- lapply(US [descriptives2], sd, na.rm = TRUE)
+v_sd <- round(as.numeric(v_sd),2)
+v_min <- lapply(US [descriptives2], min, na.rm = TRUE)
+v_min <- round(as.numeric(v_min),2)
+v_max <- lapply(US [descriptives2], max, na.rm = TRUE)
+v_max <- round(as.numeric(v_max),2)
+
+v_tab <- cbind(mean = v_mean, sd = v_sd, min = v_min, max = v_max)
+rownames(v_tab) <- c("Collective Narcissism", "Secure Ingroup Identity", "Xenophobia", "Joy at Success", "Group Efficacy", "PI Item 1 Own Comfort", "PI Item 1 Perceived Comfort", "PI Item 2 Own Comfort", "PI Item 2 Perceived Comfort", "FC Item 1 Own Approval", "FC Item 1 Perceived Agreement", "FC Item 2 Own Approval", "FC Item 2 Perceived Agreement")
+kable(v_tab)
+
+# by vote
+descriptives3 <- US %>% 
+  group_by(vote) %>%
+  select(., cn, secident, xeno, joy, eff, pi_1_own, pi_1_ave, pi_2_own, pi_2_ave, fc_1_s, fc_1_o_agr, fc_2_s, fc_2_o_agr) %>%
+  summarise(., mean_cn = mean(cn), sd_cn = sd(cn), 
+            mean_secident = mean(secident), sd_secident = sd(secident), 
+            mean_xeno = mean(xeno), sd_xeno = sd(xeno),
+            mean_joy = mean(joy), sd_joy = sd(joy),
+            mean_eff = mean(eff), sd_eff = sd(eff),
+            mean_pi_1_own = mean(pi_1_own), sd_pi_1_own = sd(pi_1_own),
+            mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave),
+            mean_pi_2_own = mean(pi_2_own), sd_pi_2_own = sd(pi_2_own),
+            mean_pi_2_ave = mean(pi_2_ave), sd_pi_2_ave = sd(pi_2_ave),
+            mean_fc_1_s = mean(fc_1_s), sd_fc_1_s = sd(fc_1_s),
+            mean_fc_1_o_agr = mean(fc_1_o_agr), sd_fc_1_o_agr = sd(fc_1_o_agr),
+            mean_fc_2_s = mean(fc_2_s), sd_fc_2_s = sd(fc_2_s),
+            mean_fc_2_o_agr = mean(fc_2_o_agr), sd_fc_2_o_agr = sd(fc_2_o_agr))
+descriptives3
+
+# by vote and time
+descriptives4 <- US %>% 
+  group_by(vote, time) %>%
+  select(., cn, secident, xeno, joy, eff, pi_1_own, pi_1_ave, pi_2_own, pi_2_ave, fc_1_s, fc_1_o_agr, fc_2_s, fc_2_o_agr) %>%
+  summarise(., mean_cn = mean(cn), sd_cn = sd(cn), 
+            mean_secident = mean(secident), sd_secident = sd(secident), 
+            mean_xeno = mean(xeno), sd_xeno = sd(xeno),
+            mean_joy = mean(joy), sd_joy = sd(joy),
+            mean_eff = mean(eff), sd_eff = sd(eff),
+            mean_pi_1_own = mean(pi_1_own), sd_pi_1_own = sd(pi_1_own),
+            mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave),
+            mean_pi_2_own = mean(pi_2_own), sd_pi_2_own = sd(pi_2_own),
+            mean_pi_2_ave = mean(pi_2_ave), sd_pi_2_ave = sd(pi_2_ave),
+            mean_fc_1_s = mean(fc_1_s), sd_fc_1_s = sd(fc_1_s),
+            mean_fc_1_o_agr = mean(fc_1_o_agr), sd_fc_1_o_agr = sd(fc_1_o_agr),
+            mean_fc_2_s = mean(fc_2_s), sd_fc_2_s = sd(fc_2_s),
+            mean_fc_2_o_agr = mean(fc_2_o_agr), sd_fc_2_o_agr = sd(fc_2_o_agr))
+descriptives4
 ```
 
-```{r, frequencies}
-US_data %>% 
-  select(vote) %>%
-  table()
-```
-
-```{r, continous, grouped}
+# correlations (normality! --> spearman?, Eta squared, correlation matrix --> lavaan?, partical correlation, multicollinearity)
+```{r, correlations, include=TRUE}
 
 ```
 
