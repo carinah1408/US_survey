@@ -35,7 +35,7 @@ US_data <- US_data %>%
   TRUE ~ 'Other'))
 ```
 
-# Data inspection ####
+## Data inspection
 
 # boxplots 
 ```{r boxplots, include=TRUE}
@@ -700,7 +700,6 @@ eff_mad <- outliers_mad(x = eff)
 eff_mad
 ```
 
-
 # reliability (internal consistency and Spearman rho) 
 ```{r, reliability, include=TRUE}
 # Reliability if item is dropped (--> raw alpha)
@@ -833,7 +832,6 @@ describe(US_data$joy_2)
 describe(US_data$eff_1)
 describe(US_data$joy_2)
 ```
-
 
 # validity (CFA) based on items that were chosen to be kept
 # data has to be data matrix
@@ -1034,8 +1032,7 @@ resid(fit_emp, type = "standardized")
 ```
 
 # creating new variables (cn, secident, xeno, joy & eff) and assumption checks
-
-Graphs show some deviances from normality but skew and kurtosis for the majority within the limits of acceptance (excemption: joy at success, however not outlier detected). Xenophobia shows non-normality (was to be expected) and outliers (come back to this)
+Graphs show some deviance from normality but skew and kurtosis for the majority within the limits of acceptance (exemption: joy at success, however not outlier detected). Xenophobia shows non-normality (was to be expected) and outliers (come back to this)
 ```{r, new variables and assumption checks, include=TRUE}
 US <- US_data %>%
   mutate(cn = (cn_1 + cn_2 + cn_3 + cn_4 + cn_5)/5,
@@ -1119,10 +1116,8 @@ cor.test(US_data$xeno_5, US_data$xeno_6,
          method = "spearman")
 ```
 
-
 # assumption checks for PI, FC & corona (do not sum!) items
-
-PI_own shows issues with normality, however no outlier detected. PI_ave is fine. FC_s shows issues with normality, in fc_1_s were 9 outlier detected. Fc_o_agr normality seems ok but one outlier detected in fc_1_o_agr. Corona_health shows issues with normality and corona_health shows 122 outliers (extremly high, come back to that). 
+PI_own shows issues with normality, however no outlier detected. PI_ave is fine. FC_s shows issues with normality, in fc_1_s were 9 outlier detected. Fc_o_agr normality seems ok but one outlier detected in fc_1_o_agr. Corona_health shows issues with normality and corona_health shows 122 outliers (extremely high, come back to that). 
 ```{r, assumption checks PI, FC, corona}
 # pi_own
 ggplot(US, aes(x=pi_1_own))+
@@ -1451,12 +1446,38 @@ ggplot(US_data, aes(x=cor_values, fill=time))+
   theme_light()
 ```
 
+## Descriptives
+
 # descriptives for participants
-```{r}
+```{r, participants}
+age <- select(.data = US, age) %>%
+summarise(mean_age = mean(age), sd_age = sd(age))
+age
+
+gend <- select(.data = US, gend) %>%
+   table()
+gend
+
+age_gend <- group_by(.data = US, gend) %>%
+  select(., age) %>%
+  summarise(., mean_age = mean(age), sd_age = sd(age))
+age_gend
+
+par_support <- select(.data = US, vote) %>%
+   table()
+par_support
+
+par_support_gend <- group_by(.data = US, gend) %>%
+  select(., vote) %>%
+  table()
+par_support_gend
 
 ```
 
-# descriptive statistics --> APA tables!!
+descriptive statistics --> APA tables!!
+```{r}
+```
+
 ```{r, frequencies}
 US_data %>% 
   select(vote) %>%
