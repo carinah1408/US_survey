@@ -39,7 +39,6 @@ US_data <- US_data %>%
 
 # boxplots 
 ```{r boxplots, include=TRUE}
-
 # cn
 
 box_cn_1 <- boxplot(US_data$cn_1) # "American people deserve special treatment."
@@ -62,7 +61,7 @@ box_secident_7 <- boxplot(US_data$secident_7) # "Being American gives me a good 
 box_secident_8 <- boxplot(US_data$secident_8) # "I often think about the fact that I am American."
 box_secident_9 <- boxplot(US_data$secident_9) # "The fact that I am American is an important part of my identity."
 box_secident_10 <- boxplot(US_data$secident_10) # "Being American is an important part of how I see myself."
-# Striking is that items secident _7 to _10 show the same boxplot. I checked the raw data to make sure that the values were not accidently doublicated and copy-pasted but the items are unique in values, yet similar to each other in expression. Potentially colinear? ####
+# Striking is that items secident _7 to _10 show the same boxplot. I checked the raw data to make sure that the values were not accidentally doublicated and copy-pasted but the items are unique in values, yet similar to each other in expression. Potentially colinear? ####
 
 # xeno
 
@@ -687,7 +686,7 @@ xeno <- rowMeans(US_data[, c("xeno_1", "xeno_2", "xeno_3", "xeno_4", "xeno_5", "
 xeno_mad <- outliers_mad(x = xeno)
 xeno_mad
 plot_outliers_mad(xeno_mad, x = xeno, pos_display = TRUE)
-# 6 outliers detected: the value of 2.9826 was compared with the median of xeno_1 - xeno_6 in dataset and the following ids were identified as > 2.8926: p090 t1 (xeno_1 & xeno_2), p189 (xeno_1 & xeno_2), p192 t2 (xeno_2 & xeno_3), p196 (xeno_1, xeno_2, xeno_3) ####
+# 6 outliers detected: the value of 2.9826 was compared with the median of xeno_1 - xeno_6 in dataset and the following outliers were identified: p090, t1 (in xeno_1 & xeno_2), p189 (in xeno_1 & xeno_2), p192, t2 (in xeno_2 & xeno_3), p196 (in xeno_1, xeno_2, xeno_3) ####
 
 # joy
 joy <- rowMeans(US_data[, c("joy_1", "joy_2")])
@@ -880,14 +879,12 @@ resid(fit_cn, type = "standardized")
 
 # xeno
 
+# 6 outliers detected: the value of 2.9826 was compared with the median of xeno_1 - xeno_6 in dataset and the following outliers were identified: p090, t1 (in xeno_1 & xeno_2), p189 (in xeno_1 & xeno_2), p192, t2 (in xeno_2 & xeno_3), p196 (in xeno_1, xeno_2, xeno_3) ####
+
 xeno.cfa <- US_data %>%
   dplyr::filter(id != "p090" & id != "189" & id != "192" & id != "196") %>%
   dplyr::select(xeno_1, xeno_2, xeno_3, xeno_4, xeno_5, xeno_6)
   
-
-# 6 outliers detected: the value of 2.9826 was compared with the median of xeno_1 - xeno_6 in dataset and the following ids were identified as > 2.8926: p090 t1 (xeno_1 & xeno_2), p189 (xeno_1 & xeno_2), p192 t2 (xeno_2 & xeno_3), p196 (xeno_1, xeno_2, xeno_3) ####
-
-
 xeno.model <- 'Xenophobia =~ xeno_1 + xeno_2 + xeno_3 + xeno_4 + xeno_5 +
 xeno_6'
 
@@ -1036,8 +1033,10 @@ resid(fit_emp, type = "standardized")
 # --> overall empowerment shows low construct validity (.82)
 ```
 
-# creating new variables (cn, secident, xeno, joy & eff)
-```{r, new variables, include=TRUE}
+# creating new variables (cn, secident, xeno, joy & eff) and assumption checks
+
+Graphs show some deviances from normality but skew and kurtosis for the majority within the limits of acceptance (excemption: joy at success, however not outlier detected). Xenophobia shows non-normality (was to be expected) and outliers (come back to this)
+```{r, new variables and assumption checks, include=TRUE}
 US <- US_data %>%
   mutate(cn = (cn_1 + cn_2 + cn_3 + cn_4 + cn_5)/5,
         secident = (secident_1 + secident_2 + secident_3 + secident_4 + secident_5 +
@@ -1045,60 +1044,67 @@ US <- US_data %>%
         xeno = (xeno_1 + xeno_2 + xeno_3 + xeno_4)/4, 
         joy = (joy_1 + joy_2)/2,
         eff = (eff_1 + eff_2)/2)
-psych::describe(US$cn)
-psych::describe(US$secident)
-psych::describe(US$xeno) # kurtosis < -1
-psych::describe(US$joy) 
-psych::describe(US$eff)
-# for further analyses with xeno, use non-parametric tools
 
+# cn
 ggplot(US, aes(x=cn))+
   stat_bin(colour="grey",fill="steelblue", geom = "bar") +
   labs(x = "Collective Narcissism", y = "Frequency") +
   theme_light()
 
-ggplot(US, aes(x=secident))+
-  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
-  labs(x = "Secure Ingroup Identity", y = "Frequency") +
-  theme_light()
+psych::describe(US$cn)
 
-ggplot(US, aes(x=xeno))+
-  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
-  labs(x = "Xenophobia", y = "Frequency") +
-  theme_light()
-
-ggplot(US, aes(x=joy))+
-  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
-  labs(x = "Joy at Success", y = "Frequency") +
-  theme_light()
-
-ggplot(US, aes(x=eff))+
-  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
-  labs(x = "Group Efficacy", y = "Frequency") +
-  theme_light()
-
-# cn
 cn <- rowMeans(US[,"cn"])
 cn_mad <- outliers_mad(x = cn)
 cn_mad
 
 # secident
+ggplot(US, aes(x=secident))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Secure Ingroup Identity", y = "Frequency") +
+  theme_light()
+
+psych::describe(US$secident)
+
 secident <- rowMeans(US[,"secident"])
 secident_mad <- outliers_mad(x = secident)
 secident_mad
 
 # xeno
+ggplot(US, aes(x=xeno))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Xenophobia", y = "Frequency") +
+  theme_light()
+
+psych::describe(US$xeno) # kurtosis and skew > 1
+
 xeno <- rowMeans(US[,"xeno"])
 xeno_mad <- outliers_mad(x = xeno)
-xeno_mad
-# 121 outliers (extremly high)
+xeno_mad # 122 outlier (extremly high)
 
 # joy
+ggplot(US, aes(x=joy))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Joy at Success", y = "Frequency") +
+  theme_light()
+
+psych::describe(US$joy) # kurtosis < -1
+
+box_joy <- boxplot(US$joy)
+
 joy <- rowMeans(US[,"joy"])
 joy_mad <- outliers_mad(x = joy)
 joy_mad
 
+# but no outlier detected
+
 # eff
+ggplot(US, aes(x=eff))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Group Efficacy", y = "Frequency") +
+  theme_light()
+
+psych::describe(US$eff)
+
 eff <- rowMeans(US[,"eff"])
 eff_mad <- outliers_mad(x = eff)
 eff_mad
@@ -1115,11 +1121,10 @@ cor.test(US_data$xeno_5, US_data$xeno_6,
 
 
 # assumption checks for PI, FC & corona (do not sum!) items
+
+PI_own shows issues with normality, however no outlier detected. PI_ave is fine. FC_s shows issues with normality, in fc_1_s were 9 outlier detected. Fc_o_agr normality seems ok but one outlier detected in fc_1_o_agr. Corona_health shows issues with normality and corona_health shows 122 outliers (extremly high, come back to that). 
 ```{r, assumption checks PI, FC, corona}
 # pi_own
-psych::describe(US$pi_1_own)
-psych::describe(US$pi_2_own)
-
 ggplot(US, aes(x=pi_1_own))+
   stat_bin(colour="grey",fill="steelblue", geom = "bar") +
   labs(x = "How comfortable would you feel with carrying a weapon if you lived in a diverse neighborhood?", y = "Frequency") +
@@ -1129,6 +1134,19 @@ ggplot(US, aes(x=pi_2_own))+
   stat_bin(colour="grey",fill="steelblue", geom = "bar") +
   labs(x = "How comfortable would you feel with doing whatever it takes to protect yourself and other Americans?", y = "Frequency") +
   theme_light()
+
+psych::describe(US$pi_1_own) # kurtosis < -1
+psych::describe(US$pi_2_own) # kurtosis slightly smaller than -1
+
+pi <- rowMeans(US[,"pi_1_own"])
+pi_mad <- outliers_mad(x = pi)
+pi_mad
+
+# but no outlier detected
+
+pi2 <- rowMeans(US[,"pi_2_own"])
+pi2_mad <- outliers_mad(x = pi2)
+pi2_mad
 
 # pi_own by vote
 ggplot(US_data, aes(x=pi_1_own, fill=vote))+
@@ -1177,6 +1195,17 @@ ggplot(US, aes(x=pi_2_ave))+
   labs(x = "How comfortable would the average American with doing whatever it takes to protect themselves and other Americans?", y = "Frequency") +
   theme_light()
 
+psych::describe(US$pi_1_ave)
+psych::describe(US$pi_2_ave)
+
+pi3 <- rowMeans(US[,"pi_1_ave"])
+pi3_mad <- outliers_mad(x = pi3)
+pi3_mad
+
+pi4 <- rowMeans(US[,"pi_2_ave"])
+pi4_mad <- outliers_mad(x = pi4)
+pi4_mad
+
 # pi_ave by vote
 ggplot(US_data, aes(x=pi_1_ave, fill=vote))+
   geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
@@ -1214,10 +1243,6 @@ ggplot(US_data, aes(x=pi_2_ave, fill=time))+
   theme_light()
 
 # fc
-psych::describe(US$fc_1_s)
-psych::describe(US$fc_1_o_agr)
-psych::describe(US$fc_2_s) # kurtosis > 1
-psych::describe(US$fc_2_o_agr)
 
 # fc_s
 ggplot(US, aes(x=fc_1_s))+
@@ -1225,10 +1250,40 @@ ggplot(US, aes(x=fc_1_s))+
   labs(x = "Harsh measures against immigrants and refugees are necessary.", y = "Frequency") +
   theme_light()
 
+psych::describe(US$fc_1_s)
+
+fc <- rowMeans(US[,"fc_1_s"])
+fc_mad <- outliers_mad(x = fc)
+fc_mad
+# 9 outlier
+
+# the value 6.4478 was compared with fc_1_s in raw dataset and the following outlier detected: p022, t1 & t2; p079, t2; p101, t1; p140, t1; p156, t1 &t2; p167, t1; p192, t2
+
+fc_1_s_clean <- US %>%
+  dplyr::filter(id != "p022" & id != "p079" & id!= "p101" & id != "p140" & id != "p156" & id != "p167" & id != "192")
+
+ggplot(fc_1_s_clean, aes(x=fc_1_s))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Harsh measures against immigrants and refugees are necessary.", y = "Frequency") +
+  theme_light()
+
+psych::describe(fc_1_s_clean$fc_1_s)
+
+# results in no difference
+
+
 ggplot(US, aes(x=fc_2_s))+
   stat_bin(colour="grey",fill="steelblue", geom = "bar") +
   labs(x = "Social policies, such as affirmative action, discriminate unfairly against White people.", y = "Frequency") +
   theme_light()
+
+psych::describe(US$fc_2_s) # kurtosis > 1
+
+fc2 <- rowMeans(US[,"fc_2_s"])
+fc2_mad <- outliers_mad(x = fc2)
+fc2_mad
+
+# but no outlier detected
 
 # fc_s by vote
 ggplot(US_data, aes(x=fc_1_s, fill=vote))+
@@ -1272,10 +1327,26 @@ ggplot(US, aes(x=fc_1_o_agr))+
   labs(x = "Others agree: Harsh measures against immigrants and refugees are necessary.", y = "Frequency") +
   theme_light()
 
+psych::describe(US$fc_1_o_agr)
+
+fc3 <- rowMeans(US[,"fc_1_o_agr"])
+fc3_mad <- outliers_mad(x = fc3)
+fc3_mad
+# 2 outlier
+
+# the value 15.522 was compared with fc_1_o_agr in raw dataset and the following outlier detected: p160, t1 & t2 
+
+
 ggplot(US, aes(x=fc_2_o_agr))+
   stat_bin(colour="grey",fill="steelblue", geom = "bar") +
   labs(x = "Others agree: Social policies, such as affirmative action, discriminate unfairly against White people.", y = "Frequency") +
   theme_light()
+
+psych::describe(US$fc_2_o_agr)
+
+fc4 <- rowMeans(US[,"fc_2_o_agr"])
+fc4_mad <- outliers_mad(x = fc4)
+fc4_mad
 
 # fc_other_agree by vote
 ggplot(US_data, aes(x=fc_1_o_agr, fill=vote))+
@@ -1315,14 +1386,18 @@ ggplot(US_data, aes(x=fc_2_o_agr, fill=time))+
 
 # corona
 
-psych::describe(US$cor_health)
-psych::describe(US$cor_values)
-
 # cor health
 ggplot(US, aes(x=cor_health))+
   stat_bin(colour="grey",fill="steelblue", geom = "bar") +
   labs(x = "How much of a threat, if any, is the coronavirus outbreak for the health of the U.S. population as a whole?", y = "Frequency") +
   theme_light()
+
+psych::describe(US$cor_health)
+
+cor <- rowMeans(US[,"cor_health"])
+cor_mad <- outliers_mad(x = cor)
+cor_mad
+# 122 outliers (low)
 
 # cor health by vote
 ggplot(US_data, aes(x=cor_health, fill=vote))+
@@ -1350,6 +1425,12 @@ ggplot(US, aes(x=cor_values))+
   labs(x = "How much of a threat, if any, is the coronavirus outbreak for American values and traditions?", y = "Frequency") +
   theme_light()
 
+psych::describe(US$cor_values)
+
+cor2 <- rowMeans(US[,"cor_values"])
+cor2_mad <- outliers_mad(x = cor2)
+cor2_mad
+
 # cor values by vote
 ggplot(US_data, aes(x=cor_values, fill=vote))+
   geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
@@ -1370,63 +1451,12 @@ ggplot(US_data, aes(x=cor_values, fill=time))+
   theme_light()
 ```
 
-# outlier detection
-```{r, outlier detection}
-# pi_own
-pi <- rowMeans(US[,"pi_1_own"])
-pi_mad <- outliers_mad(x = pi)
-pi_mad
+# descriptives for participants
+```{r}
 
-pi2 <- rowMeans(US[,"pi_2_own"])
-pi2_mad <- outliers_mad(x = pi2)
-pi2_mad
-
-# pi_ave
-pi3 <- rowMeans(US[,"pi_1_ave"])
-pi3_mad <- outliers_mad(x = pi3)
-pi3_mad
-
-pi4 <- rowMeans(US[,"pi_2_ave"])
-pi4_mad <- outliers_mad(x = pi4)
-pi4_mad
-
-# fc_s
-fc <- rowMeans(US[,"fc_1_s"])
-fc_mad <- outliers_mad(x = fc)
-fc_mad
-# 9 outlier
-
-# the value 6.4478 was compared with fc_1_s in raw dataset and the following outlier detected: p022 t1 & t2, p079 t2, p101 t1, p140 t1, p156 t1 &t2, p167 t1, p192 t2
-
-fc2 <- rowMeans(US[,"fc_2_s"])
-fc2_mad <- outliers_mad(x = fc2)
-fc2_mad
-
-# fc_other_agree
-fc3 <- rowMeans(US[,"fc_1_o_agr"])
-fc3_mad <- outliers_mad(x = fc3)
-fc3_mad
-# 2 outlier
-
-# the value 15.522 was compared with fc_1_o_agr in raw dataset and the following outlier detected: p160 t1 & t2 
-
-fc4 <- rowMeans(US[,"fc_2_o_agr"])
-fc4_mad <- outliers_mad(x = fc4)
-fc4_mad
-
-# cor_health
-cor <- rowMeans(US[,"cor_health"])
-cor_mad <- outliers_mad(x = cor)
-cor_mad
-# 122 outliers (low)
-
-# cor_values
-cor2 <- rowMeans(US[,"cor_values"])
-cor2_mad <- outliers_mad(x = cor2)
-cor2_mad
 ```
 
-# descriptive statistics
+# descriptive statistics --> APA tables!!
 ```{r, frequencies}
 US_data %>% 
   select(vote) %>%
