@@ -1683,7 +1683,7 @@ correlation_matrix <- function(df,
   x <- as.matrix(df)
   
   # run correlation analysis using Hmisc package
-  correlation_matrix <- Hmisc::rcorr(x, type = )
+  correlation_matrix <- Hmisc::rcorr(x, type = "spearman")
   R <- correlation_matrix$r # Matrix of correlation coeficients
   p <- correlation_matrix$P # Matrix of p-value 
   
@@ -1738,7 +1738,7 @@ save_correlation_matrix = function(df, filename, ...) {
   return(write.csv(correlation_matrix(df, ...), file = filename))
 }
 
-save_correlation_matrix(df = corr, filename = "Intercorrelation Matrix.csv")
+save_correlation_matrix(df = corr, filename = "Intercorrelation Matrix new.csv")
 
 # partial correlation, controlled for secident
 
@@ -1808,6 +1808,7 @@ pc_cn10
 
 pc_cn11 <- pcor.test(US$secident, US$fc_2_o_agr, US$cn, method = "spearman")
 pc_cn11
+
 ```
 
 
