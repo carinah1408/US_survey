@@ -795,6 +795,51 @@ US_data %>%
 
 # cronbach´s alpha for secident = 0.96
 
+# ingroup_satis
+key <- list(
+  ingroup_satis = c("secident_4", "secident_5", 
+               "secident_6", "secident_7")
+)
+
+# Cronbach´s alpha
+scoreItems(key, US_data)
+
+US_data %>%
+  dplyr::select(19:22) %>%
+  psych::alpha()
+
+# cronbach´s alpha for ingroup_satis = 0.95
+
+# ingroup_central
+key <- list(
+  ingroup_central = c("secident_8", "secident_9", 
+               "secident_10")
+)
+
+# Cronbach´s alpha
+scoreItems(key, US_data)
+
+US_data %>%
+  dplyr::select(23:25) %>%
+  psych::alpha()
+
+# cronbach´s alpha for ingroup_central = 0.85
+
+# ingroup_soli
+key <- list(
+  ingroup_soli = c("secident_1", "secident_2", 
+               "secident_3")
+)
+
+# Cronbach´s alpha
+scoreItems(key, US_data)
+
+US_data %>%
+  dplyr::select(16:18) %>%
+  psych::alpha()
+
+# cronbach´s alpha for ingroup_soli = 0.91
+
 # xeno
 key <- list(
   xeno = c("xeno_1", "xeno_2", "xeno_3", "xeno_4", "xeno_5", "xeno_6")
@@ -1827,5 +1872,5 @@ pc_cn1a
 # --> tested with pearson correlation and partial correlation, too, and the value range, as well as the trends stay the same!
 ```
 
-vif
+## Hypotheses testing
 
