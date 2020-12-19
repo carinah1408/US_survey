@@ -1099,6 +1099,7 @@ US <- US_data %>%
   mutate(cn = (cn_1 + cn_2 + cn_3 + cn_4 + cn_5)/5,
         secident = (secident_1 + secident_2 + secident_3 + secident_4 + secident_5 +
         secident_6 + secident_7 + secident_8 + secident_9 + secident_10)/10,
+        ingroup_satis = (secident_4 + secident_5 + secident_6 + secident_7)/4,
         xeno = (xeno_1 + xeno_2 + xeno_3 + xeno_4)/4, 
         joy = (joy_1 + joy_2)/2,
         eff = (eff_1 + eff_2)/2)
@@ -1512,8 +1513,7 @@ ggplot(US_data, aes(x=cor_values, fill=time))+
 # descriptives for participants
 ```{r, participants, include= TRUE}
 age <- group_by(.data = US, time) %>%
-  select(., age) %>%
-  summarise(mean_age = mean(age), sd_age = sd(age))
+    summarise(., mean_age = mean(age), sd_age = sd(age), min_age = min(age), max_age = max(age))
 age
 
 gend <- group_by(.data = US, time) %>%
@@ -1723,6 +1723,13 @@ corr <- US %>%
 
 correlation_matrix(corr)
 
+# without outlier xeno
+corr2 <- US %>%
+  dplyr::filter(., id != "p090" & id != "189" & id!= "p192" & id!= "p196") %>%
+  dplyr::select(., cn, secident, xeno, joy, eff, pi_1_own, pi_1_ave, pi_2_own, pi_2_ave, fc_1_s, fc_1_o_agr, fc_2_s, fc_2_o_agr, age)
+
+correlation_matrix(corr2)
+
 #' save_correlation_matrix
 #' Creates and save to file a fully formatted correlation matrix, using `correlation_matrix` and `Hmisc::rcorr` in the backend
 #' @param df dataframe; passed to `correlation_matrix`
@@ -1741,75 +1748,84 @@ save_correlation_matrix = function(df, filename, ...) {
 save_correlation_matrix(df = corr, filename = "Intercorrelation Matrix new.csv")
 
 # partial correlation, controlled for secident
-
 pc_secident1 <- pcor.test(US$cn, US$xeno, US$secident, method = "spearman")
 pc_secident1
-
 pc_secident2 <- pcor.test(US$cn, US$joy, US$secident, method = "spearman")
 pc_secident2
-
 pc_secident3 <- pcor.test(US$cn, US$eff, US$secident, method = "spearman")
 pc_secident3
-
 pc_secident4 <- pcor.test(US$cn, US$pi_1_own, US$secident, method = "spearman")
 pc_secident4
-
 pc_secident5 <- pcor.test(US$cn, US$pi_1_ave, US$secident, method = "spearman")
 pc_secident5
-
 pc_secident6 <- pcor.test(US$cn, US$pi_2_own, US$secident, method = "spearman")
 pc_secident6
-
 pc_secident7 <- pcor.test(US$cn, US$pi_2_ave, US$secident, method = "spearman")
 pc_secident7
-
 pc_secident8 <- pcor.test(US$cn, US$fc_1_s, US$secident, method = "spearman")
 pc_secident8
-
 pc_secident9 <- pcor.test(US$cn, US$fc_1_o_agr, US$secident, method = "spearman")
 pc_secident9
-
 pc_secident10 <- pcor.test(US$cn, US$fc_2_s, US$secident, method = "spearman")
 pc_secident10
-
 pc_secident11 <- pcor.test(US$cn, US$fc_2_o_agr, US$secident, method = "spearman")
 pc_secident11
 
 # controlled for cn
 pc_cn1 <- pcor.test(US$secident, US$xeno, US$cn, method = "spearman")
 pc_cn1
-
 pc_cn2 <- pcor.test(US$secident, US$joy, US$cn, method = "spearman")
 pc_cn2
-
 pc_cn3 <- pcor.test(US$secident, US$eff, US$cn, method = "spearman")
 pc_cn3
-
 pc_cn4 <- pcor.test(US$secident, US$pi_1_own, US$cn, method = "spearman")
 pc_cn4
-
 pc_cn5 <- pcor.test(US$secident, US$pi_1_ave, US$cn, method = "spearman")
 pc_cn5
-
 pc_cn6 <- pcor.test(US$secident, US$pi_2_own, US$cn, method = "spearman")
 pc_cn6
-
 pc_cn7 <- pcor.test(US$secident, US$pi_2_ave, US$cn, method = "spearman")
 pc_cn7
-
 pc_cn8 <- pcor.test(US$secident, US$fc_1_s, US$cn, method = "spearman")
 pc_cn8
-
 pc_cn9 <- pcor.test(US$secident, US$fc_1_o_agr, US$cn, method = "spearman")
 pc_cn9
-
 pc_cn10 <- pcor.test(US$secident, US$fc_2_s, US$cn, method = "spearman")
 pc_cn10
-
 pc_cn11 <- pcor.test(US$secident, US$fc_2_o_agr, US$cn, method = "spearman")
 pc_cn11
 
+# partial correlation, controlled for secident (without outlier xeno)
+
+pc_secident1a <- pcor.test(corr2$cn, corr2$xeno, corr2$secident, method = "spearman")
+pc_secident1a
+
+# controlled for cn (without outlier xeno)
+pc_cn1a <- pcor.test(corr2$secident, corr2$xeno, corr2$cn, method = "spearman")
+pc_cn1a
+
+# --> it doesn´t seem to make a difference whether the outliers are considered or not, the trend (cn is higher associated with xeno when secident is not controlled for, and weaker when it is controlled for, as well as that secident turns n.s. when cn is controlled for) stays the same, values are in similar range
+
+
+# correlation with ingroup_satis instead of secident
+
+corr3 <- US %>%
+  dplyr::select(., cn, ingroup_satis, xeno, joy, eff, pi_1_own, pi_1_ave, pi_2_own, pi_2_ave, fc_1_s, fc_1_o_agr, fc_2_s, fc_2_o_agr, age)
+
+correlation_matrix(corr3)
+
+# partial correlation controlled for ingroup_satis (ingroup_satis instead of secident)
+
+pc_ingroup_satis1 <- pcor.test(corr3$cn, corr3$xeno, corr3$ingroup_satis, method = "spearman")
+pc_ingroup_satis1
+
+# partial correlation controlled for cn (ingroup_satis instead of secident)
+pc_cn1a <- pcor.test(corr3$ingroup_satis, corr3$xeno, corr3$cn, method = "spearman")
+pc_cn1a
+
+# --> it doesn´t make a difference either, the values stay in the same range and the trend is the same
+# --> tested with pearson correlation and partial correlation, too, and the value range, as well as the trends stay the same!
 ```
 
-
+vif
 
