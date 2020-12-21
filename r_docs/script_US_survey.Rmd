@@ -1917,3 +1917,93 @@ pc_cn11a
 
 ## Hypotheses testing
 
+# H1
+```{r, t-tests, include=TRUE}
+
+# f_1_s
+f_1_s_.t.test <- t.test(fc_1_s ~ vote, data = US)
+f_1_s_.t.test
+
+# effect size
+
+t<-f_1_s_.t.test$statistic[[1]]
+df<-f_1_s_.t.test$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# f_1_o_agr
+f_1_o_agr.t.test <- t.test(fc_1_o_agr ~ vote, data = US)
+f_1_o_agr.t.test
+
+# effect size
+
+t<-f_1_o_agr.t.test$statistic[[1]]
+df<-f_1_o_agr.t.test$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# f_2_s
+f_2_s_.t.test <- t.test(fc_2_s ~ vote, data = US)
+f_2_s_.t.test
+
+# effect size
+
+t<-f_2_s_.t.test$statistic[[1]]
+df<-f_2_s_.t.test$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# f_2_o_agr
+
+f_2_o_agr.t.test <- t.test(fc_2_o_agr ~ vote, data = US)
+f_2_o_agr.t.test
+
+# effect size
+
+t<-f_2_o_agr.t.test$statistic[[1]]
+df<-f_2_o_agr.t.test$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+```
+
+# H2
+```{r}
+# Democrats
+US_vote_1 <- subset(US, vote == "Democrats")
+
+pi_1_t_test <- t.test(US_vote_1$pi_1_own, US_vote_1$pi_1_ave)
+pi_1_t_test
+  
+t<-pi_1_t_test$statistic[[1]]
+df<-pi_1_t_test$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+pi_2_t_test <- t.test(US_vote_1$pi_2_own, US_vote_1$pi_2_ave)
+pi_2_t_test
+  
+t<-pi_2_t_test$statistic[[1]]
+df<-pi_2_t_test$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# Republicans
+US_vote_2 <- subset(US, vote == "Republicans")
+
+pi_1_t_testa <- t.test(US_vote_2$pi_1_own, US_vote_2$pi_1_ave)
+pi_1_t_testa
+  
+t<-pi_1_t_testa$statistic[[1]]
+df<-pi_1_t_testa$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+pi_2_t_testa <- t.test(US_vote_2$pi_2_own, US_vote_2$pi_2_ave)
+pi_2_t_testa
+  
+t<-pi_2_t_testa$statistic[[1]]
+df<-pi_2_t_testa$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+```
+
