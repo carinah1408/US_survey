@@ -2111,3 +2111,70 @@ unexp_Rep %>%
   summarise(., mean_fc_2_o_agr = mean(fc_2_o_agr), sd_fc_2_o_agr = sd(fc_2_o_agr))
 ```
 
+# H4
+```{r}
+# Democrats
+unexp_Dem <- US %>%
+  filter(vote == "Democrats" & unexp == "Unexpected")
+unexp_Dem # only 4 participants
+
+US_vote_1a <- subset(US, vote == "Democrats")
+
+# pi_1_ave
+pi_1_paired <- t.test(pi_1_ave ~ time, US_vote_1a, paired = TRUE)
+pi_1_paired
+
+t<-pi_1_paired$statistic[[1]]
+df<-pi_1_paired$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# descriptives
+US_vote_1a %>% 
+  group_by(., time) %>% 
+  summarise(., mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave))
+
+# pi_2_ave
+pi_2_paired <- t.test(pi_2_ave ~ time, US_vote_1a, paired = TRUE)
+pi_2_paired
+
+t<-pi_2_paired$statistic[[1]]
+df<-pi_2_paired$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# descriptives
+US_vote_1a %>% 
+  group_by(., time) %>% 
+  summarise(., mean_pi_2_ave = mean(pi_2_ave), sd_pi_2_ave = sd(pi_2_ave))
+
+# Republicans
+# pi_1_ave
+pi_1_paireda <- t.test(pi_1_ave ~ time, unexp_Rep, paired = TRUE)
+pi_1_paireda
+
+t<-pi_1_paireda$statistic[[1]]
+df<-pi_1_paireda$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# descriptives
+unexp_Rep %>% 
+  group_by(., time) %>% 
+  summarise(., mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave))
+
+# pi_2_ave
+pi_2_paireda <- t.test(pi_2_ave ~ time, unexp_Rep, paired = TRUE)
+pi_2_paireda
+
+t<-pi_2_paireda$statistic[[1]]
+df<-pi_2_paireda$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# descriptives
+unexp_Rep %>% 
+  group_by(., time) %>% 
+  summarise(., mean_p2_1_ave = mean(pi_2_ave), sd_pi_2_ave = sd(pi_2_ave))
+```
+
