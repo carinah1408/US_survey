@@ -1658,7 +1658,6 @@ descriptives3
 # by vote and time
 descriptives4 <- US %>% 
   group_by(vote, time) %>%
-  select(., cn, secident, xeno, joy, eff, pi_1_own, pi_1_ave, pi_2_own, pi_2_ave, fc_1_s, fc_1_o_agr, fc_2_s, fc_2_o_agr) %>%
   summarise(., mean_cn = mean(cn), sd_cn = sd(cn), 
             mean_secident = mean(secident), sd_secident = sd(secident), 
             mean_xeno = mean(xeno), sd_xeno = sd(xeno),
@@ -1917,11 +1916,16 @@ pc_cn11a
 
 ## Hypotheses testing
 
+```{r, subset for t1}
+US_t1 <- US %>%
+  filter(time == "1")
+```
+
+
 # H1
 ```{r, t-tests, include=TRUE}
-
 # f_1_s
-f_1_s_.t.test <- t.test(fc_1_s ~ vote, data = US)
+f_1_s_.t.test <- t.test(fc_1_s ~ vote, data = US_t1)
 f_1_s_.t.test
 
 # effect size
@@ -1932,7 +1936,7 @@ r <- sqrt(t^2/(t^2+df))
 round(r, 3)
 
 # f_1_o_agr
-f_1_o_agr.t.test <- t.test(fc_1_o_agr ~ vote, data = US)
+f_1_o_agr.t.test <- t.test(fc_1_o_agr ~ vote, data = US_t1)
 f_1_o_agr.t.test
 
 # effect size
@@ -1942,8 +1946,12 @@ df<-f_1_o_agr.t.test$parameter[[1]]
 r <- sqrt(t^2/(t^2+df))
 round(r, 3)
 
+# plot
+
+
+
 # f_2_s
-f_2_s_.t.test <- t.test(fc_2_s ~ vote, data = US)
+f_2_s_.t.test <- t.test(fc_2_s ~ vote, data = US_t1)
 f_2_s_.t.test
 
 # effect size
@@ -1955,7 +1963,7 @@ round(r, 3)
 
 # f_2_o_agr
 
-f_2_o_agr.t.test <- t.test(fc_2_o_agr ~ vote, data = US)
+f_2_o_agr.t.test <- t.test(fc_2_o_agr ~ vote, data = US_t1)
 f_2_o_agr.t.test
 
 # effect size
@@ -1969,7 +1977,7 @@ round(r, 3)
 # H2
 ```{r}
 # Democrats
-US_vote_1 <- subset(US, vote == "Democrats")
+US_vote_1 <- subset(US_t1, vote == "Democrats")
 
 pi_1_t_test <- t.test(US_vote_1$pi_1_own, US_vote_1$pi_1_ave)
 pi_1_t_test
@@ -1988,7 +1996,7 @@ r <- sqrt(t^2/(t^2+df))
 round(r, 3)
 
 # Republicans
-US_vote_2 <- subset(US, vote == "Republicans")
+US_vote_2 <- subset(US_t1, vote == "Republicans")
 
 pi_1_t_testa <- t.test(US_vote_2$pi_1_own, US_vote_2$pi_1_ave)
 pi_1_t_testa
@@ -2005,5 +2013,12 @@ t<-pi_2_t_testa$statistic[[1]]
 df<-pi_2_t_testa$parameter[[1]]
 r <- sqrt(t^2/(t^2+df))
 round(r, 3)
+```
+
+# H3
+```{r}
+unexp_Rep <- US %>%
+  filter(vote == "Republicans" & unexp == "Unexpected")
+unexp_Rep
 ```
 
