@@ -1944,7 +1944,7 @@ US_t1_clean2 <- US %>%
 
 
 # H1
-```{r, t-tests, include=TRUE}
+```{r, H1, include=TRUE}
 # f_1_s
 f_1_s_.t.test <- t.test(fc_1_s ~ vote, data = US_t1)
 f_1_s_.t.test
@@ -2022,7 +2022,7 @@ round(r, 3)
 ```
 
 # H2
-```{r}
+```{r, H2, include=TRUE}
 # Democrats
 US_vote_1 <- subset(US_t1, vote == "Democrats")
 
@@ -2063,7 +2063,7 @@ round(r, 3)
 ```
 
 # H3
-```{r}
+```{r, H3, include= TRUE}
 unexp_Rep <- US %>%
   filter(vote == "Republicans" & unexp == "Unexpected")
 unexp_Rep
@@ -2112,7 +2112,7 @@ unexp_Rep %>%
 ```
 
 # H4
-```{r}
+```{r, H4, include= TRUE}
 # Democrats
 unexp_Dem <- US %>%
   filter(vote == "Democrats" & unexp == "Unexpected")
@@ -2176,5 +2176,21 @@ round(r, 3)
 unexp_Rep %>% 
   group_by(., time) %>% 
   summarise(., mean_p2_1_ave = mean(pi_2_ave), sd_pi_2_ave = sd(pi_2_ave))
+```
+
+# H5
+```{r}
+pi_1_paired <- t.test(pi_1_ave ~ time, US_vote_1a, paired = TRUE)
+pi_1_paired
+
+t<-pi_1_paired$statistic[[1]]
+df<-pi_1_paired$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# descriptives
+US_vote_1a %>% 
+  group_by(., time) %>% 
+  summarise(., mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave))
 ```
 
