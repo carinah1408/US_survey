@@ -1979,8 +1979,9 @@ US_vote_2$vote <- factor(US_vote_2$vote)
 
 # subset Republicans & unexpected (H3 ...)
 unexp_Rep <- US %>%
-  filter(vote == "Republicans" & unexp == "Unexpected")
+  filter(vote == "Republicans" & unexp == "Unexpected") 
 unexp_Rep
+
 
 # without outlier
 
@@ -2357,3 +2358,42 @@ unexp_Rep %>%
   summarise(., mean_eff = mean(eff), sd_eff = sd(eff))
 ```
 
+#H6
+```{r}
+US_Rep <- US %>%
+  filter(vote == "Republicans")
+
+# sign all Republicans
+sign.data <- data.frame(US_Rep$time, US_Rep$sign) 
+
+sign.data = table(US_Rep$time, US_Rep$sign) 
+print(sign.data)
+
+print(chisq.test(sign.data))
+
+# sign unexp
+sign_unexp.data <- data.frame(unexp_Rep$time, unexp_Rep$sign) 
+
+sign_unexp.data = table(unexp_Rep$time, unexp_Rep$sign)
+print(sign_unexp.data)
+
+print(chisq.test(sign_unexp.data))
+
+# overview
+num_sign<- US_Rep %>%
+  group_by(., time,id, unexp, sign, donate, share) %>%
+  filter(., sign == "1" & unexp != "Neither expected nor unexpected") %>%
+  summarise(., n = n())
+num_sign
+
+# among those that signed at t1 and t2: 2* donate increases, 2* donate decreases; 2* share decreases, 1* increases, 1* remains the same
+```
+
+# Exploratory
+```{r}
+
+```
+
+
+
+## Subgroup xenophobes
