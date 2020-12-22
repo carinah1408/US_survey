@@ -2002,6 +2002,7 @@ unexp_Dem <- US %>%
 unexp_Dem # only 4 participants
 
 US_vote_1a <- subset(US, vote == "Democrats")
+
 ```
 
 # H1
@@ -2391,6 +2392,65 @@ num_sign
 
 # Exploratory
 ```{r}
+Dem_exp_t1 <- US %>%
+  filter(., vote == "Democrats" & unexp == "Expected" & time == "1")
+Dem_exp_t1
+
+Dem_exp_descr <- Dem_exp_t1 %>%
+  summarise(., mean_pi_1_own = mean(pi_1_own), sd_pi_1_own = sd(pi_1_own), mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave), mean_pi_2_own = mean(pi_2_own), sd_pi_2_own = sd(pi_2_own), mean_pi_2_ave = mean(pi_2_ave), sd_pi_2_ave = sd(pi_2_ave))
+Dem_exp_descr
+
+# pi_1
+pi_1_t_test_exp <- t.test(Dem_exp_t1$pi_1_own, mu = 4.383562)
+pi_1_t_test_exp
+  
+t<-pi_1_t_test_exp$statistic[[1]]
+df<-pi_1_t_test_exp$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# pi_2
+pi_2_t_test_exp <- t.test(Dem_exp_t1$pi_1_own, mu = 4.986301)
+pi_2_t_test_exp
+  
+t<-pi_2_t_test_exp$statistic[[1]]
+df<-pi_2_t_test_exp$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# t1 & t2 comparison
+
+Dem_exp <- US %>%
+  filter(., vote == "Democrats" & unexp == "Expected")
+Dem_exp
+
+# pi_1_ave
+pi_1_paired_exp <- t.test(pi_1_ave ~ time, Dem_exp, paired = TRUE)
+pi_1_paired_exp
+
+t<-pi_1_paired_exp$statistic[[1]]
+df<-pi_1_paired_exp$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# descriptives
+Dem_exp %>% 
+  group_by(., time) %>% 
+  summarise(., mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave))
+
+# pi_2_ave
+pi_2_paired_exp <- t.test(pi_2_ave ~ time, Dem_exp, paired = TRUE)
+pi_2_paired_exp
+
+t<-pi_2_paired_exp$statistic[[1]]
+df<-pi_2_paired_exp$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# descriptives
+Dem_exp %>% 
+  group_by(., time) %>% 
+  summarise(., mean_pi_2_ave = mean(pi_2_ave), sd_pi_2_ave = sd(pi_2_ave))
 
 ```
 
