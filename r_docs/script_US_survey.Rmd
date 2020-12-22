@@ -22,6 +22,7 @@ library(papaja) # APA tables
 library(knitr) # kable function
 library(Hmisc) # for correlation
 library(ppcor) # partial correlation
+library(forcats) # factor relevel
 
 # dataset ####
 data <- here::here("data/US_data.csv")
@@ -94,6 +95,18 @@ US_data <- US_data %>%
     income == "6" ~ "over $50,000"
   ))
 
+US <- US_data %>%
+  mutate(cn = (cn_1 + cn_2 + cn_3 + cn_4 + cn_5)/5,
+        secident = (secident_1 + secident_2 + secident_3 + secident_4 + secident_5 +
+        secident_6 + secident_7 + secident_8 + secident_9 + secident_10)/10,
+        ingroup_satis = (secident_4 + secident_5 + secident_6 + secident_7)/4,
+        xeno = (xeno_1 + xeno_2 + xeno_3 + xeno_4)/4, 
+        joy = (joy_1 + joy_2)/2,
+        eff = (eff_1 + eff_2)/2)
+
+US$time <- factor(US$time)
+US$unexp <- factor(US$unexp)
+US$vote <- factor(US$vote)
 ```
 
 ## Data inspection
@@ -1137,18 +1150,9 @@ resid(fit_emp, type = "standardized")
 # --> overall empowerment shows low construct validity (.82)
 ```
 
-# creating new variables (cn, secident, xeno, joy & eff) and assumption checks
+# new variables (cn, secident, xeno, joy & eff): assumption checks
 Graphs show some deviance from normality but skew and kurtosis for the majority within the limits of acceptance (exemption: joy at success, however not outlier detected). Xenophobia shows non-normality (was to be expected) and outliers (come back to this)
-```{r, new variables and assumption checks, include=TRUE}
-US <- US_data %>%
-  mutate(cn = (cn_1 + cn_2 + cn_3 + cn_4 + cn_5)/5,
-        secident = (secident_1 + secident_2 + secident_3 + secident_4 + secident_5 +
-        secident_6 + secident_7 + secident_8 + secident_9 + secident_10)/10,
-        ingroup_satis = (secident_4 + secident_5 + secident_6 + secident_7)/4,
-        xeno = (xeno_1 + xeno_2 + xeno_3 + xeno_4)/4, 
-        joy = (joy_1 + joy_2)/2,
-        eff = (eff_1 + eff_2)/2)
-
+```{r, assumption checks new variables, include=TRUE}
 # cn
 ggplot(US, aes(x=cn))+
   stat_bin(colour="grey",fill="steelblue", geom = "bar") +
@@ -1929,22 +1933,153 @@ pc_cn11a
 
 ## Hypotheses testing
 
-```{r, subset for t1}
+```{r, subsets and factors}
+# subset for t1 (H1 & H2)
 US_t1 <- US %>%
-  filter(time == "1")
+  filter(time == "1") %>%
+  dplyr::mutate(
+  vote_relev = forcats::fct_relevel(vote, "Republicans", "Democrats")
+  )
+  
 
 # without outlier in fc_1_s
+fc_1_s_clean <- US %>%
+  dplyr::filter(id != "p022" & id != "p079" & id!= "p101" & id != "p140" & id != "p156" & id != "p167" & id != "192")
+
 US_t1_clean <- fc_1_s_clean %>%
-  filter(time == "1")
+  filter(time == "1") %>%
+  dplyr::mutate(
+  vote_relev = forcats::fct_relevel(vote, "Republicans", "Democrats")
+  )
 
 # without outliers in fc_1_o_agr
 US_t1_clean2 <- US %>%
   filter(time == "1" & id != "p160")
-```
 
+US_t1$time <- factor(US_t1$time)
+US_t1$vote <- factor(US_t1$vote)
+
+US_t1_clean$time <- factor(US_t1_clean$time)
+US_t1_clean$vote <- factor(US_t1_clean$vote)
+
+US_t1_clean2$time <- factor(US_t1_clean2$time)
+US_t1_clean2$vote <- factor(US_t1_clean2$vote)
+
+# subset for Democrats (H2)
+US_vote_1 <- subset(US_t1, vote == "Democrats")
+
+US_vote_1$time <- factor(US_vote_1$time)
+US_vote_1$vote <- factor(US_vote_1$vote)
+
+# subset for Republicans (H2)
+US_vote_2 <- subset(US_t1, vote == "Republicans")
+
+US_vote_2$time <- factor(US_vote_2$time)
+US_vote_2$vote <- factor(US_vote_2$vote)
+
+# subset Republicans & unexpected (H3 ...)
+unexp_Rep <- US %>%
+  filter(vote == "Republicans" & unexp == "Unexpected")
+unexp_Rep
+
+# without outlier
+
+unexp_Rep_clean <- US %>%
+  filter(vote == "Republicans" & unexp == "Unexpected" & id!= "p160")
+unexp_Rep_clean
+
+unexp_Rep$vote <- factor(unexp_Rep$vote)
+unexp_Rep$time <- factor(unexp_Rep$time)
+
+unexp_Rep_clean$vote <- factor(unexp_Rep_clean$vote)
+unexp_Rep_clean$time <- factor(unexp_Rep_clean$time)
+
+# subset Democrats t1 and t2 (H4)
+
+unexp_Dem <- US %>%
+  filter(vote == "Democrats" & unexp == "Unexpected")
+unexp_Dem # only 4 participants
+
+US_vote_1a <- subset(US, vote == "Democrats")
+```
 
 # H1
 ```{r, H1, include=TRUE}
+# One-tailed t-test
+
+# f_1_s
+
+fc_1_s_one_tailed <- t.test(fc_1_s ~ vote_relev, US_t1, alternative = "greater")
+fc_1_s_one_tailed
+
+# effect size
+
+t<-fc_1_s_one_tailed$statistic[[1]]
+df<-fc_1_s_one_tailed$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# without outliers
+
+# f_1_s
+f_1_s_one_tailed_clean <- t.test(fc_1_s ~ vote_relev, data = US_t1_clean, alternative = "greater")
+f_1_s_one_tailed_clean
+
+# effect size
+
+t<-f_1_s_one_tailed_clean$statistic[[1]]
+df<-f_1_s_one_tailed_clean$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# f_1_o_agr
+f_1_o_agr_one_tailed <- t.test(fc_1_o_agr ~ vote_relev, data = US_t1, alternative = "greater")
+f_1_o_agr_one_tailed
+
+# effect size
+
+t<-f_1_o_agr_one_tailed$statistic[[1]]
+df<-f_1_o_agr_one_tailed$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# without outliers
+f_1_o_agr_one_tailed_clean <- t.test(fc_1_o_agr ~ vote_relev, data = US_t1_clean2, alternative = "greater")
+f_1_o_agr_one_tailed_clean
+
+# effect size
+
+t<-f_1_o_agr_one_tailed_clean$statistic[[1]]
+df<-f_1_o_agr_one_tailed_clean$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# f_2_s
+f_2_s_one_tailed <- t.test(fc_2_s ~ vote_relev, data = US_t1, alternative = "greater")
+f_2_s_one_tailed
+
+# effect size
+
+t<-f_2_s_one_tailed$statistic[[1]]
+df<-f_2_s_one_tailed$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# f_2_o_agr
+
+f_2_o_agr_one_tailed <- t.test(fc_2_o_agr ~ vote_relev, data = US_t1, alternative = "greater")
+f_2_o_agr_one_tailed
+
+# effect size
+
+t<-f_2_o_agr_one_tailed$statistic[[1]]
+df<-f_2_o_agr_one_tailed$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+
+# Two-tailed t-test
+
 # f_1_s
 f_1_s_.t.test <- t.test(fc_1_s ~ vote, data = US_t1)
 f_1_s_.t.test
@@ -2024,8 +2159,6 @@ round(r, 3)
 # H2
 ```{r, H2, include=TRUE}
 # Democrats
-US_vote_1 <- subset(US_t1, vote == "Democrats")
-
 pi_1_t_test <- t.test(US_vote_1$pi_1_own, mu = 4.241379)
 pi_1_t_test
   
@@ -2043,8 +2176,6 @@ r <- sqrt(t^2/(t^2+df))
 round(r, 3)
 
 # Republicans
-US_vote_2 <- subset(US_t1, vote == "Republicans")
-
 pi_1_t_testa <- t.test(US_vote_2$pi_1_own, mu = 4.576923)
 pi_1_t_testa
   
@@ -2064,10 +2195,6 @@ round(r, 3)
 
 # H3
 ```{r, H3, include= TRUE}
-unexp_Rep <- US %>%
-  filter(vote == "Republicans" & unexp == "Unexpected")
-unexp_Rep
-
 # fc_1_o_agr
 fc_1_paired <- t.test(fc_1_o_agr ~ time, unexp_Rep, paired = TRUE)
 fc_1_paired
@@ -2083,9 +2210,6 @@ unexp_Rep %>%
   summarise(., mean_fc_1_o_agr = mean(fc_1_o_agr), sd_fc_1_o_agr = sd(fc_1_o_agr))
 
 # without outlier
-unexp_Rep_clean <- US %>%
-  filter(vote == "Republicans" & unexp == "Unexpected" & id!= "p160")
-unexp_Rep_clean
 
 # fc_1_o_agr
 fc_1_paired_clean <- t.test(fc_1_o_agr ~ time, unexp_Rep_clean, paired = TRUE)
@@ -2114,11 +2238,6 @@ unexp_Rep %>%
 # H4
 ```{r, H4, include= TRUE}
 # Democrats
-unexp_Dem <- US %>%
-  filter(vote == "Democrats" & unexp == "Unexpected")
-unexp_Dem # only 4 participants
-
-US_vote_1a <- subset(US, vote == "Democrats")
 
 # pi_1_ave
 pi_1_paired <- t.test(pi_1_ave ~ time, US_vote_1a, paired = TRUE)
@@ -2179,18 +2298,62 @@ unexp_Rep %>%
 ```
 
 # H5
-```{r}
-pi_1_paired <- t.test(pi_1_ave ~ time, US_vote_1a, paired = TRUE)
-pi_1_paired
+```{r, H5, include= TRUE}
+# Democrats
+# Joy
+joy_paired <- t.test(joy ~ time, US_vote_1a, paired = TRUE)
+joy_paired
 
-t<-pi_1_paired$statistic[[1]]
-df<-pi_1_paired$parameter[[1]]
+t<-joy_paired$statistic[[1]]
+df< joy_paired$parameter[[1]]
 r <- sqrt(t^2/(t^2+df))
 round(r, 3)
 
 # descriptives
 US_vote_1a %>% 
   group_by(., time) %>% 
-  summarise(., mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave))
+  summarise(., mean_joy = mean(joy), sd_joy = sd(joy))
+
+# Eff
+eff_paired <- t.test(eff ~ time, US_vote_1a, paired = TRUE)
+eff_paired
+
+t<-eff_paired$statistic[[1]]
+df< eff_paired$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# descriptives
+US_vote_1a %>% 
+  group_by(., time) %>% 
+  summarise(., mean_eff = mean(eff), sd_eff = sd(eff))
+
+# Republicans
+joy_paireda <- t.test(joy ~ time, unexp_Rep, paired = TRUE)
+joy_paireda
+
+t<-joy_paireda$statistic[[1]]
+df< joy_paireda$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# descriptives
+unexp_Rep %>% 
+  group_by(., time) %>% 
+  summarise(., mean_joy = mean(joy), sd_joy = sd(joy))
+
+# eff
+eff_paireda <- t.test(eff ~ time, unexp_Rep, paired = TRUE)
+eff_paireda
+
+t<-eff_paireda$statistic[[1]]
+df< eff_paireda$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# descriptives
+unexp_Rep %>% 
+  group_by(., time) %>% 
+  summarise(., mean_eff = mean(eff), sd_eff = sd(eff))
 ```
 
