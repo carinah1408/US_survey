@@ -1935,16 +1935,18 @@ pc_cn11a
 
 ```{r, subsets and factors}
 # subset for t1 (H1 & H2)
-US_t1 <- US %>%
-  filter(time == "1")
-US_t1
-  
-  
+US_t1_ <- US %>%
+  filter(time == "1") %>%
   dplyr::mutate(
   vote_relev = forcats::fct_relevel(vote, "Republicans", "Democrats")
   )
 US_t1
-  
+
+# subset for plot
+
+US_t1_plot <- US %>%
+  filter(time == "1")
+US_t1_plot  
 
 # without outlier in fc_1_s
 fc_1_s_clean <- US %>%
@@ -2158,7 +2160,7 @@ round(r, 3)
 
 # plot
 
-fc_plot <- US_t1 %>%
+fc_plot <- US_t1_plot %>%
   dplyr::group_by(., vote) %>%
   dplyr::summarise(., mean_fc_1_s = mean(fc_1_s), se_fc_1_s = sd(fc_1_s)/sqrt(n()), mean_fc_2_s = mean(fc_2_s), se_fc_2_s =sd(fc_2_s)/sqrt(n()), mean_fc_1_o_agr = mean(fc_1_o_agr), se_fc_1_o_agr = sd(fc_1_o_agr)/sqrt(n()), mean_fc_2_o_agr = mean(fc_2_o_agr), se_fc_2_o_agr = sd(fc_2_s)/sqrt(n()))
 fc_plot
