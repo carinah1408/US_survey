@@ -2298,6 +2298,11 @@ plot
 
 # H3
 ```{r, H3, include= TRUE}
+unexp_Rep <- US %>%
+  filter(vote == "Republicans" & unexp == "Unexpected") %>%
+  as.tibble()
+unexp_Rep
+
 # fc_1_o_agr
 fc_1_paired <- t.test(fc_1_o_agr ~ time, unexp_Rep, paired = TRUE)
 fc_1_paired
@@ -2586,7 +2591,7 @@ descriptives3 <- US %>%
             mean_fc_2_o_agr = mean(fc_2_o_agr), sd_fc_2_o_agr = sd(fc_2_o_agr))
 descriptives3
 
-# t-tests for cn and xeno by vote
+# t-tests for overall cn by vote (US = t1 and t2, Democrats & Republicans)
 
 cn.t.test <- t.test(cn ~ vote, data = US)
 cn.t.test
@@ -2595,17 +2600,6 @@ cn.t.test
 
 t<-cn.t.test$statistic[[1]]
 df<-cn.t.test$parameter[[1]]
-r <- sqrt(t^2/(t^2+df))
-round(r, 3)
-
-
-xeno.t.test <- t.test(xeno ~ vote, data = US_t1)
-xeno.t.test
-
-# effect size
-
-t<-xeno.t.test$statistic[[1]]
-df<-xeno.t.test$parameter[[1]]
 r <- sqrt(t^2/(t^2+df))
 round(r, 3)
 
@@ -2629,7 +2623,7 @@ descriptives4 <- US %>%
 descriptives4
 
 # t-test for cn by time
-cn2.t.test <- t.test(cn ~ time, data = US_Rep)
+cn2.t.test <- t.test(cn ~ time, data = US_Rep) # US_Rep = US dataset restricted to Republicans only
 cn2.t.test
 
 # effect size
@@ -2654,7 +2648,7 @@ descriptives6
 # predictions
 
 # fc_1_o_agr by cn (controlled for secident) 
-fc_cn_model1 <- lm(fc_1_o_agr ~ cn, data = unexp_Rep)
+fc_cn_model1 <- lm(fc_1_o_agr ~ cn, data = unexp_Rep) # unexp_Rep = US dataset restricted to Republicans that did not expect the outcome, potentially connection between fc and cn here
 fc_cn_model1
 summary(fc_cn_model1)
 coef_lmbeta1 <- lm(fc_cn_model1)
@@ -2670,7 +2664,7 @@ summary(fc_cn_model2)
 anova(fc_cn_model1, fc_cn_model2)
 
 
-# fc_2_o_agr by cn (controlled for secident)
+# fc_2_o_agr by cn (controlled for secident) # uS_Rep since no connection between (un)expectancy and cn is expected here
 fc_cn_model3 <- lm(fc_2_o_agr ~ cn, data = US_Rep)
 fc_cn_model3
 coef_lmbeta3 <- lm(fc_cn_model3)
@@ -2687,9 +2681,16 @@ summary(fc_cn_model4)
 anova(fc_cn_model3, fc_cn_model4)
 
 # sign by cn (logistic regression)
-sign_cn_model <- glm(sign ~ cn + secident, data = unexp_Rep, family = "binomial")
+US_vote_2a <- US %>%
+  filter(., time == "2" & vote == "Republicans")
+US_vote_2a
+
+
+sign_cn_model <- glm(sign ~ cn + secident, data = US_vote_2a, family = "binomial")
 summary(sign_cn_model)
-pscl::pR2(sign_cn_model) ["McFadden"] # model has McFadden value of .34 (values > .40 mean that the model fits the data very well)
+exp(coef(sign_cn_model))
+exp(confint(sign_cn_model))
+pscl::pR2(sign_cn_model) ["McFadden"] # model has McFadden value of .34 (values > .40 mean that the model fits the data very well), (un)expectancy factor results in increase of .09 in McFadden value
 
 # predictions based on cn-values
 sign_cn_new <- data.frame(cn = 7, secident = 1)
@@ -2697,25 +2698,46 @@ predict(sign_cn_model, sign_cn_new, type = "response")
 
 # predictions for each individual in dataset
 
-predicted <- predict(sign_cn_model, unexp_Rep, type = "response")
+predicted <- predict(sign_cn_model, US_vote_2a, type = "response")
 predicted
 
 # model diagnostics
-optimal <- optimalCutoff(unexp_Rep$sign, predicted) [1] 
-optimal # any individual with a probability of .27 or higher will be predicted to sign the petition
+optimal <- optimalCutoff(US_vote_2a$sign, predicted) [1] 
+optimal # any individual with a probability of .79 or higher will be predicted to sign the petition
 
 # sensitivity and specificity
 sensitivity(unexp_Rep$sign, predicted)
 specificity(unexp_Rep$sign, predicted)
 
 # total miscalculation error rate
-misClassError(unexp_Rep$sign, predicted, threshold = optimal) # 10.2 % error rate
+misClassError(US_vote_2a$sign, predicted, threshold = optimal) # 10.2 % error rate
 
 # ROC curve
-plotROC(unexp_Rep$sign, predicted) # high value with .87 --> model is good in predicting whether or not an individual will sign the petition
+plotROC(US_vote_2a$sign, predicted) # high value with .87 --> model is good in predicting whether or not an individual will sign the petition
 
 
 # emp by cn 
+joy_cn_model1 <- lm(joy ~ cn, data = US_vote_2a)
+joy_cn_model1
+summary(joy_cn_model1)
+coef_lmbeta5 <- lm(joy_cn_model1)
+coef_lmbeta5
+plot(joy_cn_model1)
+
+joy_cn_clean <- US_vote_2a %>%
+  filter(., id!= "p164" & id!= "p122" & id!= "p173")
+joy_cn_model2_clean
+
+joy_cn_model2 <- lm(joy ~ cn + secident, data = joy_cn_clean)
+joy_cn_model2
+summary(joy_cn_model2)
+
+coef_lmbeta6 <- lm(joy_cn_model2)
+coef_lmbeta6
+plot(joy_cn_model2)
+
+anova(joy_cn_model1, joy_cn_model2)
+
 
 
 
