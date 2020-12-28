@@ -23,6 +23,9 @@ library(knitr) # kable function
 library(Hmisc) # for correlation
 library(ppcor) # partial correlation
 library(forcats) # factor relevel
+library(QuantPsyc) # standardized coefficients
+library(pscl) # R2 for logistic regression
+library(InformationValue) # model diagnostics logistic regression
 
 # dataset ####
 data <- here::here("data/US_data.csv")
@@ -102,7 +105,9 @@ US <- US_data %>%
         ingroup_satis = (secident_4 + secident_5 + secident_6 + secident_7)/4,
         xeno = (xeno_1 + xeno_2 + xeno_3 + xeno_4)/4, 
         joy = (joy_1 + joy_2)/2,
-        eff = (eff_1 + eff_2)/2)
+        eff = (eff_1 + eff_2)/2) %>%
+  as_tibble() 
+US
 
 US$time <- factor(US$time)
 US$unexp <- factor(US$unexp)
@@ -440,6 +445,14 @@ ggplot(US_data, aes(x=xeno_5, fill=vote))+
 ggplot(US_data, aes(x=xeno_6, fill=vote))+
   geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
   labs(x= "rev_I support the Black Lives Matter movement.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US, aes(x=xeno, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Xenophobia", y= "Frequency") +
   scale_fill_manual(name = "Vote", 
       labels = c("Democratic Party", "Republican Party", NA), 
       values = c("#58a6a6", "#efa355", NA)) +
@@ -1943,7 +1956,8 @@ US_vote_2$vote <- factor(US_vote_2$vote)
 
 # subset Republicans & unexpected (H3 ...)
 unexp_Rep <- US %>%
-  filter(vote == "Republicans" & unexp == "Unexpected") 
+  filter(vote == "Republicans" & unexp == "Unexpected") %>%
+  as.tibble()
 unexp_Rep
 
 
@@ -2552,7 +2566,7 @@ subgroup
 
 # Collective narcissism and predictions
 ```{r}
-# by vote
+# descriptives by vote
 descriptives3 <- US %>% 
   group_by(vote) %>%
   dplyr::select(., cn, secident, ingroup_satis, xeno, joy, eff, pi_1_own, pi_1_ave, pi_2_own, pi_2_ave, fc_1_s, fc_1_o_agr, fc_2_s, fc_2_o_agr) %>%
@@ -2571,6 +2585,8 @@ descriptives3 <- US %>%
             mean_fc_2_s = mean(fc_2_s), sd_fc_2_s = sd(fc_2_s),
             mean_fc_2_o_agr = mean(fc_2_o_agr), sd_fc_2_o_agr = sd(fc_2_o_agr))
 descriptives3
+
+# t-tests for cn and xeno by vote
 
 cn.t.test <- t.test(cn ~ vote, data = US)
 cn.t.test
@@ -2594,7 +2610,7 @@ r <- sqrt(t^2/(t^2+df))
 round(r, 3)
 
 
-# by vote and time
+# descriptives by vote and time
 descriptives4 <- US %>% 
   group_by(vote, time) %>%
   summarise(., mean_cn = mean(cn), sd_cn = sd(cn), 
@@ -2612,6 +2628,7 @@ descriptives4 <- US %>%
             mean_fc_2_o_agr = mean(fc_2_o_agr), sd_fc_2_o_agr = sd(fc_2_o_agr))
 descriptives4
 
+# t-test for cn by time
 cn2.t.test <- t.test(cn ~ time, data = US_Rep)
 cn2.t.test
 
@@ -2633,5 +2650,74 @@ descriptives6 <- US_t1_clean2 %>%
   group_by(vote, time) %>%
   summarise(., mean_fc_1_o_agr = mean(fc_1_o_agr), sd_fc_1_o_agr = sd(fc_1_o_agr))
 descriptives6
+
+# predictions
+
+# fc_1_o_agr by cn (controlled for secident) 
+fc_cn_model1 <- lm(fc_1_o_agr ~ cn, data = unexp_Rep)
+fc_cn_model1
+summary(fc_cn_model1)
+coef_lmbeta1 <- lm(fc_cn_model1)
+coef_lmbeta1
+plot(fc_cn_model1)
+
+fc_cn_model2 <- lm(fc_1_o_agr ~ cn + secident, data = unexp_Rep)
+fc_cn_model2
+coef_lmbeta2 <- lm(fc_cn_model2)
+coef_lmbeta2
+summary(fc_cn_model2)
+
+anova(fc_cn_model1, fc_cn_model2)
+
+
+# fc_2_o_agr by cn (controlled for secident)
+fc_cn_model3 <- lm(fc_2_o_agr ~ cn, data = US_Rep)
+fc_cn_model3
+coef_lmbeta3 <- lm(fc_cn_model3)
+coef_lmbeta3
+summary(fc_cn_model3)
+plot(fc_cn_model3)
+
+fc_cn_model4 <- lm(fc_2_o_agr ~ cn + secident, data = US_Rep)
+fc_cn_model4
+coef_lmbeta4 <- lm(fc_cn_model4)
+coef_lmbeta4
+summary(fc_cn_model4)
+
+anova(fc_cn_model3, fc_cn_model4)
+
+# sign by cn (logistic regression)
+sign_cn_model <- glm(sign ~ cn + secident, data = unexp_Rep, family = "binomial")
+summary(sign_cn_model)
+pscl::pR2(sign_cn_model) ["McFadden"] # model has McFadden value of .34 (values > .40 mean that the model fits the data very well)
+
+# predictions based on cn-values
+sign_cn_new <- data.frame(cn = 7, secident = 1)
+predict(sign_cn_model, sign_cn_new, type = "response")
+
+# predictions for each individual in dataset
+
+predicted <- predict(sign_cn_model, unexp_Rep, type = "response")
+predicted
+
+# model diagnostics
+optimal <- optimalCutoff(unexp_Rep$sign, predicted) [1] 
+optimal # any individual with a probability of .27 or higher will be predicted to sign the petition
+
+# sensitivity and specificity
+sensitivity(unexp_Rep$sign, predicted)
+specificity(unexp_Rep$sign, predicted)
+
+# total miscalculation error rate
+misClassError(unexp_Rep$sign, predicted, threshold = optimal) # 10.2 % error rate
+
+# ROC curve
+plotROC(unexp_Rep$sign, predicted) # high value with .87 --> model is good in predicting whether or not an individual will sign the petition
+
+
+# emp by cn 
+
+
+
 ```
 
