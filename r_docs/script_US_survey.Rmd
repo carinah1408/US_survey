@@ -135,6 +135,7 @@ box_secident_7 <- boxplot(US_data$secident_7) # "Being American gives me a good 
 box_secident_8 <- boxplot(US_data$secident_8) # "I often think about the fact that I am American."
 box_secident_9 <- boxplot(US_data$secident_9) # "The fact that I am American is an important part of my identity."
 box_secident_10 <- boxplot(US_data$secident_10) # "Being American is an important part of how I see myself."
+
 # Striking is that items secident _7 to _10 show the same boxplot. I checked the raw data to make sure that the values were not accidentally doublicated and copy-pasted but the items are unique in values, yet similar to each other in expression. Potentially colinear? ####
 
 # xeno
@@ -334,6 +335,14 @@ ggplot(US_data, aes(x=cn_4, fill=vote))+
 ggplot(US_data, aes(x=cn_5, fill=vote))+
   geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
   labs(x= "Not many people seem to fully understand the importance of American people.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US, aes(x=cn, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Collective narcissism", y= "Frequency") +
   scale_fill_manual(name = "Vote", 
       labels = c("Democratic Party", "Republican Party", NA), 
       values = c("#58a6a6", "#efa355", NA)) +
@@ -1638,57 +1647,6 @@ v_max <- round(as.numeric(v_max),2)
 v_tab <- cbind(mean = v_mean, sd = v_sd, min = v_min, max = v_max)
 rownames(v_tab) <- c("Collective Narcissism", "Secure Ingroup Identity", "Ingroup satisfacation", "Xenophobia", "Joy at Success", "Group Efficacy", "PI Item 1 Own Comfort", "PI Item 1 Perceived Comfort", "PI Item 2 Own Comfort", "PI Item 2 Perceived Comfort", "FC Item 1 Own Approval", "FC Item 1 Perceived Agreement", "FC Item 2 Own Approval", "FC Item 2 Perceived Agreement")
 kable(v_tab)
-
-# by vote
-descriptives3 <- US %>% 
-  group_by(vote) %>%
-  dplyr::select(., cn, secident, ingroup_satis, xeno, joy, eff, pi_1_own, pi_1_ave, pi_2_own, pi_2_ave, fc_1_s, fc_1_o_agr, fc_2_s, fc_2_o_agr) %>%
-  summarise(., mean_cn = mean(cn), sd_cn = sd(cn), 
-            mean_secident = mean(secident), sd_secident = sd(secident),
-            mean_ingroup_satis = mean(ingroup_satis), sd_ingroup_satis = sd(ingroup_satis), 
-            mean_xeno = mean(xeno), sd_xeno = sd(xeno),
-            mean_joy = mean(joy), sd_joy = sd(joy),
-            mean_eff = mean(eff), sd_eff = sd(eff),
-            mean_pi_1_own = mean(pi_1_own), sd_pi_1_own = sd(pi_1_own),
-            mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave),
-            mean_pi_2_own = mean(pi_2_own), sd_pi_2_own = sd(pi_2_own),
-            mean_pi_2_ave = mean(pi_2_ave), sd_pi_2_ave = sd(pi_2_ave),
-            mean_fc_1_s = mean(fc_1_s), sd_fc_1_s = sd(fc_1_s),
-            mean_fc_1_o_agr = mean(fc_1_o_agr), sd_fc_1_o_agr = sd(fc_1_o_agr),
-            mean_fc_2_s = mean(fc_2_s), sd_fc_2_s = sd(fc_2_s),
-            mean_fc_2_o_agr = mean(fc_2_o_agr), sd_fc_2_o_agr = sd(fc_2_o_agr))
-descriptives3
-
-# by vote and time
-descriptives4 <- US %>% 
-  group_by(vote, time) %>%
-  summarise(., mean_cn = mean(cn), sd_cn = sd(cn), 
-            mean_secident = mean(secident), sd_secident = sd(secident), 
-            mean_xeno = mean(xeno), sd_xeno = sd(xeno),
-            mean_joy = mean(joy), sd_joy = sd(joy),
-            mean_eff = mean(eff), sd_eff = sd(eff),
-            mean_pi_1_own = mean(pi_1_own), sd_pi_1_own = sd(pi_1_own),
-            mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave),
-            mean_pi_2_own = mean(pi_2_own), sd_pi_2_own = sd(pi_2_own),
-            mean_pi_2_ave = mean(pi_2_ave), sd_pi_2_ave = sd(pi_2_ave),
-            mean_fc_1_s = mean(fc_1_s), sd_fc_1_s = sd(fc_1_s),
-            mean_fc_1_o_agr = mean(fc_1_o_agr), sd_fc_1_o_agr = sd(fc_1_o_agr),
-            mean_fc_2_s = mean(fc_2_s), sd_fc_2_s = sd(fc_2_s),
-            mean_fc_2_o_agr = mean(fc_2_o_agr), sd_fc_2_o_agr = sd(fc_2_o_agr))
-descriptives4
-
-# without outliers fc_1_s 
-descriptives5 <- US_t1_clean %>% 
-  group_by(vote, time) %>%
-  summarise(., mean_fc_1_s = mean(fc_1_s), sd_fc_1_s = sd(fc_1_s))
-descriptives5
-
-# without outliers fc_1_o_agr
-descriptives6 <- US_t1_clean2 %>% 
-  group_by(vote, time) %>%
-  summarise(., mean_fc_1_o_agr = mean(fc_1_o_agr), sd_fc_1_o_agr = sd(fc_1_o_agr))
-descriptives6
-
 ```
 
 # correlationn (partical correlation, multicollinearity)
@@ -1935,7 +1893,7 @@ pc_cn11a
 
 ```{r, subsets and factors}
 # subset for t1 (H1 & H2)
-US_t1_ <- US %>%
+US_t1 <- US %>%
   filter(time == "1") %>%
   dplyr::mutate(
   vote_relev = forcats::fct_relevel(vote, "Republicans", "Democrats")
@@ -2519,7 +2477,7 @@ num_sign
 # among those that signed at t1 and t2: 2* donate increases, 2* donate decreases; 2* share decreases, 1* increases, 1* remains the same
 ```
 
-# Exploratory
+## Exploratory
 ```{r}
 Dem_exp_t1 <- US %>%
   filter(., vote == "Democrats" & unexp == "Expected" & time == "1")
@@ -2583,6 +2541,97 @@ Dem_exp %>%
 
 ```
 
+# Subgroup xenophobes
+```{r}
+subgroup <- US %>%
+  filter(., ethn == "White or European American" & xeno >= "5")
+subgroup
+
+# no values above 3.25 (above 4 in single items, respectively) for xeno
+```
+
+# Collective narcissism and predictions
+```{r}
+# by vote
+descriptives3 <- US %>% 
+  group_by(vote) %>%
+  dplyr::select(., cn, secident, ingroup_satis, xeno, joy, eff, pi_1_own, pi_1_ave, pi_2_own, pi_2_ave, fc_1_s, fc_1_o_agr, fc_2_s, fc_2_o_agr) %>%
+  summarise(., mean_cn = mean(cn), sd_cn = sd(cn), 
+            mean_secident = mean(secident), sd_secident = sd(secident),
+            mean_ingroup_satis = mean(ingroup_satis), sd_ingroup_satis = sd(ingroup_satis), 
+            mean_xeno = mean(xeno), sd_xeno = sd(xeno),
+            mean_joy = mean(joy), sd_joy = sd(joy),
+            mean_eff = mean(eff), sd_eff = sd(eff),
+            mean_pi_1_own = mean(pi_1_own), sd_pi_1_own = sd(pi_1_own),
+            mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave),
+            mean_pi_2_own = mean(pi_2_own), sd_pi_2_own = sd(pi_2_own),
+            mean_pi_2_ave = mean(pi_2_ave), sd_pi_2_ave = sd(pi_2_ave),
+            mean_fc_1_s = mean(fc_1_s), sd_fc_1_s = sd(fc_1_s),
+            mean_fc_1_o_agr = mean(fc_1_o_agr), sd_fc_1_o_agr = sd(fc_1_o_agr),
+            mean_fc_2_s = mean(fc_2_s), sd_fc_2_s = sd(fc_2_s),
+            mean_fc_2_o_agr = mean(fc_2_o_agr), sd_fc_2_o_agr = sd(fc_2_o_agr))
+descriptives3
+
+cn.t.test <- t.test(cn ~ vote, data = US)
+cn.t.test
+
+# effect size
+
+t<-cn.t.test$statistic[[1]]
+df<-cn.t.test$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
 
 
-## Subgroup xenophobes
+xeno.t.test <- t.test(xeno ~ vote, data = US_t1)
+xeno.t.test
+
+# effect size
+
+t<-xeno.t.test$statistic[[1]]
+df<-xeno.t.test$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+
+# by vote and time
+descriptives4 <- US %>% 
+  group_by(vote, time) %>%
+  summarise(., mean_cn = mean(cn), sd_cn = sd(cn), 
+            mean_secident = mean(secident), sd_secident = sd(secident), 
+            mean_xeno = mean(xeno), sd_xeno = sd(xeno),
+            mean_joy = mean(joy), sd_joy = sd(joy),
+            mean_eff = mean(eff), sd_eff = sd(eff),
+            mean_pi_1_own = mean(pi_1_own), sd_pi_1_own = sd(pi_1_own),
+            mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave),
+            mean_pi_2_own = mean(pi_2_own), sd_pi_2_own = sd(pi_2_own),
+            mean_pi_2_ave = mean(pi_2_ave), sd_pi_2_ave = sd(pi_2_ave),
+            mean_fc_1_s = mean(fc_1_s), sd_fc_1_s = sd(fc_1_s),
+            mean_fc_1_o_agr = mean(fc_1_o_agr), sd_fc_1_o_agr = sd(fc_1_o_agr),
+            mean_fc_2_s = mean(fc_2_s), sd_fc_2_s = sd(fc_2_s),
+            mean_fc_2_o_agr = mean(fc_2_o_agr), sd_fc_2_o_agr = sd(fc_2_o_agr))
+descriptives4
+
+cn2.t.test <- t.test(cn ~ time, data = US_Rep)
+cn2.t.test
+
+# effect size
+
+t<-cn2.t.test$statistic[[1]]
+df<-cn2.t.test$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# without outliers fc_1_s 
+descriptives5 <- US_t1_clean %>% 
+  group_by(vote, time) %>%
+  summarise(., mean_fc_1_s = mean(fc_1_s), sd_fc_1_s = sd(fc_1_s))
+descriptives5
+
+# without outliers fc_1_o_agr
+descriptives6 <- US_t1_clean2 %>% 
+  group_by(vote, time) %>%
+  summarise(., mean_fc_1_o_agr = mean(fc_1_o_agr), sd_fc_1_o_agr = sd(fc_1_o_agr))
+descriptives6
+```
+
