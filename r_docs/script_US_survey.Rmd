@@ -26,6 +26,7 @@ library(forcats) # factor relevel
 library(QuantPsyc) # standardized coefficients
 library(pscl) # R2 for logistic regression
 library(InformationValue) # model diagnostics logistic regression
+library(car) # vif
 
 # dataset ####
 data <- here::here("data/US_data.csv")
@@ -1960,7 +1961,6 @@ unexp_Rep <- US %>%
   as.tibble()
 unexp_Rep
 
-
 # without outlier
 
 unexp_Rep_clean <- US %>%
@@ -2647,21 +2647,13 @@ descriptives6
 
 # predictions
 
-# fc_1_o_agr by cn (controlled for secident) 
-fc_cn_model1 <- lm(fc_1_o_agr ~ cn, data = unexp_Rep) # unexp_Rep = US dataset restricted to Republicans that did not expect the outcome, potentially connection between fc and cn here
-fc_cn_model1
-summary(fc_cn_model1)
-coef_lmbeta1 <- lm(fc_cn_model1)
-coef_lmbeta1
-plot(fc_cn_model1)
-
-fc_cn_model2 <- lm(fc_1_o_agr ~ cn + secident, data = unexp_Rep)
-fc_cn_model2
-coef_lmbeta2 <- lm(fc_cn_model2)
+# fc_1_o_agr by cn (controlled for secident), unexp_Rep = US dataset restricted to Republicans that did not expect the outcome, potentially connection between fc and cn here
+fc_cn_model <- lm(fc_1_o_agr ~ cn + secident, data = unexp_Rep)
+fc_cn_model
+summary(fc_cn_model)
+confint(fc_cn_model)
+coef_lmbeta2 <- lm.beta(fc_cn_model)
 coef_lmbeta2
-summary(fc_cn_model2)
-
-anova(fc_cn_model1, fc_cn_model2)
 
 
 # fc_2_o_agr by cn (controlled for secident) # uS_Rep since no connection between (un)expectancy and cn is expected here
@@ -2674,70 +2666,118 @@ plot(fc_cn_model3)
 
 fc_cn_model4 <- lm(fc_2_o_agr ~ cn + secident, data = US_Rep)
 fc_cn_model4
-coef_lmbeta4 <- lm(fc_cn_model4)
+coef_lmbeta4 <- lm.beta(fc_cn_model4)
 coef_lmbeta4
 summary(fc_cn_model4)
 
-anova(fc_cn_model3, fc_cn_model4)
-
 # sign by cn (logistic regression)
-US_vote_2a <- US %>%
-  filter(., time == "2" & vote == "Republicans")
-US_vote_2a
-
-
-sign_cn_model <- glm(sign ~ cn + secident, data = US_vote_2a, family = "binomial")
+sign_cn_model <- glm(sign ~ cn + secident, data = US_Rep, family = "binomial")
 summary(sign_cn_model)
 exp(coef(sign_cn_model))
 exp(confint(sign_cn_model))
 pscl::pR2(sign_cn_model) ["McFadden"] # model has McFadden value of .34 (values > .40 mean that the model fits the data very well), (un)expectancy factor results in increase of .09 in McFadden value
+car::vif(sign_cn_model) # no multicollinearity
+
 
 # predictions based on cn-values
-sign_cn_new <- data.frame(cn = 7, secident = 1)
+sign_cn_new <- data.frame(cn = 4, secident = 5)
 predict(sign_cn_model, sign_cn_new, type = "response")
 
 # predictions for each individual in dataset
 
-predicted <- predict(sign_cn_model, US_vote_2a, type = "response")
+predicted <- predict(sign_cn_model, US_Rep, type = "response")
 predicted
 
 # model diagnostics
-optimal <- optimalCutoff(US_vote_2a$sign, predicted) [1] 
-optimal # any individual with a probability of .79 or higher will be predicted to sign the petition
+optimal <- optimalCutoff(US_Rep$sign, predicted) [1] 
+optimal # any individual with a probability of .31 or higher will be predicted to sign the petition
 
 # sensitivity and specificity
-sensitivity(unexp_Rep$sign, predicted)
-specificity(unexp_Rep$sign, predicted)
+sensitivity(US_Rep$sign, predicted)
+specificity(US_Rep$sign, predicted)
 
 # total miscalculation error rate
-misClassError(US_vote_2a$sign, predicted, threshold = optimal) # 10.2 % error rate
+misClassError(US_Rep$sign, predicted, threshold = optimal) # 12 % error rate
 
 # ROC curve
-plotROC(US_vote_2a$sign, predicted) # high value with .87 --> model is good in predicting whether or not an individual will sign the petition
+plotROC(US_Rep$sign, predicted) # high value with .81 --> model is ok in predicting whether or not an individual will sign the petition
+
+# sharing by cn
+share_cn_model1 <- lm(share ~ cn + secident, data = US_Rep)
+share_cn_model1
+summary(share_cn_model1)
+
+coef_lmbeta5 <- lm(share_cn_model1)
+coef_lmbeta5
+plot(share_cn_model1)
+
+# donate by cn   UNCLEAR!!!
+US_Rep_na <- US_Rep %>%
+  filter(., donate != "NA")
+
+don_cn_model1 <- lm(donate ~ cn + secident, data = US_Rep_na)
+don_cn_model1
+summary(don_cn_model1)
+
+coef_lmbeta6 <- lm(don_cn_model1)
+coef_lmbeta6
+plot(don_cn_model1)
+
+# bootstrap
+bootReg <- function(formula, data, indices)
+  {
+    d <- data [i,]
+    fit <- lm(formula, data = d)
+    return(coef(fit))
+  }
+
+bootResults <- Boot(don_cn_model1, R = 10000)
+summary(bootResults)
+boot.ci(bootResults, type = "bca", index = 2)
+boot.ci(bootResults, type = "bca", index = 3)
+
+# If more than one predictor: boot.ci(bootResults, type = "bca", index = 1) intercept; 
+# boot.ci(bootResults, type "bca", index = 2) first predictor; boot.ci(bootResults, 
+# type = "bca", index = 3) second predictor etc
+
+# Note that the confidence interval isn’t symmetrical because our data isn’t 
+# perfectly normal. Thus, when you report them make sure to note that they are 
+# 95% bootstrap bca confidence intervals. Also note that the quantiles reported 
+# in the output are linear quantiles
+
+# https://ademos.people.uic.edu/Chapter12.html#5_what_can_we_do_to_remedy_this
 
 
 # emp by cn 
-joy_cn_model1 <- lm(joy ~ cn, data = US_vote_2a)
+# joy
+joy_cn_model1 <- lm(joy ~ cn + secident, data = US_Rep)
 joy_cn_model1
 summary(joy_cn_model1)
-coef_lmbeta5 <- lm(joy_cn_model1)
-coef_lmbeta5
 plot(joy_cn_model1)
 
-joy_cn_clean <- US_vote_2a %>%
-  filter(., id!= "p164" & id!= "p122" & id!= "p173")
-joy_cn_model2_clean
+joy_cn_clean <- US_Rep %>%
+  filter(., id!= "p122" & id!= "p173")
+joy_cn_clean
 
 joy_cn_model2 <- lm(joy ~ cn + secident, data = joy_cn_clean)
 joy_cn_model2
 summary(joy_cn_model2)
-
-coef_lmbeta6 <- lm(joy_cn_model2)
-coef_lmbeta6
+confint(joy_cn_model2)
 plot(joy_cn_model2)
 
-anova(joy_cn_model1, joy_cn_model2)
+# eff
 
+eff_cn_model1 <- lm(eff ~ cn, data = US_Rep)
+eff_cn_model1
+summary(eff_cn_model1)
+
+eff_cn_model2 <- lm(eff ~ cn + secident, data = US_Rep)
+eff_cn_model2
+summary(eff_cn_model2)
+confint(eff_cn_model2)
+plot(eff_cn_model2)
+
+anova(eff_cn_model1, eff_cn_model2)
 
 
 
