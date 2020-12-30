@@ -1,0 +1,293 @@
+---
+title: "panel_US_survey"
+author: "CH"
+date: "30/12/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(readr)
+library(tidyverse)
+library(dplyr)
+library(QuantPsyc) 
+library(plm) # panel for regression
+library(pglm) # panel logistic regression
+library(pscl)
+
+data <- here::here("data/US_data.csv")
+US_data <- readr::read_csv(data) %>%
+  as.data.frame()
+
+US_data <- US_data %>%
+  mutate(vote = case_when(
+  vote=='1' ~ 'Democrats',
+  vote=='2' ~ 'Republicans',
+  TRUE ~ 'Other'))
+
+US_data <- US_data %>%
+  mutate(unexp = case_when(
+    unexp == "0" ~ "Expected",
+    unexp == "1" ~ "Unexpected",
+    unexp == "2" ~ "Neither expected nor unexpected"))
+
+US_data <- US_data %>%
+  mutate(gend = case_when(
+    gend == "1" ~ "Female",
+    gend == "2" ~ "Male",
+    gend == "3" ~ "Non-binary"
+  ))
+
+US_data <- US_data %>%
+  mutate(ethn = case_when(
+    ethn == "1" ~ "Asian-American",
+    ethn == "2" ~ "Black or African American",
+    ethn == "3" ~ "Hispanic or Latino American",
+    ethn == "4" ~ "Native American",
+    ethn == "5" ~ "White or European American",
+    ethn == "6" ~ "Other"
+  ))
+
+US_data <- US_data %>%
+  mutate(degree =case_when(
+    degree == "1" ~ "No degree",
+    degree == "2" ~ "High School",
+    degree == "3" ~ "Bachelor´s degree",
+    degree == "4" ~ "Master´s degree",
+    degree == "5" ~ "Doctoral degree",
+    degree == "6" ~ "Professional degree",
+    degree == "7" ~ "Other"
+  ))
+
+US_data <- US_data %>%
+  mutate(employ = case_when(
+    employ == "1" ~ "Working - paid employee",
+    employ == "2" ~ "Working - self-employed",
+    employ == "3" ~ "Not working - temporary layoff from a job",
+    employ == "4" ~ "Not working - looking for a job",
+    employ == "5" ~ "Not working - retired",
+    employ == "6" ~ "Not working - disabled",
+    employ == "7" ~ "Not working - student",
+    employ == "8" ~ "Other"
+  ))
+
+US_data <- US_data %>%
+  mutate(income = case_when(
+    income == "1" ~ "$0 - $10,000",
+    income == "2" ~ "$10,000 - $20,000",
+    income == "3" ~ "$20,000 - $30,000",
+    income == "4" ~ "$30,000 - $40,000",
+    income == "5" ~ "$40,000 - $50,000",
+    income == "6" ~ "over $50,000"
+  ))
+
+US <- US_data %>%
+  mutate(cn = (cn_1 + cn_2 + cn_3 + cn_4 + cn_5)/5,
+        secident = (secident_1 + secident_2 + secident_3 + secident_4 + secident_5 +
+        secident_6 + secident_7 + secident_8 + secident_9 + secident_10)/10,
+        ingroup_satis = (secident_4 + secident_5 + secident_6 + secident_7)/4,
+        xeno = (xeno_1 + xeno_2 + xeno_3 + xeno_4)/4, 
+        joy = (joy_1 + joy_2)/2,
+        eff = (eff_1 + eff_2)/2) %>%
+  as.data.frame()
+US
+
+US$id <- as.factor(US$id)
+US$time <- as.factor(US$time)
+```
+
+# panel design regression
+```{r}
+is.data.frame(US)
+dim(US)
+str(US)
+summary(US)
+
+# subset data
+US_t1_mod <- subset(US, time == "1" & vote == "Republicans")
+US_t2_mod <- subset(US, time == "2" & vote == "Republicans")
+
+# computing differences in fc_1_o_agr and cn
+diff_fc_1_o_agr <- US_t2_mod$fc_1_o_agr - US_t1_mod$fc_1_o_agr
+diff_fc_2_o_agr <- US_t2_mod$fc_2_o_agr - US_t1_mod$fc_2_o_agr
+diff_secident <- US_t2_mod$secident - US_t1_mod$secident
+diff_cn <- US_t2_mod$cn - US_t1_mod$cn
+diff_sd <- US_t2_mod$sd - US_t1_mod$sd
+diff_cor_values <- US_t2_mod$cor_values - US_t1_mod$cor_values
+diff_cor_health <- US_t2_mod$cor_health - US_t1_mod$cor_health
+diff_joy <- US_t2_mod$joy - US_t1_mod$joy
+diff_eff <- US_t2_mod$eff - US_t1_mod$eff
+diff_sign <- US_t2_mod$sign - US_t1_mod$sign
+diff_share <- US_t2_mod$share - US_t1_mod$share
+diff_donate <- US_t2_mod$donate - US_t1_mod$donate
+
+# regression fc_1_o_agr (step 1)
+diff_fc_1 <- lm(diff_fc_1_o_agr ~ diff_cn)
+coeftest(diff_fc_1, vcov = vcovHC, type = "HC1")
+summary(diff_fc_1)
+
+diff_fc_1alt <- lm(diff_fc_1_o_agr ~  diff_cn + diff_secident + diff_sd + diff_cor_values + diff_cor_health)
+coeftest(diff_fc_1alt, vcov = vcovHC, type = "HC1")
+coef_lmbeta <- lm.beta(diff_fc_1alt)
+coef_lmbeta
+confint(diff_fc_1alt)
+summary(diff_fc_1alt)
+
+# fixed effect regression fc_1_o_agr, keeping effects across entities constant (step 2)
+diff_fc_12 <- plm(fc_1_o_agr ~ cn + id, 
+                   data = US,
+                   index = c("id", "time"),
+                   model = "within")
+coeftest(diff_fc_12, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_12)
+
+# time fixed effect regression fc_1_o_agr, keeping effects across entities and time constant (step 3)
+diff_fc_13 <- plm(fc_1_o_agr ~ sd + id + time,
+                    data = US, 
+                    index = c("id", "time"),
+                    model = "within",
+                    effect = "twoways")
+coeftest(diff_fc_13, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_13)
+
+# adding control variables
+
+diff_fc_14 <- plm(fc_1_o_agr ~ sd + cor_values + cor_health + id + time,
+                    data = US, 
+                    index = c("id", "time"),
+                    model = "within",
+                    effect = "twoways")
+coeftest(diff_fc_14, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_14)
+
+diff_fc_15 <- plm(fc_1_o_agr ~ sd + cor_values + cor_health + secident + id + time,
+                    data = US, 
+                    index = c("id", "time"),
+                    model = "within",
+                    effect = "twoways")
+coeftest(diff_fc_15, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_15)
+
+diff_fc_16 <- plm(fc_1_o_agr ~ sd + cor_values + cor_health + secident + cn + id + time,
+                    data = US, 
+                    index = c("id", "time"),
+                    model = "within",
+                    effect = "twoways")
+coeftest(diff_fc_16, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_16)
+
+diff_fc_17 <- plm(fc_1_o_agr ~ secident + id + time,
+                    data = US, 
+                    index = c("id", "time"),
+                    model = "within",
+                    effect = "twoways")
+coeftest(diff_fc_17, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_17)
+
+diff_fc_18 <- plm(fc_1_o_agr ~ secident + cn + id + time,
+                    data = US, 
+                    index = c("id", "time"),
+                    model = "within",
+                    effect = "twoways")
+coeftest(diff_fc_18, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_18)
+
+
+
+# regression fc_2_o_agr (step 1)
+diff_fc_2 <- lm(diff_fc_2_o_agr ~ diff_cn)
+coeftest(diff_fc_2, vcov = vcovHC, type = "HC1")
+summary(diff_fc_2)
+
+diff_fc_2alt <- lm(diff_fc_2_o_agr ~  diff_cn + diff_secident + diff_sd + diff_cor_values + diff_cor_health)
+coeftest(diff_fc_2alt, vcov = vcovHC, type = "HC1")
+coef_lmbeta2 <- lm.beta(diff_fc_2alt)
+coef_lmbeta2
+confint(diff_fc_2alt)
+summary(diff_fc_2alt)
+
+# fixed effect regression fc_2_o_agr, keeping effects across entities constant (step 2)
+diff_fc_22<- plm(fc_2_o_agr ~ cn + id, 
+                   data = US,
+                   index = c("id", "time"),
+                   model = "within")
+coeftest(diff_fc_22, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_22)
+
+# time fixed effect regression fc_2_o_agr, keeping effects across entities and time constant (step 3)
+diff_fc_23 <- plm(fc_2_o_agr ~ sd + id + time,
+                    data = US, 
+                    index = c("id", "time"),
+                    model = "within",
+                    effect = "twoways")
+coeftest(diff_fc_23, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_23)
+
+# adding control variables
+
+diff_fc_24 <- plm(fc_2_o_agr ~ sd + cor_values + cor_health + id + time,
+                    data = US, 
+                    index = c("id", "time"),
+                    model = "within",
+                    effect = "twoways")
+coeftest(diff_fc_24, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_24)
+
+diff_fc_25 <- plm(fc_2_o_agr ~ sd + cor_values + cor_health + secident + sd + id + time,
+                    data = US, 
+                    index = c("id", "time"),
+                    model = "within",
+                    effect = "twoways")
+coeftest(diff_fc_25, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_25)
+
+diff_fc_26 <- plm(fc_2_o_agr ~ sd + cor_values + cor_health + secident + cn + id + time,
+                    data = US, 
+                    index = c("id", "time"),
+                    model = "within",
+                    effect = "twoways")
+coeftest(diff_fc_26, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_26)
+
+diff_fc_27 <- plm(fc_2_o_agr ~ secident + id + time,
+                    data = US, 
+                    index = c("id", "time"),
+                    model = "within",
+                    effect = "twoways")
+coeftest(diff_fc_27, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_27)
+
+diff_fc_28 <- plm(fc_2_o_agr ~ secident + cn + id + time,
+                    data = US, 
+                    index = c("id", "time"),
+                    model = "within",
+                    effect = "twoways")
+coeftest(diff_fc_28, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_28)
+
+
+# logistic regression
+US_panel <- pdata.frame(US, index = c("id", "time"))
+sign.mod <- pglm(sign ~ sd, 
+             data = US_panel,
+             family = "binomial")
+summary(sign.mod)
+
+sign.mod2 <- pglm(sign ~ sd + cor_values + cor_health, 
+             data = US_panel,
+             family = "binomial")
+summary(sign.mod2)
+
+sign.mod3 <- pglm(sign ~ sd + cor_values + cor_health + secident, 
+             data = US_panel,
+             family = "binomial")
+summary(sign.mod3)
+
+sign.mod4 <- pglm(sign ~ sd + cor_values + cor_health + secident + cn, 
+             data = US_panel,
+             family = "binomial")
+summary(sign.mod4)
+exp(coef(sign.mod4))
+exp(confint(sign.mod4))
+```
+
