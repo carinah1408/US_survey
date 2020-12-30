@@ -107,7 +107,7 @@ US <- US_data %>%
         xeno = (xeno_1 + xeno_2 + xeno_3 + xeno_4)/4, 
         joy = (joy_1 + joy_2)/2,
         eff = (eff_1 + eff_2)/2) %>%
-  as_tibble() 
+  as.tibble()
 US
 
 US$time <- factor(US$time)
@@ -1905,6 +1905,7 @@ pc_cn11a
 
 ## Hypotheses testing
 
+# Subsets
 ```{r, subsets and factors}
 # subset for t1 (H1 & H2)
 US_t1 <- US %>%
@@ -1986,9 +1987,7 @@ US_vote_1a <- subset(US, vote == "Democrats")
 # H1
 ```{r, H1, include=TRUE}
 # One-tailed t-test
-
 # f_1_s
-
 fc_1_s_one_tailed <- t.test(fc_1_s ~ vote_relev, US_t1, alternative = "greater")
 fc_1_s_one_tailed
 
@@ -2497,11 +2496,33 @@ num_sign
 ```
 
 ## Exploratory
+
+# Subsets
 ```{r}
+# Subgroup racialized identity
+subgroup <- US %>%
+  filter(., ethn == "White or European American" & xeno >= "5")
+subgroup
+
+# no values above 3.25 (above 4 in single items, respectively) for xeno
+
+# PI amongst Democrats
 Dem_exp_t1 <- US %>%
   filter(., vote == "Democrats" & unexp == "Expected" & time == "1")
 Dem_exp_t1
 
+# FC Republicans
+US_Rep_t2 <- US %>%
+  filter(., time =="2")
+US_Rep_t2
+
+unexp_Rep_t2 <- unexp_Rep %>%
+  filter(., time =="2")
+unexp_Rep_t2
+```
+
+
+```{r}
 Dem_exp_descr <- Dem_exp_t1 %>%
   summarise(., mean_pi_1_own = mean(pi_1_own), sd_pi_1_own = sd(pi_1_own), mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave), mean_pi_2_own = mean(pi_2_own), sd_pi_2_own = sd(pi_2_own), mean_pi_2_ave = mean(pi_2_ave), sd_pi_2_ave = sd(pi_2_ave))
 Dem_exp_descr
@@ -2560,16 +2581,7 @@ Dem_exp %>%
 
 ```
 
-# Subgroup xenophobes
-```{r}
-subgroup <- US %>%
-  filter(., ethn == "White or European American" & xeno >= "5")
-subgroup
-
-# no values above 3.25 (above 4 in single items, respectively) for xeno
-```
-
-# Collective narcissism and predictions
+# Collective narcissism t-tests 
 ```{r}
 # descriptives by vote
 descriptives3 <- US %>% 
@@ -2644,72 +2656,106 @@ descriptives6 <- US_t1_clean2 %>%
   group_by(vote, time) %>%
   summarise(., mean_fc_1_o_agr = mean(fc_1_o_agr), sd_fc_1_o_agr = sd(fc_1_o_agr))
 descriptives6
+```
 
-# predictions
+# Collective narcissism, false consensus, empowerment
+```{r}
+# FOR FC SEE RESULTS PANEL REGRESSION!
 
-# fc_1_o_agr by cn (controlled for secident), unexp_Rep = US dataset restricted to Republicans that did not expect the outcome, potentially connection between fc and cn here
-fc_cn_model <- lm(fc_1_o_agr ~ cn + secident, data = unexp_Rep)
-fc_cn_model
-summary(fc_cn_model)
-confint(fc_cn_model)
-coef_lmbeta2 <- lm.beta(fc_cn_model)
+# fc_1_o_agr by cn, short (controlled for secident), unexp_Rep = US dataset restricted to Republicans that did not expect the outcome, potentially connection between fc and cn here
+fc_1_cn_model <- lm(fc_1_o_agr ~ secident, data = US_Rep_t2)
+summary(fc_1_cn_model)
+confint(fc_1_cn_model)
+coef_lmbeta <- lm.beta(fc_1_cn_model)
+coef_lmbeta
+plot(fc_1_cn_model)
+
+fc_1_cn_model2 <- lm(fc_1_o_agr ~ secident + cn, data = US_Rep_t2)
+summary(fc_1_cn_model2)
+confint(fc_1_cn_model2)
+coef_lmbeta2 <- lm.beta(fc_1_cn_model2)
 coef_lmbeta2
+plot(fc_1_cn_model2)
 
+anova(fc_1_cn_model, fc_1_cn_model2)
 
-# fc_2_o_agr by cn (controlled for secident) # uS_Rep since no connection between (un)expectancy and cn is expected here
-fc_cn_model3 <- lm(fc_2_o_agr ~ cn, data = US_Rep)
-fc_cn_model3
-coef_lmbeta3 <- lm(fc_cn_model3)
+# fc_2_o_agr by cn, short (controlled for secident) # uS_Rep since no connection between (un)expectancy and cn is expected here
+fc_2_cn_model <- lm(fc_2_o_agr ~ secident, data = US_Rep_t2)
+summary(fc_2_cn_model)
+confint(fc_2_cn_model)
+coef_lmbeta3 <- lm.beta(fc_2_cn_model)
 coef_lmbeta3
-summary(fc_cn_model3)
-plot(fc_cn_model3)
+plot(fc_2_cn_model)
 
-fc_cn_model4 <- lm(fc_2_o_agr ~ cn + secident, data = US_Rep)
-fc_cn_model4
-coef_lmbeta4 <- lm.beta(fc_cn_model4)
+fc_2_cn_model2 <- lm(fc_2_o_agr ~ secident + cn, data = US_Rep_t2)
+summary(fc_2_cn_model2)
+confint(fc_2_cn_model2)
+coef_lmbeta4 <- lm.beta(fc_2_cn_model2)
 coef_lmbeta4
-summary(fc_cn_model4)
+plot(fc_2_cn_model2)
+
+anova(fc_2_cn_model, fc_2_cn_model2)
 
 # sign by cn (logistic regression)
-sign_cn_model <- glm(sign ~ cn + secident, data = US_Rep, family = "binomial")
+
+# subset for t1 and t2
+US_t1_mod <- subset(US, time == "1" & vote == "Republicans" & unexp == "Unexpected")
+US_t2_mod <- subset(US, time == "2" & vote == "Republicans" & unexp == "Unexpected")
+
+
+sign_cn_model <- glm(sign ~ secident + cn, data = US_Rep, family = "binomial")
 summary(sign_cn_model)
 exp(coef(sign_cn_model))
 exp(confint(sign_cn_model))
-pscl::pR2(sign_cn_model) ["McFadden"] # model has McFadden value of .34 (values > .40 mean that the model fits the data very well), (un)expectancy factor results in increase of .09 in McFadden value
-car::vif(sign_cn_model) # no multicollinearity
+pscl::pR2(sign_cn_model) ["McFadden"]
+
+sign_cn_model2 <- glm(sign ~ secident + cn, data = US_t2_mod, family = "binomial")
+summary(sign_cn_model2)
+exp(coef(sign_cn_model2))
+exp(confint(sign_cn_model2))
+pscl::pR2(sign_cn_model2) ["McFadden"] # model has McFadden value of .35 (values > .40 mean that the model fits the data very well), (un)expectancy factor results in increase of .09 in McFadden value
+car::vif(sign_cn_model2) # no multicollinearity
 
 
 # predictions based on cn-values
-sign_cn_new <- data.frame(cn = 4, secident = 5)
-predict(sign_cn_model, sign_cn_new, type = "response")
+sign_cn_new <- data.frame(cn = 7, secident = 1)
+predict(sign_cn_model2, sign_cn_new, type = "response")
 
 # predictions for each individual in dataset
 
-predicted <- predict(sign_cn_model, US_Rep, type = "response")
+predicted <- predict(sign_cn_model2, US_Rep, type = "response")
 predicted
 
 # model diagnostics
-optimal <- optimalCutoff(US_Rep$sign, predicted) [1] 
+optimal <- optimalCutoff(US_Rep_t2$sign, predicted) [1] 
 optimal # any individual with a probability of .31 or higher will be predicted to sign the petition
 
 # sensitivity and specificity
-sensitivity(US_Rep$sign, predicted)
-specificity(US_Rep$sign, predicted)
+sensitivity(US_Rep_t2$sign, predicted)
+specificity(US_Rep_t2$sign, predicted)
 
 # total miscalculation error rate
-misClassError(US_Rep$sign, predicted, threshold = optimal) # 12 % error rate
+misClassError(US_Rep_t2$sign, predicted, threshold = optimal) # 12 % error rate
 
 # ROC curve
-plotROC(US_Rep$sign, predicted) # high value with .81 --> model is ok in predicting whether or not an individual will sign the petition
+plotROC(US_Rep_t2$sign, predicted) # high value with .81 --> model is ok in predicting whether or not an individual will sign the petition
 
-# sharing by cn
-share_cn_model1 <- lm(share ~ cn + secident, data = US_Rep)
-share_cn_model1
-summary(share_cn_model1)
 
-coef_lmbeta5 <- lm(share_cn_model1)
+# sharing by cn (n.s.)
+share_cn_model <- lm(share ~ secident, data = US_Rep_t2)
+summary(share_cn_model)
+confint(share_cn_model)
+coef_lmbeta5 <- lm(share_cn_model)
 coef_lmbeta5
-plot(share_cn_model1)
+plot(share_cn_model)
+
+share_cn_model2 <- lm(share ~ secident + cn, data = US_Rep_t2)
+summary(share_cn_model2)
+confint(share_cn_model2)
+coef_lmbeta6 <- lm(share_cn_model2)
+coef_lmbeta6
+plot(share_cn_model2)
+
 
 # donate by cn   UNCLEAR!!!
 US_Rep_na <- US_Rep %>%
@@ -2746,8 +2792,21 @@ boot.ci(bootResults, type = "bca", index = 3)
 # in the output are linear quantiles
 
 # https://ademos.people.uic.edu/Chapter12.html#5_what_can_we_do_to_remedy_this
+```
 
 
+# False consensus, empowerment and behavioural intention
+```{r}
+
+```
+
+# Empowerment and behavioural intention
+```{r}
+
+```
+
+# Further analyses
+```{r}
 # emp by cn 
 # joy
 joy_cn_model1 <- lm(joy ~ cn + secident, data = US_Rep)
@@ -2766,20 +2825,9 @@ confint(joy_cn_model2)
 plot(joy_cn_model2)
 
 # eff
-
-eff_cn_model1 <- lm(eff ~ cn, data = US_Rep)
+eff_cn_model1 <- lm(eff ~ cn + secident, data = US_Rep)
 eff_cn_model1
 summary(eff_cn_model1)
-
-eff_cn_model2 <- lm(eff ~ cn + secident, data = US_Rep)
-eff_cn_model2
-summary(eff_cn_model2)
-confint(eff_cn_model2)
-plot(eff_cn_model2)
-
-anova(eff_cn_model1, eff_cn_model2)
-
-
-
+confint(eff_cn_model1)
+plot(eff_cn_model1)
 ```
-
