@@ -12,6 +12,7 @@ library(tidyverse)
 library(dplyr)
 library(QuantPsyc) 
 library(plm) # panel for regression
+library(lmtest)
 library(pglm) # panel logistic regression
 library(pscl)
 
@@ -81,6 +82,7 @@ US_data <- US_data %>%
     income == "6" ~ "over $50,000"
   ))
 
+# computing new variables and z-scores
 US <- US_data %>%
   mutate(cn = (cn_1 + cn_2 + cn_3 + cn_4 + cn_5)/5,
         secident = (secident_1 + secident_2 + secident_3 + secident_4 + secident_5 +
@@ -89,11 +91,42 @@ US <- US_data %>%
         xeno = (xeno_1 + xeno_2 + xeno_3 + xeno_4)/4, 
         joy = (joy_1 + joy_2)/2,
         eff = (eff_1 + eff_2)/2) %>%
+    mutate(z_cn = (cn - (mean(cn)/ sd(cn))),
+         z_secident = (secident - (mean(secident)/ sd(secident))),
+         z_fc_1_o_agr = (fc_1_o_agr - (mean(fc_1_o_agr) / sd(fc_1_o_agr))),
+         z_fc_2_o_agr = (fc_2_o_agr -(mean (fc_2_o_agr)/ sd(fc_2_o_agr))),
+         z_sd = (sd - (mean(sd)/ sd(sd))),
+         z_cor_health = (cor_health - (mean(cor_health) / sd(cor_health))),
+         z_cor_values = (cor_values - (mean(cor_values)/sd(cor_values))),
+         z_joy = (joy - (mean(joy)/ sd(joy))),
+         z_eff = (eff - (mean(eff) / sd(eff))),
+         z_share = (share - (mean(share)/ sd(share))),
+         z_donate = (donate - (mean(donate)/ sd(donate)))) %>%
   as.data.frame()
 US
 
 US$id <- as.factor(US$id)
 US$time <- as.factor(US$time)
+
+# subset data
+US_t1_mod <- subset(US, time == "1" & vote == "Republicans" & unexp == "Unexpected")
+US_t2_mod <- subset(US, time == "2" & vote == "Republicans" & unexp == "Unexpected")
+
+# subset for fc_1_o_agr on joy
+US_t1_mod <- subset(US, time == "1" & vote == "Republicans" & unexp == "Unexpected" & id!= "p053" & id!= "p153" & id!= "p159" & id!= "p180" & id!= "p197")
+US_t2_mod <- subset(US, time == "2" & vote == "Republicans" & unexp == "Unexpected" & id!= "p053" & id!= "p153" & id!= "p159" & id!= "p180" & id!= "p197")
+
+# subset for fc_2_o_agr on joy
+US_t1_mod <- subset(US, time == "1" & vote == "Republicans" & unexp == "Unexpected" & id!= "p053" & id!= "p153" & id!= "p197")
+US_t2_mod <- subset(US, time == "2" & vote == "Republicans" & unexp == "Unexpected" & id!= "p053" & id!= "p153" & id!= "p197")
+
+US_t1_mod$id <- as.factor(US_t1_mod$id)
+US_t1_mod$time <- as.factor(US_t1_mod$time)
+US_t1_mod$vote <- as.factor(US_t1_mod$vote)
+
+US_t2_mod$id <- as.factor(US_t2_mod$id)
+US_t2_mod$time <- as.factor(US_t2_mod$time)
+US_t2_mod$vote <- as.factor(US_t2_mod$vote)
 ```
 
 # panel design regression
@@ -103,191 +136,302 @@ dim(US)
 str(US)
 summary(US)
 
-# subset data
-US_t1_mod <- subset(US, time == "1" & vote == "Republicans")
-US_t2_mod <- subset(US, time == "2" & vote == "Republicans")
-
 # computing differences in fc_1_o_agr and cn
-diff_fc_1_o_agr <- US_t2_mod$fc_1_o_agr - US_t1_mod$fc_1_o_agr
-diff_fc_2_o_agr <- US_t2_mod$fc_2_o_agr - US_t1_mod$fc_2_o_agr
-diff_secident <- US_t2_mod$secident - US_t1_mod$secident
-diff_cn <- US_t2_mod$cn - US_t1_mod$cn
-diff_sd <- US_t2_mod$sd - US_t1_mod$sd
-diff_cor_values <- US_t2_mod$cor_values - US_t1_mod$cor_values
-diff_cor_health <- US_t2_mod$cor_health - US_t1_mod$cor_health
-diff_joy <- US_t2_mod$joy - US_t1_mod$joy
-diff_eff <- US_t2_mod$eff - US_t1_mod$eff
+diff_z_fc_1_o_agr <- US_t2_mod$z_fc_1_o_agr - US_t1_mod$z_fc_1_o_agr
+diff_z_fc_2_o_agr <- US_t2_mod$z_fc_2_o_agr - US_t1_mod$z_fc_2_o_agr
+diff_z_secident <- US_t2_mod$z_secident - US_t1_mod$z_secident
+diff_z_cn <- US_t2_mod$z_cn - US_t1_mod$z_cn
+diff_z_sd <- US_t2_mod$z_sd - US_t1_mod$z_sd
+diff_z_cor_values <- US_t2_mod$z_cor_values - US_t1_mod$z_cor_values
+diff_z_cor_health <- US_t2_mod$z_cor_health - US_t1_mod$z_cor_health
+diff_z_joy <- US_t2_mod$z_joy - US_t1_mod$z_joy
+diff_z_eff <- US_t2_mod$z_eff - US_t1_mod$z_eff
 diff_sign <- US_t2_mod$sign - US_t1_mod$sign
-diff_share <- US_t2_mod$share - US_t1_mod$share
-diff_donate <- US_t2_mod$donate - US_t1_mod$donate
+diff_z_share <- US_t2_mod$z_share - US_t1_mod$z_share
+diff_z_donate <- US_t2_mod$z_donate - US_t1_mod$z_donate
 
 # regression fc_1_o_agr (step 1)
-diff_fc_1 <- lm(diff_fc_1_o_agr ~ diff_cn)
-coeftest(diff_fc_1, vcov = vcovHC, type = "HC1")
-summary(diff_fc_1)
+diff_Z_fc_1 <- lm(diff_z_fc_1_o_agr ~ diff_z_cn)
+coeftest(diff_Z_fc_1, vcov = vcovHC, type = "HC1")
+summary(diff_Z_fc_1)
 
-diff_fc_1alt <- lm(diff_fc_1_o_agr ~  diff_cn + diff_secident + diff_sd + diff_cor_values + diff_cor_health)
-coeftest(diff_fc_1alt, vcov = vcovHC, type = "HC1")
-coef_lmbeta <- lm.beta(diff_fc_1alt)
-coef_lmbeta
-confint(diff_fc_1alt)
-summary(diff_fc_1alt)
+diff_z_fc_1alt <- lm(diff_z_fc_1_o_agr ~  diff_z_sd + diff_z_cor_values + diff_z_cor_health + diff_z_secident + diff_z_cn)
+coeftest(diff_z_fc_1alt, vcov = vcovHC, type = "HC1")
+confint(diff_z_fc_1alt)
+summary(diff_z_fc_1alt)
+plot(diff_z_fc_1alt)
 
 # fixed effect regression fc_1_o_agr, keeping effects across entities constant (step 2)
-diff_fc_12 <- plm(fc_1_o_agr ~ cn + id, 
+diff_z_fc_12 <- plm(z_fc_1_o_agr ~ z_cn + id, 
                    data = US,
                    index = c("id", "time"),
                    model = "within")
-coeftest(diff_fc_12, vcov = vcovHC, type = "HC1")
-r.squared(diff_fc_12)
+coeftest(diff_z_fc_12, vcov = vcovHC, type = "HC1")
+r.squared(diff_z_fc_12)
 
 # time fixed effect regression fc_1_o_agr, keeping effects across entities and time constant (step 3)
-diff_fc_13 <- plm(fc_1_o_agr ~ sd + id + time,
+diff_z_fc_13 <- plm(z_fc_1_o_agr ~ z_sd + id + time,
                     data = US, 
                     index = c("id", "time"),
                     model = "within",
                     effect = "twoways")
-coeftest(diff_fc_13, vcov = vcovHC, type = "HC1")
-r.squared(diff_fc_13)
+coeftest(diff_z_fc_13, vcov = vcovHC, type = "HC1")
+r.squared(diff_z_fc_13)
 
 # adding control variables
 
-diff_fc_14 <- plm(fc_1_o_agr ~ sd + cor_values + cor_health + id + time,
+diff_z_fc_14 <- plm(z_fc_1_o_agr ~ z_sd + z_cor_values + z_cor_health + id + time,
                     data = US, 
                     index = c("id", "time"),
                     model = "within",
                     effect = "twoways")
-coeftest(diff_fc_14, vcov = vcovHC, type = "HC1")
-r.squared(diff_fc_14)
+coeftest(diff_z_fc_14, vcov = vcovHC, type = "HC1")
+r.squared(diff_z_fc_14)
 
-diff_fc_15 <- plm(fc_1_o_agr ~ sd + cor_values + cor_health + secident + id + time,
+diff_z_fc_15 <- plm(z_fc_1_o_agr ~ z_sd + z_cor_values + z_cor_health + z_secident + id + time,
                     data = US, 
                     index = c("id", "time"),
                     model = "within",
                     effect = "twoways")
-coeftest(diff_fc_15, vcov = vcovHC, type = "HC1")
-r.squared(diff_fc_15)
+coeftest(diff_z_fc_15, vcov = vcovHC, type = "HC1")
+r.squared(diff_z_fc_15)
 
-diff_fc_16 <- plm(fc_1_o_agr ~ sd + cor_values + cor_health + secident + cn + id + time,
+diff_z_fc_16 <- plm(z_fc_1_o_agr ~ z_sd + z_cor_values + z_cor_health + z_secident + z_cn + id + time,
                     data = US, 
                     index = c("id", "time"),
                     model = "within",
                     effect = "twoways")
-coeftest(diff_fc_16, vcov = vcovHC, type = "HC1")
-r.squared(diff_fc_16)
+coeftest(diff_z_fc_16, vcov = vcovHC, type = "HC1")
+r.squared(diff_z_fc_16)
 
-diff_fc_17 <- plm(fc_1_o_agr ~ secident + id + time,
+diff_z_fc_17 <- plm(z_fc_1_o_agr ~ z_secident + id + time,
                     data = US, 
                     index = c("id", "time"),
                     model = "within",
                     effect = "twoways")
-coeftest(diff_fc_17, vcov = vcovHC, type = "HC1")
-r.squared(diff_fc_17)
+coeftest(diff_z_fc_17, vcov = vcovHC, type = "HC1")
+r.squared(diff_z_fc_17)
 
-diff_fc_18 <- plm(fc_1_o_agr ~ secident + cn + id + time,
+diff_z_fc_18 <- plm(z_fc_1_o_agr ~ z_secident + z_cn + id + time,
                     data = US, 
                     index = c("id", "time"),
                     model = "within",
                     effect = "twoways")
-coeftest(diff_fc_18, vcov = vcovHC, type = "HC1")
-r.squared(diff_fc_18)
-
+coeftest(z_diff_fc_18, vcov = vcovHC, type = "HC1")
+r.squared(z_diff_fc_18)
 
 
 # regression fc_2_o_agr (step 1)
-diff_fc_2 <- lm(diff_fc_2_o_agr ~ diff_cn)
-coeftest(diff_fc_2, vcov = vcovHC, type = "HC1")
-summary(diff_fc_2)
+diff_z_fc_2 <- lm(diff_z_fc_2_o_agr ~ diff_z_cn)
+coeftest(diff_z_fc_2, vcov = vcovHC, type = "HC1")
+summary(diff_z_fc_2)
 
-diff_fc_2alt <- lm(diff_fc_2_o_agr ~  diff_cn + diff_secident + diff_sd + diff_cor_values + diff_cor_health)
-coeftest(diff_fc_2alt, vcov = vcovHC, type = "HC1")
-coef_lmbeta2 <- lm.beta(diff_fc_2alt)
-coef_lmbeta2
-confint(diff_fc_2alt)
-summary(diff_fc_2alt)
+diff_z_fc_2alt <- lm(diff_z_fc_2_o_agr ~  diff_z_sd + diff_z_cor_values + diff_z_cor_health+ diff_z_cn + diff_z_secident)
+coeftest(diff_z_fc_2alt, vcov = vcovHC, type = "HC1")
+confint(diff_z_fc_2alt)
+summary(diff_z_fc_2alt)
 
 # fixed effect regression fc_2_o_agr, keeping effects across entities constant (step 2)
-diff_fc_22<- plm(fc_2_o_agr ~ cn + id, 
+diff_z_fc_22<- plm(z_fc_2_o_agr ~ z_cn + id, 
                    data = US,
                    index = c("id", "time"),
                    model = "within")
-coeftest(diff_fc_22, vcov = vcovHC, type = "HC1")
-r.squared(diff_fc_22)
+coeftest(diff_z_fc_22, vcov = vcovHC, type = "HC1")
+r.squared(diff_z_fc_22)
 
 # time fixed effect regression fc_2_o_agr, keeping effects across entities and time constant (step 3)
-diff_fc_23 <- plm(fc_2_o_agr ~ sd + id + time,
+diff_z_fc_23 <- plm(z_fc_2_o_agr ~ z_sd + id + time,
                     data = US, 
                     index = c("id", "time"),
                     model = "within",
                     effect = "twoways")
-coeftest(diff_fc_23, vcov = vcovHC, type = "HC1")
-r.squared(diff_fc_23)
+coeftest(diff_z_fc_23, vcov = vcovHC, type = "HC1")
+r.squared(diff_z_fc_23)
 
 # adding control variables
-
-diff_fc_24 <- plm(fc_2_o_agr ~ sd + cor_values + cor_health + id + time,
+diff_z_fc_24 <- plm(z_fc_2_o_agr ~ z_sd + z_cor_values + z_cor_health + id + time,
                     data = US, 
                     index = c("id", "time"),
                     model = "within",
                     effect = "twoways")
-coeftest(diff_fc_24, vcov = vcovHC, type = "HC1")
-r.squared(diff_fc_24)
+coeftest(diff_z_fc_24, vcov = vcovHC, type = "HC1")
+r.squared(diff_z_fc_24)
 
-diff_fc_25 <- plm(fc_2_o_agr ~ sd + cor_values + cor_health + secident + sd + id + time,
+diff_z_fc_25 <- plm(z_fc_2_o_agr ~ z_sd + z_cor_values + z_cor_health + z_secident + id + time,
                     data = US, 
                     index = c("id", "time"),
                     model = "within",
                     effect = "twoways")
-coeftest(diff_fc_25, vcov = vcovHC, type = "HC1")
-r.squared(diff_fc_25)
+coeftest(diff_z_fc_25, vcov = vcovHC, type = "HC1")
+r.squared(diff_z_fc_25)
 
-diff_fc_26 <- plm(fc_2_o_agr ~ sd + cor_values + cor_health + secident + cn + id + time,
+diff_z_fc_26 <- plm(z_fc_2_o_agr ~ z_sd + z_cor_values + z_cor_health + z_secident + z_cn + id + time,
                     data = US, 
                     index = c("id", "time"),
                     model = "within",
                     effect = "twoways")
-coeftest(diff_fc_26, vcov = vcovHC, type = "HC1")
-r.squared(diff_fc_26)
+coeftest(diff_z_fc_26, vcov = vcovHC, type = "HC1")
+r.squared(diff_z_fc_26)
 
-diff_fc_27 <- plm(fc_2_o_agr ~ secident + id + time,
+diff_z_fc_27 <- plm(z_fc_2_o_agr ~ z_secident + id + time,
                     data = US, 
                     index = c("id", "time"),
                     model = "within",
                     effect = "twoways")
-coeftest(diff_fc_27, vcov = vcovHC, type = "HC1")
-r.squared(diff_fc_27)
+coeftest(diff_z_fc_27, vcov = vcovHC, type = "HC1")
+r.squared(diff_z_fc_27)
 
-diff_fc_28 <- plm(fc_2_o_agr ~ secident + cn + id + time,
+diff_z_fc_28 <- plm(z_fc_2_o_agr ~ z_secident + z_cn + id + time,
                     data = US, 
                     index = c("id", "time"),
                     model = "within",
                     effect = "twoways")
-coeftest(diff_fc_28, vcov = vcovHC, type = "HC1")
-r.squared(diff_fc_28)
+coeftest(diff_z_fc_28, vcov = vcovHC, type = "HC1")
+r.squared(diff_z_fc_28)
 
 
 # logistic regression
 US_panel <- pdata.frame(US, index = c("id", "time"))
 sign.mod <- pglm(sign ~ sd, 
              data = US_panel,
-             family = "binomial")
+             family = binomial(link = "logit"))
 summary(sign.mod)
 
 sign.mod2 <- pglm(sign ~ sd + cor_values + cor_health, 
              data = US_panel,
-             family = "binomial")
+             family = binomial(link = "logit"))
 summary(sign.mod2)
 
 sign.mod3 <- pglm(sign ~ sd + cor_values + cor_health + secident, 
              data = US_panel,
-             family = "binomial")
+             family = binomial(link = "logit"))
 summary(sign.mod3)
 
 sign.mod4 <- pglm(sign ~ sd + cor_values + cor_health + secident + cn, 
              data = US_panel,
-             family = "binomial")
+             family = binomial(link = "logit"))
 summary(sign.mod4)
 exp(coef(sign.mod4))
 exp(confint(sign.mod4))
+
+# False consensus, empowerment and behavioural intention 
+# regression joy & eff (step 1)
+# by fc_1_o_agr
+diff_z_joy.mod <- lm(diff_z_joy ~ diff_z_fc_1_o_agr)
+coeftest(diff_z_joy.mod, vcov = vcovHC, type = "HC1")
+summary(diff_z_joy.mod)
+confint(diff_z_joy.mod)
+plot(diff_z_joy.mod)
+
+# after removing outlier "p053", "p153", "p159", "p180" & "p197"
+
+diff_z_joy.mod2<- lm(diff_z_joy ~ diff_z_fc_1_o_agr)
+coeftest(diff_z_joy.mod2, vcov = vcovHC, type = "HC1")
+summary(diff_z_joy.mod2)
+confint(diff_z_joy.mod2)
+plot(diff_z_joy.mod2)
+
+# by fc_2_o_agr
+diff_z_joy2.mod <- lm(diff_z_joy ~ diff_z_fc_2_o_agr)
+coeftest(diff_z_joy2.mod, vcov = vcovHC, type = "HC1")
+summary(diff_z_joy2.mod)
+confint(diff_z_joy2.mod)
+plot(diff_z_joy2.mod)
+
+# after removing outlier "p053", "p153", "p159", "p180", "p197"
+diff_z_joy2.mod2 <- lm(diff_z_joy ~ diff_z_fc_2_o_agr)
+coeftest(diff_z_joy2.mod2, vcov = vcovHC, type = "HC1")
+summary(diff_z_joy2.mod2)
+confint(diff_z_joy2.mod2)
+plot(diff_z_joy2.mod2)
+
+
+# by fc_1_o_agr
+diff_z_eff.mod <- lm(diff_z_eff ~ diff_z_fc_1_o_agr)
+coeftest(diff_z_eff.mod, vcov = vcovHC, type = "HC1")
+summary(diff_z_eff.mod)
+
+# by fc_2_o_agr
+diff_z_eff2.mod <- lm(diff_z_eff ~ diff_z_fc_2_o_agr)
+coeftest(diff_z_eff2, vcov = vcovHC, type = "HC1")
+summary(diff_z_eff2)
+
+# fixed effect regression fc_2_o_agr, keeping effects across entities constant (step 2)
+# by fc_1_o_agr
+diff_z_joy3 <- plm(z_joy ~ z_fc_1_o_agr + id, 
+                   data = US,
+                   index = c("id", "time"),
+                   model = "within")
+coeftest(diff_z_joy3, vcov = vcovHC, type = "HC1")
+summary(diff_z_joy3)
+
+# by fc_2_o_agr
+diff_z_joy4 <- plm(z_joy ~ z_fc_2_o_agr + id, 
+                   data = US,
+                   index = c("id", "time"),
+                   model = "within")
+coeftest(diff_z_joy4, vcov = vcovHC, type = "HC1")
+summary(diff_z_joy4)
+
+# by fc_1_o_agr
+diff_z_eff3 <- plm(z_eff ~ z_fc_1_o_agr + id, 
+                   data = US,
+                   index = c("id", "time"),
+                   model = "within")
+coeftest(diff_z_eff3, vcov = vcovHC, type = "HC1")
+summary(diff_z_eff3)
+
+# by fc_2_o_agr
+diff_z_eff4 <- plm(z_eff ~ z_fc_2_o_agr + id, 
+                   data = US,
+                   index = c("id", "time"),
+                   model = "within")
+coeftest(diff_z_eff4, vcov = vcovHC, type = "HC1")
+summary(diff_z_eff4)
+
+# time fixed effect regression fc_2_o_agr, keeping effects across entities and time constant (step 3)
+# by fc_1_o_agr
+diff_z_joy5 <- plm(z_joy ~ z_fc_1_o_agr + id + time,
+                    data = US, 
+                    index = c("id", "time"),
+                    model = "within",
+                    effect = "twoways")
+coeftest(diff_z_joy5, vcov = vcovHC, type = "HC1")
+summary(diff_z_joy5)
+
+# by fc_2_o_agr
+diff_z_joy6 <- plm(z_joy ~ z_fc_2_o_agr + id + time,
+                    data = US, 
+                    index = c("id", "time"),
+                    model = "within",
+                    effect = "twoways")
+coeftest(diff_z_joy6, vcov = vcovHC, type = "HC1")
+summary(diff_z_joy6)
+
+# by fc_1_o_agr
+diff_z_eff5 <- plm(z_eff ~ z_fc_1_o_agr + id + time,
+                    data = US, 
+                    index = c("id", "time"),
+                    model = "within",
+                    effect = "twoways")
+coeftest(diff_z_eff5, vcov = vcovHC, type = "HC1")
+summary(diff_z_eff5)
+
+# by fc_2_o_agr
+diff_z_eff6 <- plm(z_eff ~ z_fc_2_o_agr + id + time,
+                    data = US, 
+                    index = c("id", "time"),
+                    model = "within",
+                    effect = "twoways")
+coeftest(diff_z_eff6, vcov = vcovHC, type = "HC1")
+summary(diff_z_eff6)
+
+
+
+# Empowerment and behavioural intention 
+
+
+# Further analyses
+
 ```
 
