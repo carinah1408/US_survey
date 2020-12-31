@@ -1916,7 +1916,6 @@ US_t1 <- US %>%
 US_t1
 
 # subset for plot
-
 US_t1_plot <- US %>%
   filter(time == "1")
 US_t1_plot  
@@ -1944,28 +1943,25 @@ US_t1_clean$vote <- factor(US_t1_clean$vote)
 US_t1_clean2$time <- factor(US_t1_clean2$time)
 US_t1_clean2$vote <- factor(US_t1_clean2$vote)
 
-# subset for Democrats (H2)
-US_vote_1 <- subset(US_t1, vote == "Democrats")
+# subset for Democrats in t1 (H2)
+US_vote_Dem_t1 <- subset(US_t1, vote == "Democrats")
 
-US_vote_1$time <- factor(US_vote_1$time)
-US_vote_1$vote <- factor(US_vote_1$vote)
+US_vote_Dem_t1$time <- factor(US_vote_Dem_t1$time)
+US_vote_Dem_t1$vote <- factor(US_vote_Dem_t1$vote)
 
-# subset for Republicans (H2)
-US_vote_2 <- subset(US_t1, vote == "Republicans")
+# subset for Republicans in t1 (H2)
+US_vote_Rep_t1 <- subset(US_t1, vote == "Republicans")
 
-US_vote_2$time <- factor(US_vote_2$time)
-US_vote_2$vote <- factor(US_vote_2$vote)
+US_vote_Rep_t1$time <- factor(US_vote_Rep_t1$time)
+US_vote_Rep_t1$vote <- factor(US_vote_Rep_t1$vote)
 
 # subset Republicans & unexpected (H3 ...)
-unexp_Rep <- US %>%
-  filter(vote == "Republicans" & unexp == "Unexpected") %>%
-  as.tibble()
-unexp_Rep
+unexp_Rep <- subset(US, vote == "Republicans" & unexp == "Unexpected") 
+as.tibble(unexp_Rep)
 
 # without outlier
 
-unexp_Rep_clean <- US %>%
-  filter(vote == "Republicans" & unexp == "Unexpected" & id!= "p160")
+unexp_Rep_clean <- subset(US, vote == "Republicans" & unexp == "Unexpected" & id!= "p160")
 unexp_Rep_clean
 
 unexp_Rep$vote <- factor(unexp_Rep$vote)
@@ -1974,14 +1970,32 @@ unexp_Rep$time <- factor(unexp_Rep$time)
 unexp_Rep_clean$vote <- factor(unexp_Rep_clean$vote)
 unexp_Rep_clean$time <- factor(unexp_Rep_clean$time)
 
-# subset Democrats t1 and t2 (H4)
-
-unexp_Dem <- US %>%
-  filter(vote == "Democrats" & unexp == "Unexpected")
+# subset Democrats & unexpected (H4)
+unexp_Dem <- subset(US, vote == "Democrats" & unexp == "Unexpected")
 unexp_Dem # only 4 participants
 
-US_vote_1a <- subset(US, vote == "Democrats")
+# subset Democrats (H4 & H5)
+US_Dem <- subset(US, vote == "Democrats")
 
+# subset Republicans (H6...)
+US_Rep <- subset(US,vote == "Republicans")
+
+# Subgroup racialized identity (Exploratory)
+subgroup <- subset(US, ethn == "White or European American" & xeno >= "5")
+subgroup
+
+# no values above 3.25 (above 4 in single items, respectively) for xeno
+
+# PI amongst Democrats (Exploratory)
+Dem_exp_t1 <- subset(US, vote == "Democrats" & unexp == "Expected" & time == "1")
+Dem_exp_t1
+
+# FC Republicans (Exploratory)
+US_Rep_t2 <- subset(US, time =="2")
+US_Rep_t2
+
+unexp_Rep_t2 <- subset(US, vote == "Republicans", unexp = "Unexpected", time =="2")
+unexp_Rep_t2
 ```
 
 # H1
@@ -2172,7 +2186,7 @@ fc_plot %>%
 # H2
 ```{r, H2, include=TRUE}
 # Democrats
-pi_1_t_test <- t.test(US_vote_1$pi_1_own, mu = 4.241379)
+pi_1_t_test <- t.test(US_vote_Dem_t1$pi_1_own, mu = 4.241379)
 pi_1_t_test
   
 t<-pi_1_t_test$statistic[[1]]
@@ -2180,7 +2194,7 @@ df<-pi_1_t_test$parameter[[1]]
 r <- sqrt(t^2/(t^2+df))
 round(r, 3)
 
-pi_2_t_test <- t.test(US_vote_1$pi_2_own, mu = 5)
+pi_2_t_test <- t.test(US_vote_Dem_t1$pi_2_own, mu = 5)
 pi_2_t_test
   
 t<-pi_2_t_test$statistic[[1]]
@@ -2189,7 +2203,7 @@ r <- sqrt(t^2/(t^2+df))
 round(r, 3)
 
 # Republicans
-pi_1_t_testa <- t.test(US_vote_2$pi_1_own, mu = 4.576923)
+pi_1_t_testa <- t.test(US_vote_Rep_t1$pi_1_own, mu = 4.576923)
 pi_1_t_testa
   
 t<-pi_1_t_testa$statistic[[1]]
@@ -2197,7 +2211,7 @@ df<-pi_1_t_testa$parameter[[1]]
 r <- sqrt(t^2/(t^2+df))
 round(r, 3)
 
-pi_2_t_testa <- t.test(US_vote_2$pi_2_own, mu = 5.25)
+pi_2_t_testa <- t.test(US_vote_Rep_t1$pi_2_own, mu = 5.25)
 pi_2_t_testa
   
 t<-pi_2_t_testa$statistic[[1]]
@@ -2205,7 +2219,7 @@ df<-pi_2_t_testa$parameter[[1]]
 r <- sqrt(t^2/(t^2+df))
 round(r, 3)
 
-# plot
+# plot INCOMPLETE
 
 pi_plot <- US_t1 %>%
   
@@ -2297,11 +2311,6 @@ plot
 
 # H3
 ```{r, H3, include= TRUE}
-unexp_Rep <- US %>%
-  filter(vote == "Republicans" & unexp == "Unexpected") %>%
-  as.tibble()
-unexp_Rep
-
 # fc_1_o_agr
 fc_1_paired <- t.test(fc_1_o_agr ~ time, unexp_Rep, paired = TRUE)
 fc_1_paired
@@ -2347,7 +2356,7 @@ unexp_Rep %>%
 # Democrats
 
 # pi_1_ave
-pi_1_paired <- t.test(pi_1_ave ~ time, US_vote_1a, paired = TRUE)
+pi_1_paired <- t.test(pi_1_ave ~ time, US_Dem, paired = TRUE)
 pi_1_paired
 
 t<-pi_1_paired$statistic[[1]]
@@ -2356,12 +2365,12 @@ r <- sqrt(t^2/(t^2+df))
 round(r, 3)
 
 # descriptives
-US_vote_1a %>% 
+US_Dem %>% 
   group_by(., time) %>% 
   summarise(., mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave))
 
 # pi_2_ave
-pi_2_paired <- t.test(pi_2_ave ~ time, US_vote_1a, paired = TRUE)
+pi_2_paired <- t.test(pi_2_ave ~ time, US_Dem, paired = TRUE)
 pi_2_paired
 
 t<-pi_2_paired$statistic[[1]]
@@ -2370,7 +2379,7 @@ r <- sqrt(t^2/(t^2+df))
 round(r, 3)
 
 # descriptives
-US_vote_1a %>% 
+US_Dem %>% 
   group_by(., time) %>% 
   summarise(., mean_pi_2_ave = mean(pi_2_ave), sd_pi_2_ave = sd(pi_2_ave))
 
@@ -2408,7 +2417,7 @@ unexp_Rep %>%
 ```{r, H5, include= TRUE}
 # Democrats
 # Joy
-joy_paired <- t.test(joy ~ time, US_vote_1a, paired = TRUE)
+joy_paired <- t.test(joy ~ time, US_Dem, paired = TRUE)
 joy_paired
 
 t<-joy_paired$statistic[[1]]
@@ -2417,12 +2426,12 @@ r <- sqrt(t^2/(t^2+df))
 round(r, 3)
 
 # descriptives
-US_vote_1a %>% 
+US_Dem %>% 
   group_by(., time) %>% 
   summarise(., mean_joy = mean(joy), sd_joy = sd(joy))
 
 # Eff
-eff_paired <- t.test(eff ~ time, US_vote_1a, paired = TRUE)
+eff_paired <- t.test(eff ~ time, US_Dem, paired = TRUE)
 eff_paired
 
 t<-eff_paired$statistic[[1]]
@@ -2431,7 +2440,7 @@ r <- sqrt(t^2/(t^2+df))
 round(r, 3)
 
 # descriptives
-US_vote_1a %>% 
+US_Dem %>% 
   group_by(., time) %>% 
   summarise(., mean_eff = mean(eff), sd_eff = sd(eff))
 
@@ -2466,24 +2475,9 @@ unexp_Rep %>%
 
 #H6
 ```{r}
-US_Rep <- US %>%
-  filter(vote == "Republicans")
+# sign amongst unexp Rep
 
-# sign all Republicans
-sign.data <- data.frame(US_Rep$time, US_Rep$sign) 
-
-sign.data = table(US_Rep$time, US_Rep$sign) 
-print(sign.data)
-
-print(chisq.test(sign.data))
-
-# sign unexp
-sign_unexp.data <- data.frame(unexp_Rep$time, unexp_Rep$sign) 
-
-sign_unexp.data = table(unexp_Rep$time, unexp_Rep$sign)
-print(sign_unexp.data)
-
-print(chisq.test(sign_unexp.data))
+table(unexp_Rep$time, unexp_Rep$sign)
 
 # overview
 num_sign<- US_Rep %>%
@@ -2493,35 +2487,11 @@ num_sign<- US_Rep %>%
 num_sign
 
 # among those that signed at t1 and t2: 2* donate increases, 2* donate decreases; 2* share decreases, 1* increases, 1* remains the same
+
+fisher.test(unexp_Rep$time, unexp_Rep$sign)
 ```
 
 ## Exploratory
-
-# Subsets
-```{r}
-# Subgroup racialized identity
-subgroup <- US %>%
-  filter(., ethn == "White or European American" & xeno >= "5")
-subgroup
-
-# no values above 3.25 (above 4 in single items, respectively) for xeno
-
-# PI amongst Democrats
-Dem_exp_t1 <- US %>%
-  filter(., vote == "Democrats" & unexp == "Expected" & time == "1")
-Dem_exp_t1
-
-# FC Republicans
-US_Rep_t2 <- US %>%
-  filter(., time =="2")
-US_Rep_t2
-
-unexp_Rep_t2 <- unexp_Rep %>%
-  filter(., time =="2")
-unexp_Rep_t2
-```
-
-
 ```{r}
 Dem_exp_descr <- Dem_exp_t1 %>%
   summarise(., mean_pi_1_own = mean(pi_1_own), sd_pi_1_own = sd(pi_1_own), mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave), mean_pi_2_own = mean(pi_2_own), sd_pi_2_own = sd(pi_2_own), mean_pi_2_ave = mean(pi_2_ave), sd_pi_2_ave = sd(pi_2_ave))
@@ -2581,7 +2551,7 @@ Dem_exp %>%
 
 ```
 
-# Collective narcissism t-tests 
+# Collective narcissism  
 ```{r}
 # descriptives by vote
 descriptives3 <- US %>% 
@@ -2603,19 +2573,6 @@ descriptives3 <- US %>%
             mean_fc_2_o_agr = mean(fc_2_o_agr), sd_fc_2_o_agr = sd(fc_2_o_agr))
 descriptives3
 
-# t-tests for overall cn by vote (US = t1 and t2, Democrats & Republicans)
-
-cn.t.test <- t.test(cn ~ vote, data = US)
-cn.t.test
-
-# effect size
-
-t<-cn.t.test$statistic[[1]]
-df<-cn.t.test$parameter[[1]]
-r <- sqrt(t^2/(t^2+df))
-round(r, 3)
-
-
 # descriptives by vote and time
 descriptives4 <- US %>% 
   group_by(vote, time) %>%
@@ -2634,16 +2591,26 @@ descriptives4 <- US %>%
             mean_fc_2_o_agr = mean(fc_2_o_agr), sd_fc_2_o_agr = sd(fc_2_o_agr))
 descriptives4
 
-# t-test for cn by time
-cn2.t.test <- t.test(cn ~ time, data = US_Rep) # US_Rep = US dataset restricted to Republicans only
-cn2.t.test
+# two-way anova: vote and time on cn
+
+anova_cn <- aov(cn ~ vote + time, data = US)
+summary(anova_cn)
+
+# t-test cn by vote
+cn.t.test <- t.test(cn ~ vote, data = US)
+cn.t.test
 
 # effect size
 
-t<-cn2.t.test$statistic[[1]]
-df<-cn2.t.test$parameter[[1]]
+t<-cn.t.test$statistic[[1]]
+df<-cn.t.test$parameter[[1]]
 r <- sqrt(t^2/(t^2+df))
 round(r, 3)
+
+
+
+
+
 
 # without outliers fc_1_s 
 descriptives5 <- US_t1_clean %>% 
@@ -2658,7 +2625,7 @@ descriptives6 <- US_t1_clean2 %>%
 descriptives6
 ```
 
-# Collective narcissism, false consensus, empowerment
+# Collective narcissism, false consensus, empowerment --> see panel regression script
 ```{r}
 # FOR FC SEE RESULTS PANEL REGRESSION!
 
@@ -2795,17 +2762,17 @@ boot.ci(bootResults, type = "bca", index = 3)
 ```
 
 
-# False consensus, empowerment and behavioural intention
+# False consensus, empowerment and behavioural intention --> see panel regression script
 ```{r}
 
 ```
 
-# Empowerment and behavioural intention
+# Empowerment and behavioural intention --> see panel regression script
 ```{r}
 
 ```
 
-# Further analyses
+# Further analyses --> see panel regression script
 ```{r}
 # emp by cn 
 # joy
