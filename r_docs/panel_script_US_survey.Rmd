@@ -112,14 +112,6 @@ US$time <- as.factor(US$time)
 US_t1_mod <- subset(US, time == "1" & vote == "Republicans" & unexp == "Unexpected")
 US_t2_mod <- subset(US, time == "2" & vote == "Republicans" & unexp == "Unexpected")
 
-# subset for fc_1_o_agr on joy
-US_t1_mod <- subset(US, time == "1" & vote == "Republicans" & unexp == "Unexpected" & id!= "p053" & id!= "p153" & id!= "p159" & id!= "p180" & id!= "p197")
-US_t2_mod <- subset(US, time == "2" & vote == "Republicans" & unexp == "Unexpected" & id!= "p053" & id!= "p153" & id!= "p159" & id!= "p180" & id!= "p197")
-
-# subset for fc_2_o_agr on joy
-US_t1_mod <- subset(US, time == "1" & vote == "Republicans" & unexp == "Unexpected" & id!= "p053" & id!= "p153" & id!= "p197")
-US_t2_mod <- subset(US, time == "2" & vote == "Republicans" & unexp == "Unexpected" & id!= "p053" & id!= "p153" & id!= "p197")
-
 US_t1_mod$id <- as.factor(US_t1_mod$id)
 US_t1_mod$time <- as.factor(US_t1_mod$time)
 US_t1_mod$vote <- as.factor(US_t1_mod$vote)
@@ -313,10 +305,29 @@ sign.mod4 <- pglm(sign ~ sd + cor_values + cor_health + secident + cn,
 summary(sign.mod4)
 exp(coef(sign.mod4))
 exp(confint(sign.mod4))
+```
+
+# False consensus and empowerment
+```{r}
+# subset for fc_1_o_agr on joy
+US_t1_mod <- subset(US, time == "1" & vote == "Republicans" & unexp == "Unexpected" & id!= "p053" & id!= "p153" & id!= "p159" & id!= "p180" & id!= "p197")
+US_t2_mod <- subset(US, time == "2" & vote == "Republicans" & unexp == "Unexpected" & id!= "p053" & id!= "p153" & id!= "p159" & id!= "p180" & id!= "p197")
+
+# subset for fc_2_o_agr on joy
+US_t1_mod <- subset(US, time == "1" & vote == "Republicans" & unexp == "Unexpected" & id!= "p053" & id!= "p153" & id!= "p197")
+US_t2_mod <- subset(US, time == "2" & vote == "Republicans" & unexp == "Unexpected" & id!= "p053" & id!= "p153" & id!= "p197")
+
+# subset for fc_1_o_agr on eff
+US_t1_mod <- subset(US, time == "1" & vote == "Republicans" & unexp == "Unexpected" & id!= "p024" & id!= "p028" & id!= "p049" & id!= "p073" & id!= "p085" & id!= "p136" & id!= "p180")
+US_t2_mod <- subset(US, time == "2" & vote == "Republicans" & unexp == "Unexpected" & id!= "p024" & id!= "p028" & id!= "p049" & id!= "p073" & id!= "p085" & id!= "p136" & id!= "p180")
+
+# subset for fc_2_o_agr on eff
+US_t1_mod <- subset(US, time == "1" & vote == "Republicans" & unexp == "Unexpected" & id!= "p024" & id!= "p049" & id!= "p073" & id!= "p085" & id!= "p196")
+US_t2_mod <- subset(US, time == "2" & vote == "Republicans" & unexp == "Unexpected" & id!= "p024" & id!= "p049" & id!= "p073" & id!= "p085" & id!= "p196")
 
 # False consensus, empowerment and behavioural intention 
 # regression joy & eff (step 1)
-# by fc_1_o_agr
+# joy by fc_1_o_agr
 diff_z_joy.mod <- lm(diff_z_joy ~ diff_z_fc_1_o_agr)
 coeftest(diff_z_joy.mod, vcov = vcovHC, type = "HC1")
 summary(diff_z_joy.mod)
@@ -331,14 +342,14 @@ summary(diff_z_joy.mod2)
 confint(diff_z_joy.mod2)
 plot(diff_z_joy.mod2)
 
-# by fc_2_o_agr
+# joy by fc_2_o_agr
 diff_z_joy2.mod <- lm(diff_z_joy ~ diff_z_fc_2_o_agr)
 coeftest(diff_z_joy2.mod, vcov = vcovHC, type = "HC1")
 summary(diff_z_joy2.mod)
 confint(diff_z_joy2.mod)
 plot(diff_z_joy2.mod)
 
-# after removing outlier "p053", "p153", "p159", "p180", "p197"
+# after removing outlier "p053", "p153" & "p197"
 diff_z_joy2.mod2 <- lm(diff_z_joy ~ diff_z_fc_2_o_agr)
 coeftest(diff_z_joy2.mod2, vcov = vcovHC, type = "HC1")
 summary(diff_z_joy2.mod2)
@@ -346,18 +357,36 @@ confint(diff_z_joy2.mod2)
 plot(diff_z_joy2.mod2)
 
 
-# by fc_1_o_agr
+# eff by fc_1_o_agr
 diff_z_eff.mod <- lm(diff_z_eff ~ diff_z_fc_1_o_agr)
 coeftest(diff_z_eff.mod, vcov = vcovHC, type = "HC1")
 summary(diff_z_eff.mod)
+confint(diff_z_eff.mod)
+plot(diff_z_eff.mod)
 
-# by fc_2_o_agr
+# after removing outlier "p024", "p028", "p049", "p073", "p085", "p136" & "p. "180"
+diff_z_eff.mod2 <- lm(diff_z_eff ~ diff_z_fc_1_o_agr)
+coeftest(diff_z_eff.mod2, vcov = vcovHC, type = "HC1")
+summary(diff_z_eff.mod2)
+confint(diff_z_eff.mod2)
+plot(diff_z_eff.mod2)
+
+# eff by fc_2_o_agr
 diff_z_eff2.mod <- lm(diff_z_eff ~ diff_z_fc_2_o_agr)
-coeftest(diff_z_eff2, vcov = vcovHC, type = "HC1")
-summary(diff_z_eff2)
+coeftest(diff_z_eff2.mod, vcov = vcovHC, type = "HC1")
+summary(diff_z_eff2.mod)
+confint(diff_z_eff2.mod)
+plot(diff_z_eff2.mod)
+
+# after removing outlier "p024" , "p049", "p073", "p085" & "p196"
+diff_z_eff2.mod2 <- lm(diff_z_eff ~ diff_z_fc_2_o_agr)
+coeftest(diff_z_eff2.mod2, vcov = vcovHC, type = "HC1")
+summary(diff_z_eff2.mod2)
+confint(diff_z_eff2.mod2)
+plot(diff_z_eff2.mod2)
 
 # fixed effect regression fc_2_o_agr, keeping effects across entities constant (step 2)
-# by fc_1_o_agr
+# joy by fc_1_o_agr
 diff_z_joy3 <- plm(z_joy ~ z_fc_1_o_agr + id, 
                    data = US,
                    index = c("id", "time"),
@@ -365,7 +394,7 @@ diff_z_joy3 <- plm(z_joy ~ z_fc_1_o_agr + id,
 coeftest(diff_z_joy3, vcov = vcovHC, type = "HC1")
 summary(diff_z_joy3)
 
-# by fc_2_o_agr
+# joy by fc_2_o_agr
 diff_z_joy4 <- plm(z_joy ~ z_fc_2_o_agr + id, 
                    data = US,
                    index = c("id", "time"),
@@ -373,7 +402,7 @@ diff_z_joy4 <- plm(z_joy ~ z_fc_2_o_agr + id,
 coeftest(diff_z_joy4, vcov = vcovHC, type = "HC1")
 summary(diff_z_joy4)
 
-# by fc_1_o_agr
+# eff by fc_1_o_agr
 diff_z_eff3 <- plm(z_eff ~ z_fc_1_o_agr + id, 
                    data = US,
                    index = c("id", "time"),
@@ -381,7 +410,7 @@ diff_z_eff3 <- plm(z_eff ~ z_fc_1_o_agr + id,
 coeftest(diff_z_eff3, vcov = vcovHC, type = "HC1")
 summary(diff_z_eff3)
 
-# by fc_2_o_agr
+# eff by fc_2_o_agr
 diff_z_eff4 <- plm(z_eff ~ z_fc_2_o_agr + id, 
                    data = US,
                    index = c("id", "time"),
@@ -390,7 +419,7 @@ coeftest(diff_z_eff4, vcov = vcovHC, type = "HC1")
 summary(diff_z_eff4)
 
 # time fixed effect regression fc_2_o_agr, keeping effects across entities and time constant (step 3)
-# by fc_1_o_agr
+# joy by fc_1_o_agr
 diff_z_joy5 <- plm(z_joy ~ z_fc_1_o_agr + id + time,
                     data = US, 
                     index = c("id", "time"),
@@ -399,7 +428,7 @@ diff_z_joy5 <- plm(z_joy ~ z_fc_1_o_agr + id + time,
 coeftest(diff_z_joy5, vcov = vcovHC, type = "HC1")
 summary(diff_z_joy5)
 
-# by fc_2_o_agr
+# joy by fc_2_o_agr
 diff_z_joy6 <- plm(z_joy ~ z_fc_2_o_agr + id + time,
                     data = US, 
                     index = c("id", "time"),
@@ -408,7 +437,7 @@ diff_z_joy6 <- plm(z_joy ~ z_fc_2_o_agr + id + time,
 coeftest(diff_z_joy6, vcov = vcovHC, type = "HC1")
 summary(diff_z_joy6)
 
-# by fc_1_o_agr
+# eff by fc_1_o_agr
 diff_z_eff5 <- plm(z_eff ~ z_fc_1_o_agr + id + time,
                     data = US, 
                     index = c("id", "time"),
@@ -417,7 +446,7 @@ diff_z_eff5 <- plm(z_eff ~ z_fc_1_o_agr + id + time,
 coeftest(diff_z_eff5, vcov = vcovHC, type = "HC1")
 summary(diff_z_eff5)
 
-# by fc_2_o_agr
+# eff by fc_2_o_agr
 diff_z_eff6 <- plm(z_eff ~ z_fc_2_o_agr + id + time,
                     data = US, 
                     index = c("id", "time"),
@@ -425,9 +454,10 @@ diff_z_eff6 <- plm(z_eff ~ z_fc_2_o_agr + id + time,
                     effect = "twoways")
 coeftest(diff_z_eff6, vcov = vcovHC, type = "HC1")
 summary(diff_z_eff6)
+```
 
-
-
+# False consensus and behavioural intention
+```{r}
 # Empowerment and behavioural intention 
 
 
