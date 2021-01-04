@@ -27,6 +27,10 @@ library(QuantPsyc) # standardized coefficients
 library(pscl) # R2 for logistic regression
 library(InformationValue) # model diagnostics logistic regression
 library(car) # vif
+library(nlme) # multi-level regression
+library(lme4) # multi-level regression
+library(lmerTest)
+
 
 # dataset ####
 data <- here::here("data/US_data.csv")
@@ -113,6 +117,9 @@ US
 US$time <- factor(US$time)
 US$unexp <- factor(US$unexp)
 US$vote <- factor(US$vote)
+
+# long --> wide dataset for repeated measures
+US_wide <- reshape(US, direction = "wide", idvar = "id", timevar = "time")
 ```
 
 ## Data inspection
@@ -1957,7 +1964,6 @@ US_vote_Rep_t1$vote <- factor(US_vote_Rep_t1$vote)
 
 # subset Republicans & unexpected (H3 ...)
 unexp_Rep <- subset(US, vote == "Republicans" & unexp == "Unexpected") 
-as.tibble(unexp_Rep)
 
 # without outlier
 
@@ -2625,9 +2631,120 @@ descriptives6 <- US_t1_clean2 %>%
 descriptives6
 ```
 
+# Repeated measures/ ML
+```{r}
+# intercept only
+fc_1_cn.baseline.mod <- lme(fc_1_o_agr ~ 1, random = ~ 1|id/sd/cor_values/cor_values/secident/cn, data = unexp_Rep, method = "ML")
+summary(fc_1_cn.baseline.mod)
+
+# adding cn to model
+
+cn.mod <- update(fc_1_cn.baseline.mod, .~. + cn)
+summary(cn.mod)
+
+# adding secident to cn.model
+
+secident.mod <- update(cn.mod, .~. + secident)
+summary(secident.mod)
+
+# adding (more) covariates
+sd.mod <- update(secident.mod, .~. + sd)
+summary(sd.mod)
+
+cor_values.mod <- update(sd.mod, .~. + cor_values)
+summary(cor_values.mod)
+
+cor_health.mod <- update(cor_values.mod, .~. + cor_health)
+summary(cor_health.mod)
+
+anova(fc_1_cn.baseline.mod, cn.mod, secident.mod, sd.mod, cor_values.mod, cor_health.mod)
+
+
+unexp_Rep <- unexp_Rep %>%
+  dplyr::group_by(id) %>%
+  dplyr::mutate(
+    gmc_time = gmc_time = time - mean(time, na.rm = TRUE)
+  )
+unexp_Rep
+
+
+
+
+
+test <- lme(fc_1_o_agr.2 ~ cn.2 + fc_1_o_agr.1, random = ~ 1|id/cn.2/ fc_1_o_agr.1, data = US_wide, method = "ML")
+summary(test)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# null model
+fc_1_cn.nullmod <- lmer(fc_1_o_agr ~ (1|id), data = unexp_Rep, REML = FALSE)
+summary(fc_1_cn.nullmod)
+
+# predictive model
+test <- lme(fc_1_o_agr.2 ~ cn.2 + fc_1_o_agr.1, random = ~ 1|id/cn.2/ fc_1_o_agr.1, data = US_wide, method = "ML")
+summary(test)
+
+anova(fc_1_cn.nullmod, fc_1_cn.mod1)
+
+# "group" (=id) means & centering
+unexp_Rep <- unexp_Rep %>%
+  dplyr::group_by(id) %>%
+  dplyr::mutate(
+    m_cn = mean(cn, na.rm = TRUE), gmc_cn = cn - mean(cn, na.rm = TRUE)
+  )
+unexp_Rep
+
+# adding "group" mean to model
+fc_1_cn.mod2 <- lmer(fc_1_o_agr ~ cn + m_cn + (1|id), data = unexp_Rep, REML = FALSE)
+summary(fc_1_cn.mod2)
+
+anova(fc_1_cn.mod1, fc_1_cn.mod2)
+
+# adding "group" mean centered variable to model
+fc_1_cn.mod3 <- lmer(fc_1_o_agr ~ gmc_cn + (1|id), data = unexp_Rep, REML = FALSE)
+summary(fc_1_cn.mod3)
+
+
+fc_1_cn.mod4 <- lmer(fc_1_o_agr ~ gmc_cn + m_cn + (1|id), data = unexp_Rep, REML = FALSE)
+summary(fc_1_cn.mod4)
+
+anova(fc_1_cn.mod3, fc_1_cn.mod4)
+
+
+```
+
+
+
+
+
+
+
+
 # Collective narcissism, false consensus, empowerment --> see panel regression script
 ```{r}
-# FOR FC SEE RESULTS PANEL REGRESSION!
+# panel regression results
 
 # fc_1_o_agr by cn, short (controlled for secident), unexp_Rep = US dataset restricted to Republicans that did not expect the outcome, potentially connection between fc and cn here
 fc_1_cn_model <- lm(fc_1_o_agr ~ secident, data = US_Rep_t2)
