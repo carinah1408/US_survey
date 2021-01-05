@@ -117,9 +117,6 @@ US
 US$time <- factor(US$time)
 US$unexp <- factor(US$unexp)
 US$vote <- factor(US$vote)
-
-# long --> wide dataset for repeated measures
-US_wide <- reshape(US, direction = "wide", idvar = "id", timevar = "time")
 ```
 
 ## Data inspection
@@ -2613,11 +2610,6 @@ df<-cn.t.test$parameter[[1]]
 r <- sqrt(t^2/(t^2+df))
 round(r, 3)
 
-
-
-
-
-
 # without outliers fc_1_s 
 descriptives5 <- US_t1_clean %>% 
   group_by(vote, time) %>%
@@ -2630,6 +2622,17 @@ descriptives6 <- US_t1_clean2 %>%
   summarise(., mean_fc_1_o_agr = mean(fc_1_o_agr), sd_fc_1_o_agr = sd(fc_1_o_agr))
 descriptives6
 ```
+
+
+
+
+
+
+
+
+
+
+# OLD
 
 # Repeated measures/ ML
 ```{r}
