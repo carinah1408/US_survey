@@ -15,6 +15,11 @@ library(plm) # panel for regression
 library(lmtest)
 library(pglm) # panel logistic regression
 library(pscl)
+library(tidyr)
+library(reshape2)
+library(car)
+library(MASS)
+library(InformationValue) 
 
 data <- here::here("data/US_data.csv")
 US_data <- readr::read_csv(data) %>%
@@ -82,7 +87,6 @@ US_data <- US_data %>%
     income == "6" ~ "over $50,000"
   ))
 
-# computing new variables and z-scores
 US <- US_data %>%
   mutate(cn = (cn_1 + cn_2 + cn_3 + cn_4 + cn_5)/5,
         secident = (secident_1 + secident_2 + secident_3 + secident_4 + secident_5 +
@@ -91,7 +95,7 @@ US <- US_data %>%
         xeno = (xeno_1 + xeno_2 + xeno_3 + xeno_4)/4, 
         joy = (joy_1 + joy_2)/2,
         eff = (eff_1 + eff_2)/2) %>%
-    mutate(z_cn = (cn - (mean(cn)/ sd(cn))),
+  mutate(z_cn = (cn - (mean(cn)/ sd(cn))),
          z_secident = (secident - (mean(secident)/ sd(secident))),
          z_fc_1_o_agr = (fc_1_o_agr - (mean(fc_1_o_agr) / sd(fc_1_o_agr))),
          z_fc_2_o_agr = (fc_2_o_agr -(mean (fc_2_o_agr)/ sd(fc_2_o_agr))),
@@ -119,7 +123,579 @@ US_t1_mod$vote <- as.factor(US_t1_mod$vote)
 US_t2_mod$id <- as.factor(US_t2_mod$id)
 US_t2_mod$time <- as.factor(US_t2_mod$time)
 US_t2_mod$vote <- as.factor(US_t2_mod$vote)
+
+# from long to wide dataset
+US_wide <- reshape(US, direction = "wide", idvar = "id", timevar = "time")
+US_wide_Rep <- subset(US_wide, vote.1 == "Republicans" & vote.2 == "Republicans")
+US_wide_unexp_Rep <- subset(US_wide_Rep, unexp.1 == "Unexpected" & unexp.2 == "Unexpected")
 ```
+
+## Exploratory
+
+# Collective narcissism  
+```{r}
+# descriptives by vote
+descriptives3 <- US %>% 
+  group_by(vote) %>%
+  dplyr::select(., cn, secident, ingroup_satis, xeno, joy, eff, pi_1_own, pi_1_ave, pi_2_own, pi_2_ave, fc_1_s, fc_1_o_agr, fc_2_s, fc_2_o_agr) %>%
+  summarise(., mean_cn = mean(cn), sd_cn = sd(cn), 
+            mean_secident = mean(secident), sd_secident = sd(secident),
+            mean_ingroup_satis = mean(ingroup_satis), sd_ingroup_satis = sd(ingroup_satis), 
+            mean_xeno = mean(xeno), sd_xeno = sd(xeno),
+            mean_joy = mean(joy), sd_joy = sd(joy),
+            mean_eff = mean(eff), sd_eff = sd(eff),
+            mean_pi_1_own = mean(pi_1_own), sd_pi_1_own = sd(pi_1_own),
+            mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave),
+            mean_pi_2_own = mean(pi_2_own), sd_pi_2_own = sd(pi_2_own),
+            mean_pi_2_ave = mean(pi_2_ave), sd_pi_2_ave = sd(pi_2_ave),
+            mean_fc_1_s = mean(fc_1_s), sd_fc_1_s = sd(fc_1_s),
+            mean_fc_1_o_agr = mean(fc_1_o_agr), sd_fc_1_o_agr = sd(fc_1_o_agr),
+            mean_fc_2_s = mean(fc_2_s), sd_fc_2_s = sd(fc_2_s),
+            mean_fc_2_o_agr = mean(fc_2_o_agr), sd_fc_2_o_agr = sd(fc_2_o_agr))
+descriptives3
+
+# descriptives by vote and time
+descriptives4 <- US %>% 
+  group_by(vote, time) %>%
+  summarise(., mean_cn = mean(cn), sd_cn = sd(cn), 
+            mean_secident = mean(secident), sd_secident = sd(secident), 
+            mean_xeno = mean(xeno), sd_xeno = sd(xeno),
+            mean_joy = mean(joy), sd_joy = sd(joy),
+            mean_eff = mean(eff), sd_eff = sd(eff),
+            mean_pi_1_own = mean(pi_1_own), sd_pi_1_own = sd(pi_1_own),
+            mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave),
+            mean_pi_2_own = mean(pi_2_own), sd_pi_2_own = sd(pi_2_own),
+            mean_pi_2_ave = mean(pi_2_ave), sd_pi_2_ave = sd(pi_2_ave),
+            mean_fc_1_s = mean(fc_1_s), sd_fc_1_s = sd(fc_1_s),
+            mean_fc_1_o_agr = mean(fc_1_o_agr), sd_fc_1_o_agr = sd(fc_1_o_agr),
+            mean_fc_2_s = mean(fc_2_s), sd_fc_2_s = sd(fc_2_s),
+            mean_fc_2_o_agr = mean(fc_2_o_agr), sd_fc_2_o_agr = sd(fc_2_o_agr))
+descriptives4
+
+# two-way anova: vote and time on cn
+
+anova_cn <- aov(cn ~ vote + time, data = US)
+summary(anova_cn)
+
+# t-test cn by vote
+cn.t.test <- t.test(cn ~ vote, data = US)
+cn.t.test
+
+# effect size
+
+t<-cn.t.test$statistic[[1]]
+df<-cn.t.test$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# without outliers fc_1_s 
+descriptives5 <- US_t1_clean %>% 
+  group_by(vote, time) %>%
+  summarise(., mean_fc_1_s = mean(fc_1_s), sd_fc_1_s = sd(fc_1_s))
+descriptives5
+
+# without outliers fc_1_o_agr
+descriptives6 <- US_t1_clean2 %>% 
+  group_by(vote, time) %>%
+  summarise(., mean_fc_1_o_agr = mean(fc_1_o_agr), sd_fc_1_o_agr = sd(fc_1_o_agr))
+descriptives6
+```
+
+# Collective narcissism on FC and behavioural intention
+```{r}
+# fc_1_o_agr
+fc_1_cn.mod <- lm(scale(fc_1_o_agr.2) ~ scale(cn.2), data = US_wide_Rep) # N = 52
+summary(fc_1_cn.mod)
+plot(fc_1_cn.mod)
+ncvTest(fc_1_cn.mod)# homoscedasticity assumption not violated
+
+# without outliers
+US_wide_Rep_clean1 <- US_wide_Rep %>%
+  filter(., id!= "p180" & id!= "p122" & id!= "p148")
+
+fc_1_cn.mod_clean <- lm(scale(fc_1_o_agr.2) ~ scale(cn.2), data = US_wide_Rep_clean1) # N = 49
+summary(fc_1_cn.mod_clean)
+plot(fc_1_cn.mod_clean)
+
+
+# adding secident and fc_1_o_agr.1 (with outliers removed)
+fc_1_cn.mod2 <- lm(scale(fc_1_o_agr.2) ~ scale(cn.2) + scale(secident.2) + scale(fc_1_o_agr.1), data = US_wide_Rep)
+summary(fc_1_cn.mod2)
+plot(fc_1_cn.mod2)
+confint(fc_1_cn.mod2)
+vif(fc_1_cn.mod2)
+
+# without outlier removal
+fc_1_cn.mod2a <- lm(scale(fc_1_o_agr.2) ~ scale(cn.2) + scale(secident.2) + scale(fc_1_o_agr.1), data = US_wide_Rep)
+summary(fc_1_cn.mod2a)
+confint(fc_1_cn.mod2a)
+
+# adding further covariates (with outliers removed)
+fc_1_cn.mod3 <- lm(scale(fc_1_o_agr.2) ~ scale(cn.2) + scale(secident.2) + scale(fc_1_o_agr.1) + scale(sd.2) + scale(cor_values.2) + scale(cor_health.2), data = US_wide_Rep_clean1)
+summary(fc_1_cn.mod3)
+
+# without outlier removal
+fc_1_cn.mod3a <- lm(scale(fc_1_o_agr.2) ~ scale(cn.2) + scale(secident.2) + scale(fc_1_o_agr.1) + scale(sd.2) + scale(cor_values.2) + scale(cor_health.2), data = US_wide_Rep)
+summary(fc_1_cn.mod3a)
+
+
+
+
+# fc_2_o_agr
+fc_2_cn.mod <- lm(scale(fc_2_o_agr.2) ~ scale(cn.2), data = US_wide_Rep) # N = 52
+summary(fc_2_cn.mod)
+plot(fc_2_cn.mod)
+
+# without outlier
+US_wide_Rep_clean2 <- US_wide_Rep %>%
+  filter(., id != "p122")
+
+fc_2_cn.mod_clean <- lm(scale(fc_2_o_agr.2) ~ scale(cn.2), data = US_wide_Rep_clean2) # N = 51
+summary(fc_2_cn.mod_clean)
+
+# adding secident & fc_2_o_agr t1 
+fc_2_cn.mod2 <- lm(scale(fc_2_o_agr.2) ~ scale(cn.2) + scale(secident.2) + scale(fc_2_o_agr.1), data = US_wide_Rep) # N = 51
+summary(fc_2_cn.mod2)
+confint(fc_2_cn.mod2)
+plot(fc_2_cn.mod2) # issues with linearity 
+vif(fc_2_cn.mod2)
+crPlots(fc_2_cn.mod2)
+durbinWatsonTest(fc_2_cn.mod2)
+
+# --> bootstrap 
+bootReg <- function(formula, data, indices)
+  {
+    d <- data [i,]
+    fit <- lm(formula, data = d)
+    return(coef(fit))
+  }
+
+bootResults <- Boot(fc_2_cn.mod2, R = 10000)
+summary(bootResults)
+boot.ci(bootResults, type = "bca", index = 2)
+boot.ci(bootResults, type = "bca", index = 3)
+boot.ci(bootResults, type = "bca", index = 4)
+
+
+
+# If more than one predictor: boot.ci(bootResults, type = "bca", index = 1) intercept; 
+# boot.ci(bootResults, type "bca", index = 2) first predictor; boot.ci(bootResults, 
+# type = "bca", index = 3) second predictor etc
+
+# Note that the confidence interval isn’t symmetrical because our data isn’t 
+# perfectly normal. Thus, when you report them make sure to note that they are 
+# 95% bootstrap bca confidence intervals. Also note that the quantiles reported 
+# in the output are linear quantiles
+
+# https://ademos.people.uic.edu/Chapter12.html#5_what_can_we_do_to_remedy_this
+
+
+
+
+# adding further covariates (with outliers removed)
+fc_2_cn.mod3 <- lm(scale(fc_2_o_agr.2) ~ scale(cn.2) + scale(secident.2) + scale(fc_2_o_agr.1) + scale(sd.2) + scale(cor_values.2) + scale(cor_health.2), data = US_wide_Rep_clean2) # N = 51
+summary(fc_2_cn.mod3)
+
+# without outlier removal
+fc_2_cn.mod3a <- lm(scale(fc_2_o_agr.2) ~ scale(cn.2) + scale(secident.2) + scale(fc_2_o_agr.1) + scale(sd.2) + scale(cor_values.2) + scale(cor_health.2), data = US_wide_Rep) # N = 52
+summary(fc_2_cn.mod3a)
+
+
+
+# behavioural intention
+sign_cn.mod <- glm(sign.2 ~ scale(cn.2), data = US_wide_Rep, family = "binomial")
+summary(sign_cn_model)
+exp(coef(sign_cn.mod))
+exp(confint(sign_cn.mod))
+pscl::pR2(sign_cn.mod) ["McFadden"]
+
+# adding secident and sign.1 
+sign_cn.mod2 <- glm(sign.2 ~ scale(cn.2) + scale(secident.2) + sign.1, data = US_wide_Rep, family = "binomial")
+summary(sign_cn.mod2)
+exp(coef(sign_cn.mod2))
+exp(confint(sign_cn.mod2))
+pscl::pR2(sign_cn.mod2) ["McFadden"] # values > .40 mean that the model fits the data very well)
+car::vif(sign_cn.mod2) 
+
+# predictions based on cn-values
+sign_cn_pred <- data.frame(cn.2 = 4, secident.2 = 6, sign.1 = 1)
+predict(sign_cn.mod2, sign_cn_pred, type = "response")
+
+# predictions for each individual in dataset
+
+predicted <- predict(sign_cn.mod2, US_wide_Rep, type = "response")
+predicted
+
+# model diagnostics
+optimal <- optimalCutoff(US_wide_Rep$sign.2, predicted) [1] 
+optimal 
+
+# sensitivity and specificity
+sensitivity(US_wide_Rep$sign.2, predicted)
+specificity(US_wide_Rep$sign.2, predicted)
+
+# total miscalculation error rate
+misClassError(US_wide_Rep$sign.2, predicted, threshold = optimal) 
+
+# ROC curve
+plotROC(US_wide_Rep$sign.2, predicted) 
+```
+
+# False consensus on empowerment and behavioural intention
+```{r}
+# joy
+joy_fc_1.mod <- lm(scale(joy.2) ~ scale(fc_1_o_agr.2), data = US_wide_Rep)
+summary(joy_fc_1.mod)
+plot(joy_fc_1.mod)
+ncvTest(joy_fc_1.mod) # homoscedasticity assumption not violated
+confint(joy_fc_1.mod)
+
+# without outlier
+US_wide_Rep_clean3 <- US_wide_Rep %>%
+  filter(., id!= "p022" & id!= "p159" & id!= "p192")
+
+joy_fc_1.mod_clean <- lm(scale(joy.2) ~ scale(fc_1_o_agr.2), data = US_wide_Rep_clean3)
+summary(joy_fc_1.mod_clean)
+plot(fc_1_cn.mod_clean)
+ncvTest(joy_fc_1.mod_clean) # homoscedasticity assumption not violated
+confint(joy_fc_1.mod_clean)
+
+
+joy_fc_2.mod <- lm(scale(joy.2) ~ scale(fc_2_o_agr.2), data = US_wide_Rep)
+summary(joy_fc_2.mod)
+confint(joy_fc_2.mod)
+plot(joy_fc_2.mod)
+
+# without outlier
+US_wide_Rep_clean4 <- US_wide_Rep %>%
+  filter(., id!= "p192" & id!= "p159" & id!= "p171")
+
+joy_fc_2.mod_clean <- lm(scale(joy.2) ~ scale(fc_2_o_agr.2), data = US_wide_Rep_clean4)
+summary(joy_fc_2.mod_clean)
+
+# eff
+
+eff_fc_1.mod <- lm(scale(eff.2) ~ scale(fc_1_o_agr.2), data = US_wide_Rep)
+summary(eff_fc_1.mod)
+plot(eff_fc_1.mod)
+confint(eff_fc_1.mod)
+
+# without outlier
+US_wide_Rep_clean5 <- US_wide_Rep %>%
+  filter(., id!= "p154" & id!= "p073" & id!= "p049")
+
+eff_fc_1.mod_clean <- lm(scale(eff.2) ~ scale(fc_1_o_agr.2), data = US_wide_Rep_clean5)
+summary(eff_fc_1.mod_clean)
+plot(eff_fc_1.mod_clean)
+confint(eff_fc_1.mod_clean)
+
+
+eff_fc_2.mod <- lm(scale(eff.2) ~ scale(fc_2_o_agr.2), data = US_wide_Rep)
+summary(eff_fc_2.mod)
+plot(eff_fc_2.mod)
+confint(eff_fc_2.mod)
+
+
+# behavioural intention (fc_1_o_agr)
+sign_fc_1.mod <- glm(sign.2 ~ scale(fc_1_o_agr.2), data = US_wide_Rep, family = "binomial")
+summary(sign_fc_1.mod)
+exp(coef(sign_fc_1.mod))
+exp(confint(sign_fc_1.mod))
+pscl::pR2(sign_fc_1.mod) ["McFadden"]
+
+# adding sign.1 
+sign_fc_1.mod2 <- glm(sign.2 ~ scale(fc_1_o_agr.2) + sign.1, data = US_wide_Rep, family = "binomial")
+summary(sign_fc_1.mod2)
+exp(coef(sign_fc_1.mod2))
+exp(confint(sign_fc_1.mod2))
+pscl::pR2(sign_fc_1.mod2) ["McFadden"] # values > .40 mean that the model fits the data very well)
+car::vif(sign_fc_1.mod2) 
+
+# predictions based on cn-values
+sign_fc_1_pred <- data.frame(fc_1_o_agr.2 = 7, sign.1 = 0)
+predict(sign_fc_1.mod2, sign_fc_1_pred, type = "response")
+
+# predictions for each individual in dataset
+
+predicted <- predict(sign_fc_1.mod2, US_wide_Rep, type = "response")
+predicted
+
+# model diagnostics
+optimal <- optimalCutoff(US_wide_Rep$sign.2, predicted) [1] 
+optimal 
+
+# sensitivity and specificity
+sensitivity(US_wide_Rep$sign.2, predicted)
+specificity(US_wide_Rep$sign.2, predicted)
+
+# total miscalculation error rate
+misClassError(US_wide_Rep$sign.2, predicted, threshold = optimal) 
+
+# ROC curve
+plotROC(US_wide_Rep$sign.2, predicted)
+
+
+# behavioural intention (fc_2_o_agr)
+sign_fc_2.mod <- glm(sign.2 ~ scale(fc_2_o_agr.2), data = US_wide_Rep, family = "binomial")
+summary(sign_fc_2.mod)
+exp(coef(sign_fc_2.mod))
+exp(confint(sign_fc_2.mod))
+pscl::pR2(sign_fc_2.mod) ["McFadden"]
+
+# adding sign.1 
+sign_fc_2.mod2 <- glm(sign.2 ~ scale(fc_2_o_agr.2) + sign.1, data = US_wide_Rep, family = "binomial")
+summary(sign_fc_2.mod2)
+exp(coef(sign_fc_2.mod2))
+exp(confint(sign_fc_2.mod2))
+pscl::pR2(sign_fc_2.mod2) ["McFadden"] # values > .40 mean that the model fits the data very well)
+car::vif(sign_fc_2.mod2) 
+
+# predictions based on cn-values
+sign_fc_2_pred <- data.frame(fc_2_o_agr.2 = 4, sign.1 = 1)
+predict(sign_fc_2.mod2, sign_fc_2_pred, type = "response")
+
+# predictions for each individual in dataset
+
+predicted <- predict(sign_fc_2.mod2, US_wide_Rep, type = "response")
+predicted
+
+# model diagnostics
+optimal <- optimalCutoff(US_wide_Rep$sign.2, predicted) [1] 
+optimal 
+
+# sensitivity and specificity
+sensitivity(US_wide_Rep$sign.2, predicted)
+specificity(US_wide_Rep$sign.2, predicted)
+
+# total miscalculation error rate
+misClassError(US_wide_Rep$sign.2, predicted, threshold = optimal) 
+
+# ROC curve
+plotROC(US_wide_Rep$sign.2, predicted) 
+```
+
+# Empowerment and behavioural intention
+```{r}
+# behavioural intention (joy)
+sign_joy.mod <- glm(sign.2 ~ scale(joy.2), data = US_wide_Rep, family = "binomial")
+summary(sign_joy.mod)
+exp(coef(sign_joy.modd))
+exp(confint(sign_joy.mod))
+pscl::pR2(sign_joy.mod) ["McFadden"]
+
+# adding sign.1 
+sign_joy.mod2 <- glm(sign.2 ~ scale(joy.2) + sign.1, data = US_wide_Rep, family = "binomial")
+summary(sign_joy.mod2)
+exp(coef(sign_joy.mod2))
+exp(confint(sign_joy.mod2))
+pscl::pR2(sign_joy.mod2) ["McFadden"] # values > .40 mean that the model fits the data very well)
+car::vif(sign_joy.mod2) 
+
+# predictions based on cn-values
+sign_joy_pred <- data.frame(joy.2 = 1, sign.1 = 0)
+predict(sign_joy.mod2, sign_joy_pred, type = "response")
+
+# predictions for each individual in dataset
+
+predicted <- predict(sign_joy.mod2, US_wide_Rep, type = "response")
+predicted
+
+# model diagnostics
+optimal <- optimalCutoff(US_wide_Rep$sign.2, predicted) [1] 
+optimal 
+
+# sensitivity and specificity
+sensitivity(US_wide_Rep$sign.2, predicted)
+specificity(US_wide_Rep$sign.2, predicted)
+
+# total miscalculation error rate
+misClassError(US_wide_Rep$sign.2, predicted, threshold = optimal) 
+
+# ROC curve
+plotROC(US_wide_Rep$sign.2, predicted) 
+
+
+# behavioural intention (eff)
+sign_eff.mod <- glm(sign.2 ~ scale(eff.2), data = US_wide_Rep, family = "binomial")
+summary(sign_eff.mod)
+exp(coef(sign_eff.mod))
+exp(confint(sign_eff.mod))
+pscl::pR2(sign_eff.mod) ["McFadden"]
+
+# adding sign.1 
+sign_eff.mod2 <- glm(sign.2 ~ scale(eff.2) + sign.1, data = US_wide_Rep, family = "binomial")
+summary(sign_eff.mod2)
+exp(coef(sign_eff.mod2))
+exp(confint(sign_eff.mod2))
+pscl::pR2(sign_eff.mod2) ["McFadden"] # values > .40 mean that the model fits the data very well)
+car::vif(sign_eff.mod2) 
+
+# predictions based on cn-values
+sign_eff_pred <- data.frame(eff = 4, sign.1 = 1)
+predict(sign_eff.mod2, sign_eff_pred, type = "response")
+
+# predictions for each individual in dataset
+
+predicted <- predict(sign_eff.mod2, US_wide_Rep, type = "response")
+predicted
+
+# model diagnostics
+optimal <- optimalCutoff(US_wide_Rep$sign.2, predicted) [1] 
+optimal 
+
+# sensitivity and specificity
+sensitivity(US_wide_Rep$sign.2, predicted)
+specificity(US_wide_Rep$sign.2, predicted)
+
+# total miscalculation error rate
+misClassError(US_wide_Rep$sign.2, predicted, threshold = optimal) 
+
+# ROC curve
+plotROC(US_wide_Rep$sign.2, predicted) 
+```
+
+# Explorative
+```{r}
+# explorative: cn on signing 
+sign_joint.mod1 <- glm(sign.2 ~ scale(cn.2) + scale(joy.2), data = US_wide_Rep, family = "binomial")
+summary(sign_joint.mod1)
+exp(coef(sign_joint.mod1))
+exp(confint(sign_joint.mod1))
+pscl::pR2(sign_joint.mod) ["McFadden"]
+
+# explorative: removing joy, adding secident
+sign_joint.mod2 <- glm(sign.2 ~ scale(cn.2) + scale(secident.2), data = US_wide_Rep, family = "binomial")
+summary(sign_joint.mod2)
+exp(coef(sign_joint.mod2))
+exp(confint(sign_joint.mod2))
+pscl::pR2(sign_joint.mod2) ["McFadden"]
+car::vif(sign_joint.mod2) 
+
+# explorative: adding joy
+sign_joint.mod3 <- glm(sign.2 ~ scale(cn.2) + scale(secident.2) + scale(joy.2), data = US_wide_Rep, family = "binomial")
+summary(sign_joint.mod3)
+exp(coef(sign_joint.mod3))
+exp(confint(sign_joint.mod3))
+pscl::pR2(sign_joint.mod3) ["McFadden"]
+car::vif(sign_joint.mod3) 
+
+# explorative: removing joy, adding sign.1
+sign_joint.mod4 <- glm(sign.2 ~ scale(cn.2) + scale(secident.2) + sign.1, data = US_wide_Rep, family = "binomial")
+summary(sign_joint.mod4)
+exp(coef(sign_joint.mod4))
+exp(confint(sign_joint.mod4))
+pscl::pR2(sign_joint.mod4) ["McFadden"]
+car::vif(sign_joint.mod4) 
+
+# explorative: predicting sign.1
+sign_joint.mod5a <- glm(sign.1 ~ scale(joy.1), data = US_wide_Rep, family = "binomial")
+summary(sign_joint.mod5a)
+exp(coef(sign_joint.mod5a))
+exp(confint(sign_joint.mod5a))
+pscl::pR2(sign_joint.mod5a) ["McFadden"]
+car::vif(sign_joint.mod5a)
+
+sign_joint.mod5 <- glm(sign.1 ~ scale(cn.1), data = US_wide_Rep, family = "binomial")
+summary(sign_joint.mod5)
+exp(coef(sign_joint.mod5))
+exp(confint(sign_joint.mod5))
+pscl::pR2(sign_joint.mod5) ["McFadden"]
+car::vif(sign_joint.mod5) 
+
+# explorative: adding joy.1
+sign_joint.mod6 <- glm(sign.1 ~ scale(cn.1) + scale(joy.1), data = US_wide_Rep, family = "binomial")
+summary(sign_joint.mod6)
+exp(coef(sign_joint.mod6))
+exp(confint(sign_joint.mod6))
+pscl::pR2(sign_joint.mod6) ["McFadden"]
+car::vif(sign_joint.mod6) 
+
+# explorative: removing joy.1, adding secident.1
+sign_joint.mod7 <- glm(sign.1 ~ scale(cn.1) + scale(secident.1), data = US_wide_Rep, family = "binomial")
+summary(sign_joint.mod7)
+exp(coef(sign_joint.mod7))
+exp(confint(sign_joint.mod7))
+pscl::pR2(sign_joint.mod7) ["McFadden"]
+car::vif(sign_joint.mod7) 
+
+
+# predictions based on cn-values
+sign_joint_pred <- data.frame(fc_2_o_agr.2 = 1, cn.2 = 7, joy.2 = 7, sign.1 = 1)
+predict(sign_joint.mod2, sign_joint_pred, type = "response")
+
+# predictions for each individual in dataset
+
+predicted <- predict(sign_joint.mod2, US_wide_Rep, type = "response")
+predicted
+
+# model diagnostics
+optimal <- optimalCutoff(US_wide_Rep$sign.2, predicted) [1] 
+optimal 
+
+# sensitivity and specificity
+sensitivity(US_wide_Rep$sign.2, predicted)
+specificity(US_wide_Rep$sign.2, predicted)
+
+# total miscalculation error rate
+misClassError(US_wide_Rep$sign.2, predicted, threshold = optimal) 
+
+# ROC curve
+plotROC(US_wide_Rep$sign.2, predicted) 
+```
+
+# Further anaylsis: CN on joy & eff
+```{r}
+joy_cn.mod <- lm(scale(joy.2) ~ scale(cn.2), data = US_wide_Rep)
+summary(joy_cn.mod)
+confint(joy_cn.mod)
+plot(joy_cn.mod)
+ncvTest(joy_cn.mod)# homoscedasticity assumption not violated
+
+joy_cn.mod2 <- lm(scale(joy.2) ~ scale(cn.2) + scale(secident.2), data = US_wide_Rep)
+summary(joy_cn.mod2)
+confint(joy_cn.mod2)
+plot(joy_cn.mod2)
+ncvTest(joy_cn.mod2) # homoscedasticity assumption not violated
+
+eff_cn.mod <- lm(scale(eff.2) ~ scale(cn.2), data = US_wide_Rep)
+summary(eff_cn.mod)
+plot(eff_cn.mod)
+     
+bootReg <- function(formula, data, indices)
+  {
+    d <- data [i,]
+    fit <- lm(formula, data = d)
+    return(coef(fit))
+  }
+
+bootResults <- Boot(eff_cn.mod, R = 10000)
+summary(bootResults)
+boot.ci(bootResults, type = "bca", index = 2)
+
+eff_cn.mod2 <- lm(scale(eff.2) ~ scale(cn.2) + scale(secident.2), data = US_wide_Rep)
+summary(eff_cn.mod2)
+plot(eff_cn.mod2)
+
+bootResults <- Boot(eff_cn.mod2, R = 10000)
+summary(bootResults)
+boot.ci(bootResults, type = "bca", index = 2)
+boot.ci(bootResults, type = "bca", index = 3)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+# OLD
 
 # panel design regression
 ```{r}
@@ -129,339 +705,242 @@ str(US)
 summary(US)
 
 # computing differences in fc_1_o_agr and cn
-diff_z_fc_1_o_agr <- US_t2_mod$z_fc_1_o_agr - US_t1_mod$z_fc_1_o_agr
-diff_z_fc_2_o_agr <- US_t2_mod$z_fc_2_o_agr - US_t1_mod$z_fc_2_o_agr
-diff_z_secident <- US_t2_mod$z_secident - US_t1_mod$z_secident
-diff_z_cn <- US_t2_mod$z_cn - US_t1_mod$z_cn
-diff_z_sd <- US_t2_mod$z_sd - US_t1_mod$z_sd
-diff_z_cor_values <- US_t2_mod$z_cor_values - US_t1_mod$z_cor_values
-diff_z_cor_health <- US_t2_mod$z_cor_health - US_t1_mod$z_cor_health
-diff_z_joy <- US_t2_mod$z_joy - US_t1_mod$z_joy
-diff_z_eff <- US_t2_mod$z_eff - US_t1_mod$z_eff
+diff_fc_1_o_agr <- US_t2_mod$fc_1_o_agr - US_t1_mod$fc_1_o_agr
+diff_fc_2_o_agr <- US_t2_mod$fc_2_o_agr - US_t1_mod$fc_2_o_agr
+diff_secident <- US_t2_mod$secident - US_t1_mod$secident
+diff_cn <- US_t2_mod$cn - US_t1_mod$cn
+diff_sd <- US_t2_mod$sd - US_t1_mod$sd
+diff_cor_values <- US_t2_mod$cor_values - US_t1_mod$cor_values
+diff_cor_health <- US_t2_mod$cor_health - US_t1_mod$cor_health
+diff_joy <- US_t2_mod$joy - US_t1_mod$joy
+diff_eff <- US_t2_mod$eff - US_t1_mod$eff
 diff_sign <- US_t2_mod$sign - US_t1_mod$sign
-diff_z_share <- US_t2_mod$z_share - US_t1_mod$z_share
-diff_z_donate <- US_t2_mod$z_donate - US_t1_mod$z_donate
+diff_share <- US_t2_mod$share - US_t1_mod$share
+diff_donate <- US_t2_mod$donate - US_t1_mod$donate
 
 # regression fc_1_o_agr (step 1)
-diff_Z_fc_1 <- lm(diff_z_fc_1_o_agr ~ diff_z_cn)
-coeftest(diff_Z_fc_1, vcov = vcovHC, type = "HC1")
-summary(diff_Z_fc_1)
+diff_fc_1 <- lm(diff_fc_1_o_agr ~ diff_cn)
+coeftest(diff_fc_1, vcov = vcovHC, type = "HC1")
+summary(diff_fc_1)
 
-diff_z_fc_1alt <- lm(diff_z_fc_1_o_agr ~  diff_z_sd + diff_z_cor_values + diff_z_cor_health + diff_z_secident + diff_z_cn)
-coeftest(diff_z_fc_1alt, vcov = vcovHC, type = "HC1")
-confint(diff_z_fc_1alt)
-summary(diff_z_fc_1alt)
-plot(diff_z_fc_1alt)
+
+diff_fc_1alt <- lm(diff_fc_1_o_agr ~  diff_cn + diff_secident + diff_sd + diff_cor_values + diff_cor_health)
+coeftest(diff_fc_1alt, vcov = vcovHC, type = "HC1")
+coef_lmbeta <- lm.beta(diff_fc_1alt)
+coef_lmbeta
+confint(diff_fc_1alt)
+summary(diff_fc_1alt)
+plot(diff_fc_1alt)
 
 # fixed effect regression fc_1_o_agr, keeping effects across entities constant (step 2)
-diff_z_fc_12 <- plm(z_fc_1_o_agr ~ z_cn + id, 
+diff_fc_12 <- plm(fc_1_o_agr ~ cn + id, 
                    data = US,
                    index = c("id", "time"),
                    model = "within")
-coeftest(diff_z_fc_12, vcov = vcovHC, type = "HC1")
-r.squared(diff_z_fc_12)
+coeftest(diff_fc_12, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_12)
 
 # time fixed effect regression fc_1_o_agr, keeping effects across entities and time constant (step 3)
-diff_z_fc_13 <- plm(z_fc_1_o_agr ~ z_sd + id + time,
+diff_fc_13 <- plm(fc_1_o_agr ~ sd + id + time,
                     data = US, 
                     index = c("id", "time"),
                     model = "within",
                     effect = "twoways")
-coeftest(diff_z_fc_13, vcov = vcovHC, type = "HC1")
-r.squared(diff_z_fc_13)
+coeftest(diff_fc_13, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_13)
 
 # adding control variables
 
-diff_z_fc_14 <- plm(z_fc_1_o_agr ~ z_sd + z_cor_values + z_cor_health + id + time,
+diff_fc_14 <- plm(fc_1_o_agr ~ sd + cor_values + cor_health + id + time,
                     data = US, 
                     index = c("id", "time"),
                     model = "within",
                     effect = "twoways")
-coeftest(diff_z_fc_14, vcov = vcovHC, type = "HC1")
-r.squared(diff_z_fc_14)
+coeftest(diff_fc_14, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_14)
 
-diff_z_fc_15 <- plm(z_fc_1_o_agr ~ z_sd + z_cor_values + z_cor_health + z_secident + id + time,
+diff_fc_15 <- plm(fc_1_o_agr ~ sd + cor_values + cor_health + secident + id + time,
                     data = US, 
                     index = c("id", "time"),
                     model = "within",
                     effect = "twoways")
-coeftest(diff_z_fc_15, vcov = vcovHC, type = "HC1")
-r.squared(diff_z_fc_15)
+coeftest(diff_fc_15, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_15)
 
-diff_z_fc_16 <- plm(z_fc_1_o_agr ~ z_sd + z_cor_values + z_cor_health + z_secident + z_cn + id + time,
+diff_fc_16 <- plm(fc_1_o_agr ~ sd + cor_values + cor_health + secident + cn + id + time,
                     data = US, 
                     index = c("id", "time"),
                     model = "within",
                     effect = "twoways")
-coeftest(diff_z_fc_16, vcov = vcovHC, type = "HC1")
-r.squared(diff_z_fc_16)
+coeftest(diff_fc_16, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_16)
 
-diff_z_fc_17 <- plm(z_fc_1_o_agr ~ z_secident + id + time,
+diff_fc_17 <- plm(fc_1_o_agr ~ secident + id + time,
                     data = US, 
                     index = c("id", "time"),
                     model = "within",
                     effect = "twoways")
-coeftest(diff_z_fc_17, vcov = vcovHC, type = "HC1")
-r.squared(diff_z_fc_17)
+coeftest(diff_fc_17, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_17)
 
-diff_z_fc_18 <- plm(z_fc_1_o_agr ~ z_secident + z_cn + id + time,
+diff_fc_18 <- plm(fc_1_o_agr ~ secident + cn + id + time,
                     data = US, 
                     index = c("id", "time"),
                     model = "within",
                     effect = "twoways")
-coeftest(z_diff_fc_18, vcov = vcovHC, type = "HC1")
-r.squared(z_diff_fc_18)
+coeftest(diff_fc_18, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_18)
+
 
 
 # regression fc_2_o_agr (step 1)
-diff_z_fc_2 <- lm(diff_z_fc_2_o_agr ~ diff_z_cn)
-coeftest(diff_z_fc_2, vcov = vcovHC, type = "HC1")
-summary(diff_z_fc_2)
+diff_fc_2 <- lm(diff_fc_2_o_agr ~ diff_cn)
+coeftest(diff_fc_2, vcov = vcovHC, type = "HC1")
+summary(diff_fc_2)
 
-diff_z_fc_2alt <- lm(diff_z_fc_2_o_agr ~  diff_z_sd + diff_z_cor_values + diff_z_cor_health+ diff_z_cn + diff_z_secident)
-coeftest(diff_z_fc_2alt, vcov = vcovHC, type = "HC1")
-confint(diff_z_fc_2alt)
-summary(diff_z_fc_2alt)
+diff_fc_2alt <- lm(diff_fc_2_o_agr ~  diff_cn + diff_secident + diff_sd + diff_cor_values + diff_cor_health)
+coeftest(diff_fc_2alt, vcov = vcovHC, type = "HC1")
+coef_lmbeta2 <- lm.beta(diff_fc_2alt)
+coef_lmbeta2
+confint(diff_fc_2alt)
+summary(diff_fc_2alt)
 
 # fixed effect regression fc_2_o_agr, keeping effects across entities constant (step 2)
-diff_z_fc_22<- plm(z_fc_2_o_agr ~ z_cn + id, 
+diff_fc_22<- plm(fc_2_o_agr ~ cn + id, 
                    data = US,
                    index = c("id", "time"),
                    model = "within")
-coeftest(diff_z_fc_22, vcov = vcovHC, type = "HC1")
-r.squared(diff_z_fc_22)
+coeftest(diff_fc_22, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_22)
 
 # time fixed effect regression fc_2_o_agr, keeping effects across entities and time constant (step 3)
-diff_z_fc_23 <- plm(z_fc_2_o_agr ~ z_sd + id + time,
+diff_fc_23 <- plm(fc_2_o_agr ~ sd + id + time,
                     data = US, 
                     index = c("id", "time"),
                     model = "within",
                     effect = "twoways")
-coeftest(diff_z_fc_23, vcov = vcovHC, type = "HC1")
-r.squared(diff_z_fc_23)
+coeftest(diff_fc_23, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_23)
 
 # adding control variables
-diff_z_fc_24 <- plm(z_fc_2_o_agr ~ z_sd + z_cor_values + z_cor_health + id + time,
-                    data = US, 
-                    index = c("id", "time"),
-                    model = "within",
-                    effect = "twoways")
-coeftest(diff_z_fc_24, vcov = vcovHC, type = "HC1")
-r.squared(diff_z_fc_24)
 
-diff_z_fc_25 <- plm(z_fc_2_o_agr ~ z_sd + z_cor_values + z_cor_health + z_secident + id + time,
+diff_fc_24 <- plm(fc_2_o_agr ~ sd + cor_values + cor_health + id + time,
                     data = US, 
                     index = c("id", "time"),
                     model = "within",
                     effect = "twoways")
-coeftest(diff_z_fc_25, vcov = vcovHC, type = "HC1")
-r.squared(diff_z_fc_25)
+coeftest(diff_fc_24, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_24)
 
-diff_z_fc_26 <- plm(z_fc_2_o_agr ~ z_sd + z_cor_values + z_cor_health + z_secident + z_cn + id + time,
+diff_fc_25 <- plm(fc_2_o_agr ~ sd + cor_values + cor_health + secident + sd + id + time,
                     data = US, 
                     index = c("id", "time"),
                     model = "within",
                     effect = "twoways")
-coeftest(diff_z_fc_26, vcov = vcovHC, type = "HC1")
-r.squared(diff_z_fc_26)
+coeftest(diff_fc_25, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_25)
 
-diff_z_fc_27 <- plm(z_fc_2_o_agr ~ z_secident + id + time,
+diff_fc_26 <- plm(fc_2_o_agr ~ sd + cor_values + cor_health + secident + cn + id + time,
                     data = US, 
                     index = c("id", "time"),
                     model = "within",
                     effect = "twoways")
-coeftest(diff_z_fc_27, vcov = vcovHC, type = "HC1")
-r.squared(diff_z_fc_27)
+coeftest(diff_fc_26, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_26)
 
-diff_z_fc_28 <- plm(z_fc_2_o_agr ~ z_secident + z_cn + id + time,
+diff_fc_27 <- plm(fc_2_o_agr ~ secident + id + time,
                     data = US, 
                     index = c("id", "time"),
                     model = "within",
                     effect = "twoways")
-coeftest(diff_z_fc_28, vcov = vcovHC, type = "HC1")
-r.squared(diff_z_fc_28)
+coeftest(diff_fc_27, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_27)
+
+diff_fc_28 <- plm(fc_2_o_agr ~ secident + cn + id + time,
+                    data = US, 
+                    index = c("id", "time"),
+                    model = "within",
+                    effect = "twoways")
+coeftest(diff_fc_28, vcov = vcovHC, type = "HC1")
+r.squared(diff_fc_28)
 
 
 # logistic regression
 US_panel <- pdata.frame(US, index = c("id", "time"))
 sign.mod <- pglm(sign ~ sd, 
              data = US_panel,
-             family = binomial(link = "logit"))
+             family = "binomial")
 summary(sign.mod)
 
 sign.mod2 <- pglm(sign ~ sd + cor_values + cor_health, 
              data = US_panel,
-             family = binomial(link = "logit"))
+             family = "binomial")
 summary(sign.mod2)
 
 sign.mod3 <- pglm(sign ~ sd + cor_values + cor_health + secident, 
              data = US_panel,
-             family = binomial(link = "logit"))
+             family = "binomial")
 summary(sign.mod3)
 
 sign.mod4 <- pglm(sign ~ sd + cor_values + cor_health + secident + cn, 
              data = US_panel,
-             family = binomial(link = "logit"))
+             family = "binomial")
 summary(sign.mod4)
 exp(coef(sign.mod4))
 exp(confint(sign.mod4))
 ```
 
-# False consensus and empowerment
+
+
 ```{r}
-# subset for fc_1_o_agr on joy
-US_t1_mod <- subset(US, time == "1" & vote == "Republicans" & unexp == "Unexpected" & id!= "p053" & id!= "p153" & id!= "p159" & id!= "p180" & id!= "p197")
-US_t2_mod <- subset(US, time == "2" & vote == "Republicans" & unexp == "Unexpected" & id!= "p053" & id!= "p153" & id!= "p159" & id!= "p180" & id!= "p197")
+# fc_1_o_agr
+fc_1_cn.mod <- lm(scale(fc_1_o_agr.2) ~ scale(cn.2), data = US_wide_unexp_Rep) # N = 44
+summary(fc_1_cn.mod)
+plot(fc_1_cn.mod)
 
-# subset for fc_2_o_agr on joy
-US_t1_mod <- subset(US, time == "1" & vote == "Republicans" & unexp == "Unexpected" & id!= "p053" & id!= "p153" & id!= "p197")
-US_t2_mod <- subset(US, time == "2" & vote == "Republicans" & unexp == "Unexpected" & id!= "p053" & id!= "p153" & id!= "p197")
+# without outliers
+US_wide_unexp_Rep_clean1 <- US_wide_unexp_Rep %>%
+  filter(., id!= "p122" & id!= "p156" & id!= "p180")
 
-# subset for fc_1_o_agr on eff
-US_t1_mod <- subset(US, time == "1" & vote == "Republicans" & unexp == "Unexpected" & id!= "p024" & id!= "p028" & id!= "p049" & id!= "p073" & id!= "p085" & id!= "p136" & id!= "p180")
-US_t2_mod <- subset(US, time == "2" & vote == "Republicans" & unexp == "Unexpected" & id!= "p024" & id!= "p028" & id!= "p049" & id!= "p073" & id!= "p085" & id!= "p136" & id!= "p180")
+fc_1_cn.mod_clean <- lm(scale(fc_1_o_agr.2) ~ scale(cn.2), data = US_wide_unexp_Rep_clean1) # N = 41
+summary(fc_1_cn.mod_clean)
 
-# subset for fc_2_o_agr on eff
-US_t1_mod <- subset(US, time == "1" & vote == "Republicans" & unexp == "Unexpected" & id!= "p024" & id!= "p049" & id!= "p073" & id!= "p085" & id!= "p196")
-US_t2_mod <- subset(US, time == "2" & vote == "Republicans" & unexp == "Unexpected" & id!= "p024" & id!= "p049" & id!= "p073" & id!= "p085" & id!= "p196")
+# adding secident and fc_1_o_agr t1
+fc_1_cn.mod2 <- lm(scale(fc_1_o_agr.2) ~ scale(cn.2) + scale(secident.2) + scale(fc_1_o_agr.1), data = US_wide_unexp_Rep_clean1)
+summary(fc_1_cn.mod2)
+plot(fc_1_cn.mod2)
 
-# False consensus, empowerment and behavioural intention 
-# regression joy & eff (step 1)
-# joy by fc_1_o_agr
-diff_z_joy.mod <- lm(diff_z_joy ~ diff_z_fc_1_o_agr)
-coeftest(diff_z_joy.mod, vcov = vcovHC, type = "HC1")
-summary(diff_z_joy.mod)
-confint(diff_z_joy.mod)
-plot(diff_z_joy.mod)
-
-# after removing outlier "p053", "p153", "p159", "p180" & "p197"
-
-diff_z_joy.mod2<- lm(diff_z_joy ~ diff_z_fc_1_o_agr)
-coeftest(diff_z_joy.mod2, vcov = vcovHC, type = "HC1")
-summary(diff_z_joy.mod2)
-confint(diff_z_joy.mod2)
-plot(diff_z_joy.mod2)
-
-# joy by fc_2_o_agr
-diff_z_joy2.mod <- lm(diff_z_joy ~ diff_z_fc_2_o_agr)
-coeftest(diff_z_joy2.mod, vcov = vcovHC, type = "HC1")
-summary(diff_z_joy2.mod)
-confint(diff_z_joy2.mod)
-plot(diff_z_joy2.mod)
-
-# after removing outlier "p053", "p153" & "p197"
-diff_z_joy2.mod2 <- lm(diff_z_joy ~ diff_z_fc_2_o_agr)
-coeftest(diff_z_joy2.mod2, vcov = vcovHC, type = "HC1")
-summary(diff_z_joy2.mod2)
-confint(diff_z_joy2.mod2)
-plot(diff_z_joy2.mod2)
+# adding further covariates
+fc_1_cn.mod3 <- lm(scale(fc_1_o_agr.2) ~ scale(cn.2) + scale(secident.2) + scale(fc_1_o_agr.1) + scale(sd.2) + scale(cor_values.2) + scale(cor_health.2), data = US_wide_unexp_Rep_clean1)
+summary(fc_1_cn.mod3)
 
 
-# eff by fc_1_o_agr
-diff_z_eff.mod <- lm(diff_z_eff ~ diff_z_fc_1_o_agr)
-coeftest(diff_z_eff.mod, vcov = vcovHC, type = "HC1")
-summary(diff_z_eff.mod)
-confint(diff_z_eff.mod)
-plot(diff_z_eff.mod)
+# fc_2_o_agr
+fc_2_cn.mod <- lm(scale(fc_2_o_agr.2) ~ scale(cn.2), data = US_wide_unexp_Rep) # N = 44
+summary(fc_2_cn.mod)
+plot(fc_2_cn.mod)
 
-# after removing outlier "p024", "p028", "p049", "p073", "p085", "p136" & "p. "180"
-diff_z_eff.mod2 <- lm(diff_z_eff ~ diff_z_fc_1_o_agr)
-coeftest(diff_z_eff.mod2, vcov = vcovHC, type = "HC1")
-summary(diff_z_eff.mod2)
-confint(diff_z_eff.mod2)
-plot(diff_z_eff.mod2)
+# without outliers
+US_wide_unexp_Rep_clean2 <- US_wide_unexp_Rep %>%
+  filter(., id!= "p151" & id!= "p153" & id!= "p186")
 
-# eff by fc_2_o_agr
-diff_z_eff2.mod <- lm(diff_z_eff ~ diff_z_fc_2_o_agr)
-coeftest(diff_z_eff2.mod, vcov = vcovHC, type = "HC1")
-summary(diff_z_eff2.mod)
-confint(diff_z_eff2.mod)
-plot(diff_z_eff2.mod)
+fc_2_cn.mod_clean <- lm(scale(fc_2_o_agr.2) ~ scale(cn.2), data = US_wide_unexp_Rep_clean2) # N = 41
+summary(fc_2_cn.mod_clean)
 
-# after removing outlier "p024" , "p049", "p073", "p085" & "p196"
-diff_z_eff2.mod2 <- lm(diff_z_eff ~ diff_z_fc_2_o_agr)
-coeftest(diff_z_eff2.mod2, vcov = vcovHC, type = "HC1")
-summary(diff_z_eff2.mod2)
-confint(diff_z_eff2.mod2)
-plot(diff_z_eff2.mod2)
+# adding secident and fc_2_o_agr.1
+fc_2_cn.mod2 <- lm(scale(fc_2_o_agr.2) ~ scale(cn.2) + scale(secident.2) + scale(fc_2_o_agr.1), data = US_wide_unexp_Rep_clean2)
+summary(fc_2_cn.mod2)
+plot(fc_2_cn.mod2)
 
-# fixed effect regression fc_2_o_agr, keeping effects across entities constant (step 2)
-# joy by fc_1_o_agr
-diff_z_joy3 <- plm(z_joy ~ z_fc_1_o_agr + id, 
-                   data = US,
-                   index = c("id", "time"),
-                   model = "within")
-coeftest(diff_z_joy3, vcov = vcovHC, type = "HC1")
-summary(diff_z_joy3)
+# without outliers
+US_wide_unexp_Rep_clean3 <- US_wide_unexp_Rep_clean2 %>%
+  filter(., id!= "p024" & id!= "p035" & id!= "p173")
 
-# joy by fc_2_o_agr
-diff_z_joy4 <- plm(z_joy ~ z_fc_2_o_agr + id, 
-                   data = US,
-                   index = c("id", "time"),
-                   model = "within")
-coeftest(diff_z_joy4, vcov = vcovHC, type = "HC1")
-summary(diff_z_joy4)
+fc_2_cn.mod2_clean <- lm(scale(fc_2_o_agr.2) ~ scale(cn.2) + scale(secident.2) + scale(fc_2_o_agr.1), data = US_wide_unexp_Rep_clean3) # N = 38
+summary(fc_2_cn.mod2_clean)  
 
-# eff by fc_1_o_agr
-diff_z_eff3 <- plm(z_eff ~ z_fc_1_o_agr + id, 
-                   data = US,
-                   index = c("id", "time"),
-                   model = "within")
-coeftest(diff_z_eff3, vcov = vcovHC, type = "HC1")
-summary(diff_z_eff3)
-
-# eff by fc_2_o_agr
-diff_z_eff4 <- plm(z_eff ~ z_fc_2_o_agr + id, 
-                   data = US,
-                   index = c("id", "time"),
-                   model = "within")
-coeftest(diff_z_eff4, vcov = vcovHC, type = "HC1")
-summary(diff_z_eff4)
-
-# time fixed effect regression fc_2_o_agr, keeping effects across entities and time constant (step 3)
-# joy by fc_1_o_agr
-diff_z_joy5 <- plm(z_joy ~ z_fc_1_o_agr + id + time,
-                    data = US, 
-                    index = c("id", "time"),
-                    model = "within",
-                    effect = "twoways")
-coeftest(diff_z_joy5, vcov = vcovHC, type = "HC1")
-summary(diff_z_joy5)
-
-# joy by fc_2_o_agr
-diff_z_joy6 <- plm(z_joy ~ z_fc_2_o_agr + id + time,
-                    data = US, 
-                    index = c("id", "time"),
-                    model = "within",
-                    effect = "twoways")
-coeftest(diff_z_joy6, vcov = vcovHC, type = "HC1")
-summary(diff_z_joy6)
-
-# eff by fc_1_o_agr
-diff_z_eff5 <- plm(z_eff ~ z_fc_1_o_agr + id + time,
-                    data = US, 
-                    index = c("id", "time"),
-                    model = "within",
-                    effect = "twoways")
-coeftest(diff_z_eff5, vcov = vcovHC, type = "HC1")
-summary(diff_z_eff5)
-
-# eff by fc_2_o_agr
-diff_z_eff6 <- plm(z_eff ~ z_fc_2_o_agr + id + time,
-                    data = US, 
-                    index = c("id", "time"),
-                    model = "within",
-                    effect = "twoways")
-coeftest(diff_z_eff6, vcov = vcovHC, type = "HC1")
-summary(diff_z_eff6)
-```
-
-# False consensus and behavioural intention
-```{r}
-# Empowerment and behavioural intention 
-
-
-# Further analyses
-
+# adding further covariates
+fc_2_cn.mod3 <- lm(scale(fc_2_o_agr.2) ~ scale(cn.2) + scale(secident.2) + scale(fc_2_o_agr.1) + scale(sd.2) + scale(cor_values.2) + scale(cor_health.2), data = US_wide_unexp_Rep_clean2)
+summary(fc_2_cn.mod3)
 ```
 
