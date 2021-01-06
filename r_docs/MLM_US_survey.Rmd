@@ -156,7 +156,7 @@ anova(mod1, mod2, mod3)
 # cn --> fc_1_o_agr step 2: adding group means (level 1 & 2 effects) 
 ```{r}
 # adding group mean cn
-mod4 <- lmerTest::lmer(fc_1_o_agr ~ cn + gmc_cn + (1|id), US_mlm, REML = FALSE)
+mod4 <- lmerTest::lmer(fc_1_o_agr ~ cn + gmc_cn + time + (1|id), US_mlm, REML = FALSE)
 summary(mod4)
 lme4::confint.merMod(mod4)
 
@@ -168,9 +168,9 @@ lme4::confint.merMod(mod5)
 anova(mod1, mod2, mod3, mod4, mod5)
 ```
 
-# cn --> fc_1_o_agr step 3: are there different models for each level 2 unit (= each participant)? --> random slopes
+# cn --> fc_1_o_agr step 3: are there different models for each level 2 unit (= each participant)? --> random slopes for time
 ```{r}
-mod6 <- lmerTest::lmer(fc_1_o_agr ~ cn + gmc_cn + secident + gmc_secident + time + (1 + time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+mod6 <- lmerTest::lmer(fc_1_o_agr ~ cn + gmc_cn + secident + gmc_secident + time + (1|id) + (0+time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(mod6)
 lme4::confint.merMod(mod6)
 
@@ -216,7 +216,7 @@ anova(mod1a, mod2a, mod3a, mod4a, mod5a)
 
 # cn --> fc_2_o_agr step 3
 ```{r}
-mod6a <- lmerTest::lmer(fc_2_o_agr ~ cn + gmc_cn + secident + gmc_secident + time + (1 + time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+mod6a <- lmerTest::lmer(fc_2_o_agr ~ cn + gmc_cn + secident + gmc_secident + time + (1|id) + (0+time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(mod6a)
 lme4::confint.merMod(mod6a)
 
@@ -227,7 +227,22 @@ mod6a_all <- allFit(mod6a)
 
 # cn --> behavioural intention
 ```{r}
+sign.mod <- glmer(sign ~ 1 + (1|id), US_mlm, family = "binomial")
+summary(sign.mod)
 
+sign.mod2 <- glmer(sign ~ cn + (1|id), US_mlm, family = "binomial")
+summary(sign.mod2)
+
+sign.mod3 <- glmer(sign ~ cn + secident + time + (1|id), US_mlm, family = "binomial")
+summary(sign.mod3)
+
+sign.mod4 <- glmer(sign ~ cn + gmc_cn + secident + gmc_secident + time + (1|id), US_mlm, family = "binomial")
+summary(sign.mod4)
+
+sign.mod5 <- glmer(sign ~ cn + gmc_cn + secident + gmc_secident + time + (1|id) + (0+time|id), US_mlm, family = "binomial")
+summary(sign.mod5)
+
+anova(sign.mod, sign.mod2, sign.mod3, sign.mod4, sign.mod5)
 ```
 
 # fc_1_o_agr --> joy step 1
@@ -259,7 +274,7 @@ anova(mod1b, mod2b, mod3b)
 # fc_1_o_agr --> joy step 3
 ```{r}
 # random slopes time
-mod4b <- lmerTest::lmer(joy ~ fc_1_o_agr + gmc_fc_1_o_agr + time + (1 + time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+mod4b <- lmerTest::lmer(joy ~ fc_1_o_agr + gmc_fc_1_o_agr + time + (1|id) + (0+time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(mod4b)
 lme4::confint.merMod(mod4b)
 
@@ -297,7 +312,7 @@ anova(mod1c, mod2c, mod3c)
 # fc_2_o_agr --> joy step 3
 ```{r}
 # random slopes time
-mod4c <- lmerTest::lmer(joy ~ fc_2_o_agr + gmc_fc_2_o_agr + time + (1 + time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+mod4c <- lmerTest::lmer(joy ~ fc_2_o_agr + gmc_fc_2_o_agr + time + (1|id) + (0+time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(mod4c)
 lme4::confint.merMod(mod4c)
 
@@ -338,7 +353,7 @@ anova(mod1d, mod2d, mod3d)
 # fc_1_o_agr --> eff step 3
 ```{r}
 # random slopes time
-mod4d <- lmerTest::lmer(eff ~ fc_1_o_agr + gmc_fc_1_o_agr + time + (1 + time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+mod4d <- lmerTest::lmer(eff ~ fc_1_o_agr + gmc_fc_1_o_agr + time + (1|id) + (0+time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(mod4d)
 lme4::confint.merMod(mod4d)
 
@@ -378,7 +393,7 @@ anova(mod1e, mod2e, mod3e)
 # fc_2_o_agr --> eff step 3
 ```{r}
 # random slopes time
-mod4e <- lmerTest::lmer(eff ~ fc_2_o_agr + gmc_fc_2_o_agr + time + (1 + time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+mod4e <- lmerTest::lmer(eff ~ fc_2_o_agr + gmc_fc_2_o_agr + time + (1|id) + (0+time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(mod4e)
 lme4::confint.merMod(mod4e)
 
@@ -443,7 +458,7 @@ anova(model1, model2, model3)
 # cn --> joy step 3
 ```{r}
 # random slopes time
-model4 <- lmerTest::lmer(joy ~ cn + gmc_cn + gmc_secident + time + (1 + time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+model4 <- lmerTest::lmer(joy ~ cn + gmc_cn + gmc_secident + time + (1|id) + (0+time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(model4)
 lme4::confint.merMod(model4)
 
@@ -486,7 +501,7 @@ anova(model1a, model2a, model3a)
 # cn --> eff step 3
 ```{r}
 # random slopes time
-model4a <- lmerTest::lmer(eff ~ cn + gmc_cn + secident + gmc_secident + time + (1 + time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+model4a <- lmerTest::lmer(eff ~ cn + gmc_cn + secident + gmc_secident + time + (1|id) + (0+time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(model4a)
 lme4::confint.merMod(model4a)
 
