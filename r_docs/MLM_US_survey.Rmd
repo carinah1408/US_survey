@@ -1,0 +1,498 @@
+---
+title: "MLM_US_Survey"
+author: "CH"
+date: "06/01/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(here) # find relative path
+library(readr) # read dataset
+library(tidyverse) # data wrangling
+library(dplyr) # data wrangling
+library(nlme) # multi-level regression
+library(lme4) # multi-level regression
+library(lmerTest) # multi-level regression
+library(dfoptim)
+library(optimx)
+
+# dataset ####
+data <- here::here("data/US_data.csv")
+
+US_data <- readr::read_csv(data) %>%
+  as_tibble() 
+
+US_data$time <- factor(US_data$time)
+US_data$unexp <- factor(US_data$unexp)
+US_data$vote <- factor(US_data$vote)
+US_data <- US_data %>%
+  mutate(vote = case_when(
+  vote=='1' ~ 'Democrats',
+  vote=='2' ~ 'Republicans',
+  TRUE ~ 'Other'))
+
+US_data <- US_data %>%
+  mutate(unexp = case_when(
+    unexp == "0" ~ "Expected",
+    unexp == "1" ~ "Unexpected",
+    unexp == "2" ~ "Neither expected nor unexpected"))
+
+US_data <- US_data %>%
+  mutate(gend = case_when(
+    gend == "1" ~ "Female",
+    gend == "2" ~ "Male",
+    gend == "3" ~ "Non-binary"
+  ))
+
+US_data <- US_data %>%
+  mutate(ethn = case_when(
+    ethn == "1" ~ "Asian-American",
+    ethn == "2" ~ "Black or African American",
+    ethn == "3" ~ "Hispanic or Latino American",
+    ethn == "4" ~ "Native American",
+    ethn == "5" ~ "White or European American",
+    ethn == "6" ~ "Other"
+  ))
+
+US_data <- US_data %>%
+  mutate(degree =case_when(
+    degree == "1" ~ "No degree",
+    degree == "2" ~ "High School",
+    degree == "3" ~ "Bachelor´s degree",
+    degree == "4" ~ "Master´s degree",
+    degree == "5" ~ "Doctoral degree",
+    degree == "6" ~ "Professional degree",
+    degree == "7" ~ "Other"
+  ))
+
+US_data <- US_data %>%
+  mutate(employ = case_when(
+    employ == "1" ~ "Working - paid employee",
+    employ == "2" ~ "Working - self-employed",
+    employ == "3" ~ "Not working - temporary layoff from a job",
+    employ == "4" ~ "Not working - looking for a job",
+    employ == "5" ~ "Not working - retired",
+    employ == "6" ~ "Not working - disabled",
+    employ == "7" ~ "Not working - student",
+    employ == "8" ~ "Other"
+  ))
+
+US_data <- US_data %>%
+  mutate(income = case_when(
+    income == "1" ~ "$0 - $10,000",
+    income == "2" ~ "$10,000 - $20,000",
+    income == "3" ~ "$20,000 - $30,000",
+    income == "4" ~ "$30,000 - $40,000",
+    income == "5" ~ "$40,000 - $50,000",
+    income == "6" ~ "over $50,000"
+  ))
+
+US <- US_data %>%
+  mutate(cn = (cn_1 + cn_2 + cn_3 + cn_4 + cn_5)/5,
+        secident = (secident_1 + secident_2 + secident_3 + secident_4 + secident_5 +
+        secident_6 + secident_7 + secident_8 + secident_9 + secident_10)/10,
+        ingroup_satis = (secident_4 + secident_5 + secident_6 + secident_7)/4,
+        xeno = (xeno_1 + xeno_2 + xeno_3 + xeno_4)/4, 
+        joy = (joy_1 + joy_2)/2,
+        eff = (eff_1 + eff_2)/2) %>%
+  as.tibble()
+US
+
+US$time <- factor(US$time)
+US$unexp <- factor(US$unexp)
+US$vote <- factor(US$vote)
+
+# credits go to Jenny Terry for providing advice and code (https://github.com/jenny-terry)
+
+# select variables for MLM analyses and filter Republicans
+US_mlm <- US %>%
+  dplyr::select(., id, time, vote, unexp, cn, secident, sd, joy, eff, fc_1_o_agr, fc_2_o_agr, cor_values, cor_health, sign, donate, share) %>%
+  dplyr::filter(., vote == "Republicans")
+head(US_mlm)
+
+# convert character variable to factors
+
+US_mlm$id <- factor(US_mlm$id)
+
+# standardize variables which are on different scales (than 1 to 7)
+US_mlm$sd = scale(US_mlm$sd)
+US_mlm$fc_1_o_agr = scale(US_mlm$fc_1_o_agr)
+US_mlm$fc_2_o_agr = scale(US_mlm$fc_2_o_agr)
+US_mlm$cor_health = scale(US_mlm$cor_health)
+US_mlm$cor_values = scale(US_mlm$cor_values)
+US_mlm$donate = scale(US_mlm$donate)
+
+# mlm is chosen to account for (repeated measures within-participant) dependency: the scores measured are nested within the individual with makes the individual (id) = level 2, and the values level 1 --> we need to center by id ("group" center)
+
+# group mean center level 1 predictors (note: fc_1_o_agr, fc_2_o_agr, joy and eff are also DVs and will be added in their non-centered form when used as a DV)
+
+US_mlm <- US_mlm %>%
+  dplyr::group_by(id) %>%
+  dplyr::mutate(gmc_cn = mean(cn), gmc_secident = mean(secident), gmc_sd = mean(joy), gmc_eff = mean(eff), gmc_fc_1_o_agr = mean(fc_1_o_agr), gmc_fc_2_o_agr = mean(fc_2_o_agr))
+```
+
+# cn --> fc_1_o_agr step 1: null and simple prediction model
+```{r}
+# intercept only
+mod1 <- lmerTest::lmer(fc_1_o_agr ~ 1 + (1|id), US_mlm, REML = FALSE)
+summary(mod1)
+lme4::confint.merMod(mod1)
+
+# adding predictor cn
+mod2 <- lmerTest::lmer(fc_1_o_agr ~ cn + (1|id), US_mlm, REML = FALSE)
+summary(mod2)
+lme4::confint.merMod(mod2)
+
+# adding "covariates" secident and time
+mod3 <- lmerTest::lmer(fc_1_o_agr ~ cn + secident + time + (1|id), US_mlm, REML = FALSE)
+summary(mod3)
+lme4::confint.merMod(mod3)
+
+# model fit comparison
+anova(mod1, mod2, mod3)
+```
+
+# cn --> fc_1_o_agr step 2: adding group means (level 1 & 2 effects) 
+```{r}
+# adding group mean cn
+mod4 <- lmerTest::lmer(fc_1_o_agr ~ cn + gmc_cn + (1|id), US_mlm, REML = FALSE)
+summary(mod4)
+lme4::confint.merMod(mod4)
+
+# adding group mean secident and time
+mod5 <- lmerTest::lmer(fc_1_o_agr ~ cn + gmc_cn + secident + gmc_secident + time + (1|id), US_mlm, REML = FALSE)
+summary(mod5)
+lme4::confint.merMod(mod5)
+
+anova(mod1, mod2, mod3, mod4, mod5)
+```
+
+# cn --> fc_1_o_agr step 3: are there different models for each level 2 unit (= each participant)? --> random slopes
+```{r}
+mod6 <- lmerTest::lmer(fc_1_o_agr ~ cn + gmc_cn + secident + gmc_secident + time + (1 + time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(mod6)
+lme4::confint.merMod(mod6)
+
+# failed to converge
+allFit(show.meth.tab = TRUE)
+mod6_all <- allFit(mod6)
+```
+
+# cn --> fc_2_o_agr step 1
+```{r}
+mod1a <- lmerTest::lmer(fc_2_o_agr ~ 1 + (1|id), US_mlm, REML = FALSE)
+summary(mod1a)
+lme4::confint.merMod(mod1a)
+
+# adding predictor cn
+mod2a <- lmerTest::lmer(fc_2_o_agr ~ cn + (1|id), US_mlm, REML = FALSE)
+summary(mod2a)
+lme4::confint.merMod(mod2a)
+
+# adding "covariates" secident and time
+mod3a <- lmerTest::lmer(fc_2_o_agr ~ cn + secident + time + (1|id), US_mlm, REML = FALSE)
+summary(mod3a)
+lme4::confint.merMod(mod3a)
+
+# model fit comparison
+anova(mod1a, mod2a, mod3a)
+```
+
+# cn --> fc_2_o_agr step 2
+```{r}
+# adding group mean cn
+mod4a <- lmerTest::lmer(fc_2_o_agr ~ cn + gmc_cn + (1|id), US_mlm, REML = FALSE)
+summary(mod4a)
+lme4::confint.merMod(mod4a)
+
+# adding group mean secident and time
+mod5a <- lmerTest::lmer(fc_2_o_agr ~ cn + gmc_cn + secident + gmc_secident + time + (1|id), US_mlm, REML = FALSE)
+summary(mod5a)
+lme4::confint.merMod(mod5a)
+
+anova(mod1a, mod2a, mod3a, mod4a, mod5a)
+```
+
+# cn --> fc_2_o_agr step 3
+```{r}
+mod6a <- lmerTest::lmer(fc_2_o_agr ~ cn + gmc_cn + secident + gmc_secident + time + (1 + time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(mod6a)
+lme4::confint.merMod(mod6a)
+
+# failed to converge
+allFit(show.meth.tab = TRUE)
+mod6a_all <- allFit(mod6a)
+```
+
+# cn --> behavioural intention
+```{r}
+
+```
+
+# fc_1_o_agr --> joy step 1
+```{r}
+# intercept only
+mod1b <- lmerTest::lmer(joy ~ 1 + (1|id), US_mlm, REML = FALSE)
+summary(mod1b)
+lme4::confint.merMod(mod1b)
+
+# adding predictor fc_1_o_agr and time
+mod2b <- lmerTest::lmer(joy ~ fc_1_o_agr + time + (1|id), US_mlm, REML = FALSE)
+summary(mod2b)
+lme4::confint.merMod(mod2b)
+
+# model fit comparison
+anova(mod1b, mod2b)
+```
+
+# fc_1_o_agr --> joy step 2
+```{r}
+# adding group mean centered fc_1_o_agr
+mod3b <- lmerTest::lmer(joy ~ fc_1_o_agr + gmc_fc_1_o_agr + time + (1|id), US_mlm, REML = FALSE)
+summary(mod3b)
+lme4::confint.merMod(mod3b)
+
+anova(mod1b, mod2b, mod3b)
+```
+
+# fc_1_o_agr --> joy step 3
+```{r}
+# random slopes time
+mod4b <- lmerTest::lmer(joy ~ fc_1_o_agr + gmc_fc_1_o_agr + time + (1 + time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(mod4b)
+lme4::confint.merMod(mod4b)
+
+# failed to converge
+allFit(show.meth.tab = TRUE)
+mod4b_all <- allFit(mod4b)
+```
+
+# fc_2_o_agr --> joy step 1
+```{r}
+# intercept only
+mod1c <- lmerTest::lmer(joy ~ 1 + (1|id), US_mlm, REML = FALSE)
+summary(mod1b)
+lme4::confint.merMod(mod1c)
+
+# adding predictor fc_2_o_agr and time
+mod2c <- lmerTest::lmer(joy ~ fc_2_o_agr + time + (1|id), US_mlm, REML = FALSE)
+summary(mod2c)
+lme4::confint.merMod(mod2c)
+
+# model fit comparison
+anova(mod1c, mod2c)
+```
+
+# fc_2_o_agr --> joy step 2
+```{r}
+# adding group mean centered fc_2_o_agr
+mod3c <- lmerTest::lmer(joy ~ fc_2_o_agr + gmc_fc_2_o_agr + time + (1|id), US_mlm, REML = FALSE)
+summary(mod3c)
+lme4::confint.merMod(mod3c)
+
+anova(mod1c, mod2c, mod3c)
+```
+
+# fc_2_o_agr --> joy step 3
+```{r}
+# random slopes time
+mod4c <- lmerTest::lmer(joy ~ fc_2_o_agr + gmc_fc_2_o_agr + time + (1 + time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(mod4c)
+lme4::confint.merMod(mod4c)
+
+# failed to converge
+allFit(show.meth.tab = TRUE)
+mod4c_all <- allFit(mod4c)
+
+anova(mod1c, mod2c, mod3c, mod4c)
+```
+
+
+# fc_1_o_agr --> eff step 1
+```{r}
+# intercept only
+mod1d <- lmerTest::lmer(eff ~ 1 + (1|id), US_mlm, REML = FALSE)
+summary(mod1d)
+lme4::confint.merMod(mod1d)
+
+# adding predictor fc_1_o_agr and time
+mod2d <- lmerTest::lmer(eff ~ fc_1_o_agr + time + (1|id), US_mlm, REML = FALSE)
+summary(mod2d)
+lme4::confint.merMod(mod2d)
+
+# model fit comparison
+anova(mod1d, mod2d)
+```
+
+# fc_1_o_agr --> eff step 2
+```{r}
+# adding group mean centered fc_1_o_agr
+mod3d <- lmerTest::lmer(eff ~ fc_1_o_agr + gmc_fc_1_o_agr + time + (1|id), US_mlm, REML = FALSE)
+summary(mod3d)
+lme4::confint.merMod(mod3d)
+
+anova(mod1d, mod2d, mod3d)
+```
+
+# fc_1_o_agr --> eff step 3
+```{r}
+# random slopes time
+mod4d <- lmerTest::lmer(eff ~ fc_1_o_agr + gmc_fc_1_o_agr + time + (1 + time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(mod4d)
+lme4::confint.merMod(mod4d)
+
+# failed to converge
+allFit(show.meth.tab = TRUE)
+mod4d_all <- allFit(mod4d)
+
+anova(mod1d, mod2d, mod3d, mod4d)
+```
+
+# fc_2_o_agr --> eff step 1
+```{r}
+# intercept only
+mod1e <- lmerTest::lmer(eff ~ 1 + (1|id), US_mlm, REML = FALSE)
+summary(mod1e)
+lme4::confint.merMod(mod1e)
+
+# adding predictor fc_2_o_agr and time
+mod2e <- lmerTest::lmer(eff ~ fc_2_o_agr + time + (1|id), US_mlm, REML = FALSE)
+summary(mod2e)
+lme4::confint.merMod(mod2e)
+
+# model fit comparison
+anova(mod1e, mod2e)
+```
+
+# fc_2_o_agr --> eff step 2
+```{r}
+# adding group mean centered fc_2_o_agr
+mod3e <- lmerTest::lmer(eff ~ fc_2_o_agr + gmc_fc_2_o_agr + time + (1|id), US_mlm, REML = FALSE)
+summary(mod3e)
+lme4::confint.merMod(mod3e)
+
+anova(mod1e, mod2e, mod3e)
+```
+
+# fc_2_o_agr --> eff step 3
+```{r}
+# random slopes time
+mod4e <- lmerTest::lmer(eff ~ fc_2_o_agr + gmc_fc_2_o_agr + time + (1 + time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(mod4e)
+lme4::confint.merMod(mod4e)
+
+# failed to converge
+allFit(show.meth.tab = TRUE)
+mod4e_all <- allFit(mod4e)
+
+anova(mod1e, mod2e, mod3e, mod4e)
+```
+
+# fc_1_o_agr --> behavioural intention
+```{r}
+
+```
+# fc_2_o_agr --> behavioural intention
+```{r}
+
+```
+
+# joy --> behavioural intention
+```{r}
+
+```
+
+# eff --> behavioural intention
+```{r}
+
+```
+
+# cn, fc & joy --> behavioural intention
+```{r}
+
+```
+
+# cn --> joy step 1
+```{r}
+# intercept only
+model1 <- lmerTest::lmer(joy ~ 1 + (1|id), US_mlm, REML = FALSE)
+summary(model1)
+lme4::confint.merMod(model1)
+
+# adding predictor cn, and covariates secident and time
+model2 <- lmerTest::lmer(joy ~ cn + + secident + time + (1|id), US_mlm, REML = FALSE)
+summary(model2)
+lme4::confint.merMod(model2)
+
+# model fit comparison
+anova(model1, model2)
+```
+
+# cn --> joy step 2
+```{r}
+# adding gmc cn and secident
+model3 <- lmerTest::lmer(joy ~ cn + gmc_cn + gmc_secident + time + (1|id), US_mlm, REML = FALSE)
+summary(model3)
+lme4::confint.merMod(model3)
+
+# model fit comparison
+anova(model1, model2, model3)
+```
+
+# cn --> joy step 3
+```{r}
+# random slopes time
+model4 <- lmerTest::lmer(joy ~ cn + gmc_cn + gmc_secident + time + (1 + time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(model4)
+lme4::confint.merMod(model4)
+
+# failed to converge
+allFit(show.meth.tab = TRUE)
+model4_all <- allFit(model4)
+
+anova(model1, model2, model3, model4)
+```
+
+
+
+# cn --> eff step 1
+```{r}
+# intercept only
+model1a <- lmerTest::lmer(eff ~ 1 + (1|id), US_mlm, REML = FALSE)
+summary(model1a)
+lme4::confint.merMod(model1a)
+
+# adding predictor cn, and covariates secident and time
+model2a <- lmerTest::lmer(eff ~ cn + secident + time + (1|id), US_mlm, REML = FALSE)
+summary(model2a)
+lme4::confint.merMod(model2a)
+
+# model fit comparison
+anova(model1a, model2a)
+```
+
+# cn --> eff step 2
+```{r}
+# adding gmc cn
+model3a <- lmerTest::lmer(eff ~ cn + gmc_cn + secident + gmc_secident + time + (1|id), US_mlm, REML = FALSE)
+summary(model3a)
+lme4::confint.merMod(model3a)
+
+# model fit comparison
+anova(model1a, model2a, model3a)
+```
+
+# cn --> eff step 3
+```{r}
+# random slopes time
+model4a <- lmerTest::lmer(eff ~ cn + gmc_cn + secident + gmc_secident + time + (1 + time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(model4a)
+lme4::confint.merMod(model4a)
+
+# failed to converge
+allFit(show.meth.tab = TRUE)
+model4a_all <- allFit(model4a)
+
+anova(model1a, model2a, model3a, model4a)
+```
