@@ -129,7 +129,7 @@ US_mlm$donate = scale(US_mlm$donate)
 
 US_mlm <- US_mlm %>%
   dplyr::group_by(id) %>%
-  dplyr::mutate(gmc_cn = mean(cn), gmc_secident = mean(secident), gmc_joy = mean(joy), gmc_eff = mean(eff), gmc_fc_1_o_agr = mean(fc_1_o_agr), gmc_fc_2_o_agr = mean(fc_2_o_agr))
+  dplyr::mutate(gmc_cn = mean(cn), gmc_secident = mean(secident), gmc_joy = mean(joy), gmc_eff = mean(eff))
 
 allFit(show.meth.tab = TRUE)
 ```
@@ -147,17 +147,22 @@ summary(cn_fc_1_o_agr.mod2)
 lme4::confint.merMod(cn_fc_1_o_agr.mod2)
 cn_fc_1_o_agr.mod2_all <- allFit(cn_fc_1_o_agr.mod2)
 
-# conditional growth model (inclusion of TVC (= time-variant covariates) predictors that could possibly change as a function of time)
-cn_fc_1_o_agr.mod3 <- lmer(fc_1_o_agr ~ gmc_cn + time*gmc_cn +  (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+# conditional growth model (inclusion of covariates time & secident and interaction between time and cn as time-variant covariate that could possibly change with time)
+cn_fc_1_o_agr.mod3 <- lmer(fc_1_o_agr ~ time + gmc_secident + time*gmc_cn + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(cn_fc_1_o_agr.mod3)
 lme4::confint.merMod(cn_fc_1_o_agr.mod3)
 
+anova(cn_fc_1_o_agr.mod, cn_fc_1_o_agr.mod2, cn_fc_1_o_agr.mod3)
+
+###
+
+
+
+
 # conditional growth model (inclusion of secident)
-cn_fc_1_o_agr.mod4 <- lmer(fc_1_o_agr ~ gmc_cn + gmc_secident + time*gmc_cn + time*gmc_secident +  (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+cn_fc_1_o_agr.mod4 <- lmer(fc_1_o_agr ~ time + gmc_secident + time*gmc_cn + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(cn_fc_1_o_agr.mod4)
 lme4::confint.merMod(cn_fc_1_o_agr.mod4)
-
-anova(cn_fc_1_o_agr.mod, cn_fc_1_o_agr.mod2, cn_fc_1_o_agr.mod3, cn_fc_1_o_agr.mod4)
 ```
 
 # cn --> fc_2_o_agr
@@ -173,16 +178,21 @@ summary(cn_fc_2_o_agr.mod2)
 lme4::confint.merMod(cn_fc_2_o_agr.mod2)
 
 # conditional growth model (inclusion of TVC (= time-variant covariates) predictors that could possibly change as a function of time)
-cn_fc_2_o_agr.mod3 <- lmer(fc_2_o_agr ~ gmc_cn + time*gmc_cn + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+cn_fc_2_o_agr.mod3 <- lmer(fc_2_o_agr ~ time + gmc_secident + time*gmc_cn + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(cn_fc_2_o_agr.mod3)
 lme4::confint.merMod(cn_fc_2_o_agr.mod3)
+
+anova(cn_fc_2_o_agr.mod, cn_fc_2_o_agr.mod2, cn_fc_2_o_agr.mod3)
+
+###
+
+
+
 
 # conditional growth model (inclusion of secident)
 cn_fc_2_o_agr.mod4 <- lmer(fc_2_o_agr ~ gmc_cn + gmc_secident + time*gmc_cn + time*gmc_secident + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(cn_fc_2_o_agr.mod4)
 lme4::confint.merMod(cn_fc_2_o_agr.mod4)
-
-anova(cn_fc_2_o_agr.mod, cn_fc_2_o_agr.mod2, cn_fc_2_o_agr.mod3, cn_fc_2_o_agr.mod4)
 ```
 
 # cn --> signing
@@ -205,12 +215,19 @@ rtab_cn_sign.mod2 <- exp(ctab_cn_sign.mod2)
 print(rtab_cn_sign.mod2, digits = 3)
 
 # conditional growth model
-cn_sign.mod3 <- glmer(sign ~ gmc_cn + gmc_cn*time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
+cn_sign.mod3 <- glmer(sign ~ time + gmc_secident + gmc_cn*time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(cn_sign.mod3)
 cc_cn_sign.mod3 <- confint(cn_sign.mod3, parm = "beta_")
 ctab_cn_sign.mod3 <- cbind(est=fixef(cn_sign.mod3),cc_cn_sign.mod3)
 rtab_cn_sign.mod3 <- exp(ctab_cn_sign.mod3)
 print(rtab_cn_sign.mod3, digits = 3)
+
+anova(cn_sign.mod, cn_sign.mod2, cn_sign.mod3)
+
+### 
+
+
+
 
 # conditional growth model secident added
 cn_sign.mod4 <- glmer(sign ~ gmc_cn + gmc_secident + gmc_cn*time + gmc_secident*time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
@@ -219,8 +236,6 @@ cc_cn_sign.mod4 <- confint(cn_sign.mod4, parm = "beta_")
 ctab_cn_sign.mod4 <- cbind(est=fixef(cn_sign.mod4),cc_cn_sign.mod4)
 rtab_cn_sign.mod4 <- exp(ctab_cn_sign.mod4)
 print(rtab_cn_sign.mod4, digits = 3)
-
-anova(cn_sign.mod, cn_sign.mod2, cn_sign.mod3, cn_sign.mod4)
 ```
 
 # fc_1_o_agr --> joy
@@ -236,7 +251,7 @@ summary(fc_1_o_agr_joy.mod2)
 lme4::confint.merMod(fc_1_o_agr_joy.mod2)
 
 # conditional growth model
-fc_1_o_agr_joy.mod3 <- lmer(joy ~ gmc_fc_1_o_agr + time*gmc_fc_1_o_agr + (time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+fc_1_o_agr_joy.mod3 <- lmer(joy ~ time + time*fc_1_o_agr + (time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(fc_1_o_agr_joy.mod3)
 lme4::confint.merMod(fc_1_o_agr_joy.mod3)
 
@@ -256,7 +271,7 @@ summary(fc_2_o_agr_joy.mod2)
 lme4::confint.merMod(fc_2_o_agr_joy.mod2)
 
 # conditional growth model
-fc_2_o_agr_joy.mod3 <- lmer(joy ~ gmc_fc_2_o_agr + time*gmc_fc_2_o_agr + (time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+fc_2_o_agr_joy.mod3 <- lmer(joy ~ time + time*fc_2_o_agr + (time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(fc_2_o_agr_joy.mod3)
 lme4::confint.merMod(fc_2_o_agr_joy.mod3)
 
@@ -276,7 +291,7 @@ summary(fc_1_o_agr_eff.mod2)
 lme4::confint.merMod(fc_1_o_agr_eff.mod2)
 
 # conditional growth model
-fc_1_o_agr_eff.mod3 <- lmer(eff ~ gmc_fc_1_o_agr + time*gmc_fc_1_o_agr + (time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+fc_1_o_agr_eff.mod3 <- lmer(eff ~ time + time*fc_1_o_agr + (time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(fc_1_o_agr_eff.mod3)
 lme4::confint.merMod(fc_1_o_agr_eff.mod3)
 
@@ -295,7 +310,7 @@ summary(fc_2_o_agr_eff.mod2)
 lme4::confint.merMod(fc_2_o_agr_eff.mod2)
 
 # conditional growth model
-fc_2_o_agr_eff.mod3 <- lmer(eff ~ gmc_fc_2_o_agr + time*gmc_fc_2_o_agr + (time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+fc_2_o_agr_eff.mod3 <- lmer(eff ~ time + time*fc_2_o_agr + (time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(fc_2_o_agr_eff.mod3)
 lme4::confint.merMod(fc_2_o_agr_eff.mod3)
 
@@ -322,7 +337,7 @@ rtab_fc_1_o_agr_sign.mod2 <- exp(ctab_fc_1_o_agr_sign.mod2)
 print(rtab_fc_1_o_agr_sign.mod2, digits = 3)
 
 # conditional growth model
-fc_1_o_agr_sign.mod3 <- glmer(sign ~ gmc_fc_1_o_agr + gmc_fc_1_o_agr*time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
+fc_1_o_agr_sign.mod3 <- glmer(sign ~ time + time*fc_1_o_agr + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(fc_1_o_agr_sign.mod3)
 cc_fc_1_o_agr_sign.mod3 <- confint(fc_1_o_agr_sign.mod3, parm = "beta_")
 ctab_fc_1_o_agr_sign.mod3 <- cbind(est=fixef(fc_1_o_agr_sign.mod3),cc_fc_1_o_agr_sign.mod3)
@@ -351,7 +366,7 @@ rtab_fc_2_o_agr_sign.mod2 <- exp(ctab_fc_2_o_agr_sign.mod2)
 print(rtab_fc_2_o_agr_sign.mod2, digits = 3)
 
 # conditional growth model
-fc_2_o_agr_sign.mod3 <- glmer(sign ~ gmc_fc_2_o_agr + gmc_fc_2_o_agr*time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
+fc_2_o_agr_sign.mod3 <- glmer(sign ~ time + fc_2_o_agr*time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(fc_2_o_agr_sign.mod3)
 cc_fc_2_o_agr_sign.mod3 <- confint(fc_2_o_agr_sign.mod3, parm = "beta_")
 ctab_fc_2_o_agr_sign.mod3 <- cbind(est=fixef(fc_2_o_agr_sign.mod3),cc_fc_2_o_agr_sign.mod3)
@@ -381,7 +396,7 @@ rtab_joy_sign.mod2 <- exp(ctab_joy_sign.mod2)
 print(rtab_joy_sign.mod2, digits = 3)
 
 # conditional growth model
-joy_sign.mod3 <- glmer(sign ~ gmc_joy + gmc_joy*time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
+joy_sign.mod3 <- glmer(sign ~ time + gmc_joy*time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(joy_sign.mod3)
 cc_joy_sign.mod3 <- confint(joy_sign.mod3, parm = "beta_")
 ctab_joy_sign.mod3 <- cbind(est=fixef(joy_sign.mod3),cc_joy_sign.mod3)
@@ -411,7 +426,7 @@ rtab_eff_sign.mod2 <- exp(ctab_eff_sign.mod2)
 print(rtab_eff_sign.mod2, digits = 3)
 
 # conditional growth model
-eff_sign.mod3 <- glmer(sign ~ gmc_eff + gmc_eff*time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
+eff_sign.mod3 <- glmer(sign ~ time + gmc_eff*time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(eff_sign.mod3)
 cc_eff_sign.mod3 <- confint(eff_sign.mod3, parm = "beta_")
 ctab_eff_sign.mod3 <- cbind(est=fixef(eff_sign.mod3),cc_eff_sign.mod3)
@@ -433,17 +448,25 @@ cn_joy.mod2 <- lmer(joy ~ time + (time|id), data = US_mlm, REML = FALSE, control
 summary(cn_joy.mod2)
 lme4::confint.merMod(cn_joy.mod2)
 
-# conditional growth model (inclusion of TVC (= time-variant covariates) predictors that could possibly change as a function of time)
-cn_joy.mod3 <- lmer(joy ~ gmc_cn + time*gmc_cn + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
-summary(cn_joy.mod3)
-lme4::confint.merMod(cn_joy.mod3)
-
 # conditional growth model (inclusion of secident)
-cn_joy.mod4 <- lmer(joy ~ gmc_cn + gmc_secident + time*gmc_cn + time*gmc_secident + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
-summary(cn_joy.mod4)
+cn_joy.mod3 <- lmer(joy ~ time + gmc_secident + time*gmc_cn + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(cn_joy.mod3)
 lme4::confint.merMod(cn_joy.mod4)
 
-anova(cn_joy.mod, cn_joy.mod2, cn_joy.mod3, cn_joy.mod4)
+anova(cn_joy.mod, cn_joy.mod2, cn_joy.mod3)
+
+###
+
+
+
+
+# conditional growth model (inclusion of TVC (= time-variant covariates) predictors that could possibly change as a function of time)
+cn_joy.mod4 <- lmer(joy ~ gmc_cn + time*gmc_cn + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(cn_joy.mod3)
+lme4::confint.merMod(cn_joy.mod4)
+
+cn_joy.mod5 <- lmer(joy ~ time + secident + time*gmc_cn + (time|id), US_mlm, REML = FALSE,control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(cn_joy.mod5)
 ```
 
 # cn --> eff
@@ -459,16 +482,20 @@ summary(cn_eff.mod2)
 lme4::confint.merMod(cn_eff.mod2)
 
 # conditional growth model (inclusion of TVC (= time-variant covariates) predictors that could possibly change as a function of time)
-cn_eff.mod3 <- lmer(eff ~ gmc_cn + time*gmc_cn + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+cn_eff.mod3 <- lmer(eff ~ time + gmc_secident + time*gmc_cn + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(cn_eff.mod3)
 lme4::confint.merMod(cn_eff.mod3)
+
+anova(cn_eff.mod, cn_eff.mod2, cn_eff.mod3)
+
+###
+
+
 
 # conditional growth model (inclusion of secident)
 cn_eff.mod4 <- lmer(eff ~ gmc_cn + gmc_secident + time*gmc_cn + time*gmc_secident + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(cn_eff.mod4)
 lme4::confint.merMod(cn_eff.mod4)
-
-anova(cn_eff.mod, cn_eff.mod2, cn_eff.mod3, cn_eff.mod4)
 ```
 
 
