@@ -129,10 +129,363 @@ US_mlm$donate = scale(US_mlm$donate)
 
 US_mlm <- US_mlm %>%
   dplyr::group_by(id) %>%
-  dplyr::mutate(gmc_cn = mean(cn), gmc_secident = mean(secident), gmc_sd = mean(joy), gmc_eff = mean(eff), gmc_fc_1_o_agr = mean(fc_1_o_agr), gmc_fc_2_o_agr = mean(fc_2_o_agr))
+  dplyr::mutate(gmc_cn = mean(cn), gmc_secident = mean(secident), gmc_joy = mean(joy), gmc_eff = mean(eff), gmc_fc_1_o_agr = mean(fc_1_o_agr), gmc_fc_2_o_agr = mean(fc_2_o_agr))
+
+allFit(show.meth.tab = TRUE)
 ```
 
-# cn --> fc_1_o_agr step 1: null and simple prediction model
+# cn --> fc_1_o_agr
+```{r}
+# unconditional model (grand mean fc_1_o_agr across all individuals and time points)
+cn_fc_1_o_agr.mod <- lmer(fc_1_o_agr ~ 1 + (1|id), data = US_mlm, REML = FALSE)
+summary(cn_fc_1_o_agr.mod)
+lme4::confint.merMod(cn_fc_1_o_agr.mod)
+
+# unconditional growth model (variance across individuals and time)
+cn_fc_1_o_agr.mod2 <- lmer(fc_1_o_agr ~ time + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(cn_fc_1_o_agr.mod2)
+lme4::confint.merMod(cn_fc_1_o_agr.mod2)
+cn_fc_1_o_agr.mod2_all <- allFit(cn_fc_1_o_agr.mod2)
+
+# conditional growth model (inclusion of TVC (= time-variant covariates) predictors that could possibly change as a function of time)
+cn_fc_1_o_agr.mod3 <- lmer(fc_1_o_agr ~ gmc_cn + time*gmc_cn +  (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(cn_fc_1_o_agr.mod3)
+lme4::confint.merMod(cn_fc_1_o_agr.mod3)
+
+# conditional growth model (inclusion of secident)
+cn_fc_1_o_agr.mod4 <- lmer(fc_1_o_agr ~ gmc_cn + gmc_secident + time*gmc_cn + time*gmc_secident +  (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(cn_fc_1_o_agr.mod4)
+lme4::confint.merMod(cn_fc_1_o_agr.mod4)
+
+anova(cn_fc_1_o_agr.mod, cn_fc_1_o_agr.mod2, cn_fc_1_o_agr.mod3, cn_fc_1_o_agr.mod4)
+```
+
+# cn --> fc_2_o_agr
+```{r}
+# unconditional model (grand mean fc_1_o_agr across all individuals and time points)
+cn_fc_2_o_agr.mod <- lmer(fc_2_o_agr ~ 1 + (1|id), data = US_mlm, REML = FALSE)
+summary(cn_fc_2_o_agr.mod)
+lme4::confint.merMod(cn_fc_2_o_agr.mod)
+
+# unconditional growth model (variance across individuals and time)
+cn_fc_2_o_agr.mod2 <- lmer(fc_2_o_agr ~ time + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(cn_fc_2_o_agr.mod2)
+lme4::confint.merMod(cn_fc_2_o_agr.mod2)
+
+# conditional growth model (inclusion of TVC (= time-variant covariates) predictors that could possibly change as a function of time)
+cn_fc_2_o_agr.mod3 <- lmer(fc_2_o_agr ~ gmc_cn + time*gmc_cn + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(cn_fc_2_o_agr.mod3)
+lme4::confint.merMod(cn_fc_2_o_agr.mod3)
+
+# conditional growth model (inclusion of secident)
+cn_fc_2_o_agr.mod4 <- lmer(fc_2_o_agr ~ gmc_cn + gmc_secident + time*gmc_cn + time*gmc_secident + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(cn_fc_2_o_agr.mod4)
+lme4::confint.merMod(cn_fc_2_o_agr.mod4)
+
+anova(cn_fc_2_o_agr.mod, cn_fc_2_o_agr.mod2, cn_fc_2_o_agr.mod3, cn_fc_2_o_agr.mod4)
+```
+
+# cn --> signing
+```{r}
+# unconditional model (logisitc regression)
+cn_sign.mod <- glmer(sign ~ 1 + (1|id), US_mlm, family = "binomial")
+summary(cn_sign.mod)
+# CI and OR
+cc_cn_sign.mod <- confint(cn_sign.mod, parm = "beta_")
+ctab_cn_sign.mod <- cbind(est=fixef(cn_sign.mod),cc_cn_sign.mod)
+rtab_cn_sign.mod <- exp(ctab_cn_sign.mod)
+print(rtab_cn_sign.mod, digits = 3)
+
+# unconditional growth model
+cn_sign.mod2 <- glmer(sign ~ time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(cn_sign.mod2)
+cc_cn_sign.mod2 <- confint(cn_sign.mod2, parm = "beta_")
+ctab_cn_sign.mod2 <- cbind(est=fixef(cn_sign.mod2),cc_cn_sign.mod2)
+rtab_cn_sign.mod2 <- exp(ctab_cn_sign.mod2)
+print(rtab_cn_sign.mod2, digits = 3)
+
+# conditional growth model
+cn_sign.mod3 <- glmer(sign ~ gmc_cn + gmc_cn*time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(cn_sign.mod3)
+cc_cn_sign.mod3 <- confint(cn_sign.mod3, parm = "beta_")
+ctab_cn_sign.mod3 <- cbind(est=fixef(cn_sign.mod3),cc_cn_sign.mod3)
+rtab_cn_sign.mod3 <- exp(ctab_cn_sign.mod3)
+print(rtab_cn_sign.mod3, digits = 3)
+
+# conditional growth model secident added
+cn_sign.mod4 <- glmer(sign ~ gmc_cn + gmc_secident + gmc_cn*time + gmc_secident*time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(cn_sign.mod4)
+cc_cn_sign.mod4 <- confint(cn_sign.mod4, parm = "beta_")
+ctab_cn_sign.mod4 <- cbind(est=fixef(cn_sign.mod4),cc_cn_sign.mod4)
+rtab_cn_sign.mod4 <- exp(ctab_cn_sign.mod4)
+print(rtab_cn_sign.mod4, digits = 3)
+
+anova(cn_sign.mod, cn_sign.mod2, cn_sign.mod3, cn_sign.mod4)
+```
+
+# fc_1_o_agr --> joy
+```{r}
+# unconditional model
+fc_1_o_agr_joy.mod <- lmer(joy ~ 1 + (1|id), data = US_mlm, REML = FALSE)
+summary(fc_1_o_agr_joy.mod)
+lme4::confint.merMod(fc_1_o_agr_joy.mod)
+
+# unconditional growth model
+fc_1_o_agr_joy.mod2 <- lmer(joy ~ time + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(fc_1_o_agr_joy.mod2)
+lme4::confint.merMod(fc_1_o_agr_joy.mod2)
+
+# conditional growth model
+fc_1_o_agr_joy.mod3 <- lmer(joy ~ gmc_fc_1_o_agr + time*gmc_fc_1_o_agr + (time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(fc_1_o_agr_joy.mod3)
+lme4::confint.merMod(fc_1_o_agr_joy.mod3)
+
+anova(fc_1_o_agr_joy.mod, fc_1_o_agr_joy.mod2, fc_1_o_agr_joy.mod3)
+```
+
+# fc_2_o_agr --> joy
+```{r}
+# unconditional model
+fc_2_o_agr_joy.mod <- lmer(joy ~ 1 + (1|id), data = US_mlm, REML = FALSE)
+summary(fc_2_o_agr_joy.mod)
+lme4::confint.merMod(fc_2_o_agr_joy.mod)
+
+# unconditional growth model
+fc_2_o_agr_joy.mod2 <- lmer(joy ~ time + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(fc_2_o_agr_joy.mod2)
+lme4::confint.merMod(fc_2_o_agr_joy.mod2)
+
+# conditional growth model
+fc_2_o_agr_joy.mod3 <- lmer(joy ~ gmc_fc_2_o_agr + time*gmc_fc_2_o_agr + (time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(fc_2_o_agr_joy.mod3)
+lme4::confint.merMod(fc_2_o_agr_joy.mod3)
+
+anova(fc_2_o_agr_joy.mod, fc_2_o_agr_joy.mod2, fc_2_o_agr_joy.mod3)
+```
+
+# fc_1_o_agr --> eff
+```{r}
+# unconditional model
+fc_1_o_agr_eff.mod <- lmer(eff ~ 1 + (1|id), data = US_mlm, REML = FALSE)
+summary(fc_1_o_agr_eff.mod)
+lme4::confint.merMod(fc_1_o_agr_eff.mod)
+
+# unconditional growth model
+fc_1_o_agr_eff.mod2 <- lmer(eff ~ time + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(fc_1_o_agr_eff.mod2)
+lme4::confint.merMod(fc_1_o_agr_eff.mod2)
+
+# conditional growth model
+fc_1_o_agr_eff.mod3 <- lmer(eff ~ gmc_fc_1_o_agr + time*gmc_fc_1_o_agr + (time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(fc_1_o_agr_eff.mod3)
+lme4::confint.merMod(fc_1_o_agr_eff.mod3)
+
+anova(fc_1_o_agr_eff.mod, fc_1_o_agr_eff.mod2, fc_1_o_agr_eff.mod3)
+```
+
+# fc_2_o_agr --> eff
+```{r}
+fc_2_o_agr_eff.mod <- lmer(eff ~ 1 + (1|id), data = US_mlm, REML = FALSE)
+summary(fc_2_o_agr_eff.mod)
+lme4::confint.merMod(fc_2_o_agr_eff.mod)
+
+# unconditional growth model
+fc_2_o_agr_eff.mod2 <- lmer(eff ~ time + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(fc_2_o_agr_eff.mod2)
+lme4::confint.merMod(fc_2_o_agr_eff.mod2)
+
+# conditional growth model
+fc_2_o_agr_eff.mod3 <- lmer(eff ~ gmc_fc_2_o_agr + time*gmc_fc_2_o_agr + (time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(fc_2_o_agr_eff.mod3)
+lme4::confint.merMod(fc_2_o_agr_eff.mod3)
+
+anova(fc_2_o_agr_eff.mod, fc_2_o_agr_eff.mod2, fc_2_o_agr_eff.mod3)
+```
+
+# fc_1_o_agr --> signing
+```{r}
+# unconditional model (logisitc regression)
+fc_1_o_agr_sign.mod <- glmer(sign ~ 1 + (1|id), US_mlm, family = "binomial")
+summary(fc_1_o_agr_sign.mod)
+# CI and OR
+cc_fc_1_o_agr_sign.mod <- confint(fc_1_o_agr_sign.mod, parm = "beta_")
+ctab_fc_1_o_agr_sign.mod <- cbind(est=fixef(fc_1_o_agr_sign.mod),cc_fc_1_o_agr_sign.mod)
+rtab_fc_1_o_agr_sign.mod <- exp(ctab_fc_1_o_agr_sign.mod)
+print(rtab_fc_1_o_agr_sign.mod, digits = 3)
+
+# unconditional growth model
+fc_1_o_agr_sign.mod2 <- glmer(sign ~ time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(fc_1_o_agr_sign.mod2)
+cc_fc_1_o_agr_sign.mod2 <- confint(fc_1_o_agr_sign.mod2, parm = "beta_")
+ctab_fc_1_o_agr_sign.mod2 <- cbind(est=fixef(fc_1_o_agr_sign.mod2),cc_fc_1_o_agr_sign.mod2)
+rtab_fc_1_o_agr_sign.mod2 <- exp(ctab_fc_1_o_agr_sign.mod2)
+print(rtab_fc_1_o_agr_sign.mod2, digits = 3)
+
+# conditional growth model
+fc_1_o_agr_sign.mod3 <- glmer(sign ~ gmc_fc_1_o_agr + gmc_fc_1_o_agr*time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(fc_1_o_agr_sign.mod3)
+cc_fc_1_o_agr_sign.mod3 <- confint(fc_1_o_agr_sign.mod3, parm = "beta_")
+ctab_fc_1_o_agr_sign.mod3 <- cbind(est=fixef(fc_1_o_agr_sign.mod3),cc_fc_1_o_agr_sign.mod3)
+rtab_fc_1_o_agr_sign.mod3 <- exp(ctab_fc_1_o_agr_sign.mod3)
+print(rtab_fc_1_o_agr_sign.mod3, digits = 3)
+
+anova(fc_1_o_agr_sign.mod, fc_1_o_agr_sign.mod2, fc_1_o_agr_sign.mod3)
+```
+# fc_2_o_agr --> signing
+```{r}
+# unconditional model (logisitc regression)
+fc_2_o_agr_sign.mod <- glmer(sign ~ 1 + (1|id), US_mlm, family = "binomial")
+summary(fc_2_o_agr_sign.mod)
+# CI and OR
+cc_fc_2_o_agr_sign.mod <- confint(fc_1_o_agr_sign.mod, parm = "beta_")
+ctab_fc_2_o_agr_sign.mod <- cbind(est=fixef(fc_2_o_agr_sign.mod),cc_fc_2_o_agr_sign.mod)
+rtab_fc_2_o_agr_sign.mod <- exp(ctab_fc_2_o_agr_sign.mod)
+print(rtab_fc_2_o_agr_sign.mod, digits = 3)
+
+# unconditional growth model
+fc_2_o_agr_sign.mod2 <- glmer(sign ~ time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(fc_2_o_agr_sign.mod2)
+cc_fc_2_o_agr_sign.mod2 <- confint(fc_2_o_agr_sign.mod2, parm = "beta_")
+ctab_fc_2_o_agr_sign.mod2 <- cbind(est=fixef(fc_2_o_agr_sign.mod2),cc_fc_2_o_agr_sign.mod2)
+rtab_fc_2_o_agr_sign.mod2 <- exp(ctab_fc_2_o_agr_sign.mod2)
+print(rtab_fc_2_o_agr_sign.mod2, digits = 3)
+
+# conditional growth model
+fc_2_o_agr_sign.mod3 <- glmer(sign ~ gmc_fc_2_o_agr + gmc_fc_2_o_agr*time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(fc_2_o_agr_sign.mod3)
+cc_fc_2_o_agr_sign.mod3 <- confint(fc_2_o_agr_sign.mod3, parm = "beta_")
+ctab_fc_2_o_agr_sign.mod3 <- cbind(est=fixef(fc_2_o_agr_sign.mod3),cc_fc_2_o_agr_sign.mod3)
+rtab_fc_2_o_agr_sign.mod3 <- exp(ctab_fc_2_o_agr_sign.mod3)
+print(rtab_fc_2_o_agr_sign.mod3, digits = 3)
+
+anova(fc_2_o_agr_sign.mod, fc_2_o_agr_sign.mod2, fc_2_o_agr_sign.mod3)
+```
+
+# joy --> signing
+```{r}
+# unconditional model (logisitc regression)
+joy_sign.mod <- glmer(sign ~ 1 + (1|id), US_mlm, family = "binomial")
+summary(joy_sign.mod)
+# CI and OR
+cc_joy_sign.mod <- confint(joy_sign.mod, parm = "beta_")
+ctab_joy_sign.mod <- cbind(est=fixef(joy_sign.mod),cc_joy_sign.mod)
+rtab_joy_sign.mod <- exp(ctab_joy_sign.mod)
+print(rtab_joy_sign.mod, digits = 3)
+
+# unconditional growth model
+joy_sign.mod2 <- glmer(sign ~ time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(joy_sign.mod2)
+cc_joy_sign.mod2 <- confint(joy_sign.mod2, parm = "beta_")
+ctab_joy_sign.mod2 <- cbind(est=fixef(joy_sign.mod2),cc_joy_sign.mod2)
+rtab_joy_sign.mod2 <- exp(ctab_joy_sign.mod2)
+print(rtab_joy_sign.mod2, digits = 3)
+
+# conditional growth model
+joy_sign.mod3 <- glmer(sign ~ gmc_joy + gmc_joy*time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(joy_sign.mod3)
+cc_joy_sign.mod3 <- confint(joy_sign.mod3, parm = "beta_")
+ctab_joy_sign.mod3 <- cbind(est=fixef(joy_sign.mod3),cc_joy_sign.mod3)
+rtab_joy_sign.mod3 <- exp(ctab_joy_sign.mod3)
+print(rtab_joy_sign.mod3, digits = 3)
+
+anova(joy_sign.mod, joy_sign.mod2, joy_sign.mod3)
+```
+
+# eff --> signing
+```{r}
+# unconditional model (logisitc regression)
+eff_sign.mod <- glmer(sign ~ 1 + (1|id), US_mlm, family = "binomial")
+summary(eff_sign.mod)
+# CI and OR
+cc_eff_sign.mod <- confint(eff_sign.mod, parm = "beta_")
+ctab_eff_sign.mod <- cbind(est=fixef(eff_sign.mod),cc_eff_sign.mod)
+rtab_eff_sign.mod <- exp(ctab_eff_sign.mod)
+print(rtab_eff_sign.mod, digits = 3)
+
+# unconditional growth model
+eff_sign.mod2 <- glmer(sign ~ time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(eff_sign.mod2)
+cc_eff_sign.mod2 <- confint(eff_sign.mod2, parm = "beta_")
+ctab_eff_sign.mod2 <- cbind(est=fixef(eff_sign.mod2),cc_eff_sign.mod2)
+rtab_eff_sign.mod2 <- exp(ctab_eff_sign.mod2)
+print(rtab_eff_sign.mod2, digits = 3)
+
+# conditional growth model
+eff_sign.mod3 <- glmer(sign ~ gmc_eff + gmc_eff*time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(eff_sign.mod3)
+cc_eff_sign.mod3 <- confint(eff_sign.mod3, parm = "beta_")
+ctab_eff_sign.mod3 <- cbind(est=fixef(eff_sign.mod3),cc_eff_sign.mod3)
+rtab_eff_sign.mod3 <- exp(ctab_eff_sign.mod3)
+print(rtab_eff_sign.mod3, digits = 3)
+
+anova(eff_sign.mod, eff_sign.mod2, eff_sign.mod3)
+```
+
+# cn --> joy
+```{r}
+# unconditional model (grand mean fc_1_o_agr across all individuals and time points)
+cn_joy.mod <- lmer(joy ~ 1 + (1|id), data = US_mlm, REML = FALSE)
+summary(cn_joy.mod)
+lme4::confint.merMod(cn_joy.mod)
+
+# unconditional growth model (variance across individuals and time)
+cn_joy.mod2 <- lmer(joy ~ time + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(cn_joy.mod2)
+lme4::confint.merMod(cn_joy.mod2)
+
+# conditional growth model (inclusion of TVC (= time-variant covariates) predictors that could possibly change as a function of time)
+cn_joy.mod3 <- lmer(joy ~ gmc_cn + time*gmc_cn + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(cn_joy.mod3)
+lme4::confint.merMod(cn_joy.mod3)
+
+# conditional growth model (inclusion of secident)
+cn_joy.mod4 <- lmer(joy ~ gmc_cn + gmc_secident + time*gmc_cn + time*gmc_secident + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(cn_joy.mod4)
+lme4::confint.merMod(cn_joy.mod4)
+
+anova(cn_joy.mod, cn_joy.mod2, cn_joy.mod3, cn_joy.mod4)
+```
+
+# cn --> eff
+```{r}
+# unconditional model (grand mean fc_1_o_agr across all individuals and time points)
+cn_eff.mod <- lmer(eff ~ 1 + (1|id), data = US_mlm, REML = FALSE)
+summary(cn_eff.mod)
+lme4::confint.merMod(cn_eff.mod)
+
+# unconditional growth model (variance across individuals and time)
+cn_eff.mod2 <- lmer(eff ~ time + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(cn_eff.mod2)
+lme4::confint.merMod(cn_eff.mod2)
+
+# conditional growth model (inclusion of TVC (= time-variant covariates) predictors that could possibly change as a function of time)
+cn_eff.mod3 <- lmer(eff ~ gmc_cn + time*gmc_cn + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(cn_eff.mod3)
+lme4::confint.merMod(cn_eff.mod3)
+
+# conditional growth model (inclusion of secident)
+cn_eff.mod4 <- lmer(eff ~ gmc_cn + gmc_secident + time*gmc_cn + time*gmc_secident + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(cn_eff.mod4)
+lme4::confint.merMod(cn_eff.mod4)
+
+anova(cn_eff.mod, cn_eff.mod2, cn_eff.mod3, cn_eff.mod4)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+# OLD
+
+# cn --> fc_1_o_agr step 1: unconditional model
 ```{r}
 # intercept only
 mod1 <- lmerTest::lmer(fc_1_o_agr ~ 1 + (1|id), US_mlm, REML = FALSE)
@@ -153,7 +506,7 @@ lme4::confint.merMod(mod3)
 anova(mod1, mod2, mod3)
 ```
 
-# cn --> fc_1_o_agr step 2: adding group means (level 1 & 2 effects) 
+# cn --> fc_1_o_agr step 2: adding group means (level 1 & 2 effects), group (id) specific differences around the overall mean
 ```{r}
 # adding group mean cn
 mod4 <- lmerTest::lmer(fc_1_o_agr ~ cn + gmc_cn + time + (1|id), US_mlm, REML = FALSE)
@@ -168,7 +521,7 @@ lme4::confint.merMod(mod5)
 anova(mod1, mod2, mod3, mod4, mod5)
 ```
 
-# cn --> fc_1_o_agr step 3: are there different models for each level 2 unit (= each participant)? --> random slopes for time
+# cn --> fc_1_o_agr step 3: random slopes for time
 ```{r}
 mod6 <- lmerTest::lmer(fc_1_o_agr ~ cn + gmc_cn + secident + gmc_secident + time + (1|id) + (0+time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(mod6)
