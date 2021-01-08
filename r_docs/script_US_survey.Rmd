@@ -22,6 +22,7 @@ library(papaja) # APA tables
 library(knitr) # kable function
 library(Hmisc) # for correlation
 library(ppcor) # partial correlation
+library(polycor) # polyserial correlation
 library(forcats) # factor relevel
 library(QuantPsyc) # standardized coefficients
 library(pscl) # R2 for logistic regression
@@ -1759,7 +1760,7 @@ correlation_matrix <- function(df,
 }
 
 corr <- US %>%
-  dplyr::select(., cn, secident, xeno, joy, eff, pi_1_own, pi_1_ave, pi_2_own, pi_2_ave, fc_1_s, fc_1_o_agr, fc_2_s, fc_2_o_agr, age)
+  dplyr::select(., cn, secident, xeno, joy, eff, pi_1_own, pi_1_ave, pi_2_own, pi_2_ave, fc_1_s, fc_1_o_agr, fc_2_s, fc_2_o_agr, age, sd, cor_values, cor_health)
 
 correlation_matrix(corr)
 
@@ -1785,7 +1786,7 @@ save_correlation_matrix = function(df, filename, ...) {
   return(write.csv(correlation_matrix(df, ...), file = filename))
 }
 
-save_correlation_matrix(df = corr, filename = "Intercorrelation Matrix new.csv")
+save_correlation_matrix(df = corr, filename = "Intercorrelation Matrix new2.csv")
 
 # partial correlation, controlled for secident
 pc_secident1 <- pcor.test(US$cn, US$xeno, US$secident, method = "spearman")
@@ -1905,6 +1906,23 @@ pc_cn11a
 
 # --> it doesn´t make a difference either, the values stay in the same range and the trend is the same
 # --> tested with pearson correlation and partial correlation, too, and the value range, as well as the trends stay the same!
+
+# polyserial correlation between covariates (sd, cor_values and cor_health) and sign
+sign_freq <- table(US$sign)
+prop.table(sign_freq)
+
+# p = .92; q = .08, y = .15
+# SE = .04
+
+polyserial(US$sd, US$sign) # .06
+# z = r/SE = 1.5 --> p-value = 0.13362 n.s.
+
+
+polyserial(US$cor_health, US$sign) # -.20
+# z = r/SE = -.50 --> p-value = .61708 n.s.
+
+polyserial(US$cor_values, US$sign) # .22
+# z = r/SE = .55 --> p-value = .58232 n.s.
 ```
 
 ## Hypotheses testing
