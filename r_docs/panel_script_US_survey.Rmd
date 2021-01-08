@@ -20,6 +20,7 @@ library(reshape2)
 library(car)
 library(MASS)
 library(InformationValue) 
+library(Epi)
 
 data <- here::here("data/US_data.csv")
 US_data <- readr::read_csv(data) %>%
@@ -128,6 +129,16 @@ US_t2_mod$vote <- as.factor(US_t2_mod$vote)
 US_wide <- reshape(US, direction = "wide", idvar = "id", timevar = "time")
 US_wide_Rep <- subset(US_wide, vote.1 == "Republicans" & vote.2 == "Republicans")
 US_wide_unexp_Rep <- subset(US_wide_Rep, unexp.1 == "Unexpected" & unexp.2 == "Unexpected")
+
+# standardize variables which are on different scales (than 1 to 7)
+US_wide$sd.2 = scale(US_wide$sd.2)
+US_wide$fc_1_o_agr.1 = scale(US_wide$fc_1_o_agr.1)
+US_wide$fc_1_o_agr.2 = scale(US_wide$fc_1_o_agr.2)
+US_wide$fc_2_o_agr.1 = scale(US_wide$fc_2_o_agr.1)
+US_wide$fc_2_o_agr.2 = scale(US_wide$fc_2_o_agr.2)
+US_wide$cor_health.2 = scale(US_wide$cor_health.2)
+US_wide$cor_values.2 = scale(US_wide$cor_values.2)
+US_wide$donate.2 = scale(US_wide$donate.2)
 ```
 
 ## Exploratory
@@ -204,7 +215,7 @@ descriptives6
 # Collective narcissism on FC and behavioural intention
 ```{r}
 # fc_1_o_agr
-fc_1_cn.mod <- lm(scale(fc_1_o_agr.2) ~ scale(cn.2), data = US_wide_Rep) # N = 52
+fc_1_cn.mod <- lm(fc_1_o_agr.2 ~ cn.2, data = US_wide_Rep) # N = 52
 summary(fc_1_cn.mod)
 plot(fc_1_cn.mod)
 ncvTest(fc_1_cn.mod)# homoscedasticity assumption not violated
@@ -213,36 +224,33 @@ ncvTest(fc_1_cn.mod)# homoscedasticity assumption not violated
 US_wide_Rep_clean1 <- US_wide_Rep %>%
   filter(., id!= "p180" & id!= "p122" & id!= "p148")
 
-fc_1_cn.mod_clean <- lm(scale(fc_1_o_agr.2) ~ scale(cn.2), data = US_wide_Rep_clean1) # N = 49
+fc_1_cn.mod_clean <- lm(fc_1_o_agr.2 ~ cn.2, data = US_wide_Rep_clean1) # N = 49
 summary(fc_1_cn.mod_clean)
 plot(fc_1_cn.mod_clean)
 
 
 # adding secident and fc_1_o_agr.1 (with outliers removed)
-fc_1_cn.mod2 <- lm(scale(fc_1_o_agr.2) ~ scale(cn.2) + scale(secident.2) + scale(fc_1_o_agr.1), data = US_wide_Rep)
+fc_1_cn.mod2 <- lm(fc_1_o_agr.2 ~ cn.2 + secident.2 + fc_1_o_agr.1, data = US_wide_Rep)
 summary(fc_1_cn.mod2)
 plot(fc_1_cn.mod2)
 confint(fc_1_cn.mod2)
+ncvTest(fc_1_cn.mod2) # homoscedasticity assumption not violated
 vif(fc_1_cn.mod2)
 
 # without outlier removal
-fc_1_cn.mod2a <- lm(scale(fc_1_o_agr.2) ~ scale(cn.2) + scale(secident.2) + scale(fc_1_o_agr.1), data = US_wide_Rep)
+fc_1_cn.mod2a <- lm(fc_1_o_agr.2 ~ cn.2 + secident.2 + fc_1_o_agr.1, data = US_wide_Rep)
 summary(fc_1_cn.mod2a)
 confint(fc_1_cn.mod2a)
 
-# adding further covariates (with outliers removed)
-fc_1_cn.mod3 <- lm(scale(fc_1_o_agr.2) ~ scale(cn.2) + scale(secident.2) + scale(fc_1_o_agr.1) + scale(sd.2) + scale(cor_values.2) + scale(cor_health.2), data = US_wide_Rep_clean1)
-summary(fc_1_cn.mod3)
-
-# without outlier removal
-fc_1_cn.mod3a <- lm(scale(fc_1_o_agr.2) ~ scale(cn.2) + scale(secident.2) + scale(fc_1_o_agr.1) + scale(sd.2) + scale(cor_values.2) + scale(cor_health.2), data = US_wide_Rep)
-summary(fc_1_cn.mod3a)
-
-
+bootResults0 <- Boot(fc_1_cn.mod2, R = 10000)
+summary(bootResults0)
+boot.ci(bootResults0, type = "bca", index = 2)
+boot.ci(bootResults0, type = "bca", index = 3)
+boot.ci(bootResults0, type = "bca", index = 4)
 
 
 # fc_2_o_agr
-fc_2_cn.mod <- lm(scale(fc_2_o_agr.2) ~ scale(cn.2), data = US_wide_Rep) # N = 52
+fc_2_cn.mod <- lm(fc_2_o_agr.2 ~ cn.2, data = US_wide_Rep) # N = 52
 summary(fc_2_cn.mod)
 plot(fc_2_cn.mod)
 
@@ -250,17 +258,14 @@ plot(fc_2_cn.mod)
 US_wide_Rep_clean2 <- US_wide_Rep %>%
   filter(., id != "p122")
 
-fc_2_cn.mod_clean <- lm(scale(fc_2_o_agr.2) ~ scale(cn.2), data = US_wide_Rep_clean2) # N = 51
+fc_2_cn.mod_clean <- lm(fc_2_o_agr.2 ~ cn.2, data = US_wide_Rep_clean2) # N = 51
 summary(fc_2_cn.mod_clean)
 
-# adding secident & fc_2_o_agr t1 
-fc_2_cn.mod2 <- lm(scale(fc_2_o_agr.2) ~ scale(cn.2) + scale(secident.2) + scale(fc_2_o_agr.1), data = US_wide_Rep) # N = 51
+# adding secident, fc_2_o_agr t1 and cor_health
+fc_2_cn.mod2 <- lm(fc_2_o_agr.2 ~ cn.2 + secident.2 + fc_2_o_agr.1 + cor_health.2, data = US_wide_Rep) # N = 51
 summary(fc_2_cn.mod2)
 confint(fc_2_cn.mod2)
 plot(fc_2_cn.mod2) # issues with linearity 
-vif(fc_2_cn.mod2)
-crPlots(fc_2_cn.mod2)
-durbinWatsonTest(fc_2_cn.mod2)
 
 # --> bootstrap 
 bootReg <- function(formula, data, indices)
@@ -275,8 +280,7 @@ summary(bootResults)
 boot.ci(bootResults, type = "bca", index = 2)
 boot.ci(bootResults, type = "bca", index = 3)
 boot.ci(bootResults, type = "bca", index = 4)
-
-
+boot.ci(bootResults, type = "bca", index = 5)
 
 # If more than one predictor: boot.ci(bootResults, type = "bca", index = 1) intercept; 
 # boot.ci(bootResults, type "bca", index = 2) first predictor; boot.ci(bootResults, 
@@ -291,26 +295,15 @@ boot.ci(bootResults, type = "bca", index = 4)
 
 
 
-
-# adding further covariates (with outliers removed)
-fc_2_cn.mod3 <- lm(scale(fc_2_o_agr.2) ~ scale(cn.2) + scale(secident.2) + scale(fc_2_o_agr.1) + scale(sd.2) + scale(cor_values.2) + scale(cor_health.2), data = US_wide_Rep_clean2) # N = 51
-summary(fc_2_cn.mod3)
-
-# without outlier removal
-fc_2_cn.mod3a <- lm(scale(fc_2_o_agr.2) ~ scale(cn.2) + scale(secident.2) + scale(fc_2_o_agr.1) + scale(sd.2) + scale(cor_values.2) + scale(cor_health.2), data = US_wide_Rep) # N = 52
-summary(fc_2_cn.mod3a)
-
-
-
 # behavioural intention
-sign_cn.mod <- glm(sign.2 ~ scale(cn.2), data = US_wide_Rep, family = "binomial")
-summary(sign_cn_model)
+sign_cn.mod <- glm(sign.2 ~ cn.2, data = US_wide_Rep, family = "binomial")
+summary(sign_cn.mod)
 exp(coef(sign_cn.mod))
 exp(confint(sign_cn.mod))
 pscl::pR2(sign_cn.mod) ["McFadden"]
 
 # adding secident and sign.1 
-sign_cn.mod2 <- glm(sign.2 ~ scale(cn.2) + scale(secident.2) + sign.1, data = US_wide_Rep, family = "binomial")
+sign_cn.mod2 <- glm(sign.2 ~ cn.2 + secident.2 + sign.1, data = US_wide_Rep, family = "binomial")
 summary(sign_cn.mod2)
 exp(coef(sign_cn.mod2))
 exp(confint(sign_cn.mod2))
@@ -318,7 +311,7 @@ pscl::pR2(sign_cn.mod2) ["McFadden"] # values > .40 mean that the model fits the
 car::vif(sign_cn.mod2) 
 
 # predictions based on cn-values
-sign_cn_pred <- data.frame(cn.2 = 4, secident.2 = 6, sign.1 = 1)
+sign_cn_pred <- data.frame(cn.2 = 4, secident.2 = 6, sign.1 = 0)
 predict(sign_cn.mod2, sign_cn_pred, type = "response")
 
 # predictions for each individual in dataset
@@ -344,72 +337,124 @@ plotROC(US_wide_Rep$sign.2, predicted)
 # False consensus on empowerment and behavioural intention
 ```{r}
 # joy
-joy_fc_1.mod <- lm(scale(joy.2) ~ scale(fc_1_o_agr.2), data = US_wide_Rep)
+joy_fc_1.mod <- lm(joy.2 ~ fc_1_o_agr.2, data = US_wide_Rep)
 summary(joy_fc_1.mod)
 plot(joy_fc_1.mod)
 ncvTest(joy_fc_1.mod) # homoscedasticity assumption not violated
 confint(joy_fc_1.mod)
 
+joy_fc_1.mod2 <- lm(joy.2 ~ fc_1_o_agr.2 + cor_values.2, data = US_wide_Rep)
+summary(joy_fc_1.mod2)
+plot(joy_fc_1.mod2)
+confint(joy_fc_1.mod2)
+
 # without outlier
 US_wide_Rep_clean3 <- US_wide_Rep %>%
   filter(., id!= "p022" & id!= "p159" & id!= "p192")
 
-joy_fc_1.mod_clean <- lm(scale(joy.2) ~ scale(fc_1_o_agr.2), data = US_wide_Rep_clean3)
+joy_fc_1.mod_clean <- lm(joy.2 ~ fc_1_o_agr.2, data = US_wide_Rep_clean3)
 summary(joy_fc_1.mod_clean)
 plot(fc_1_cn.mod_clean)
 ncvTest(joy_fc_1.mod_clean) # homoscedasticity assumption not violated
 confint(joy_fc_1.mod_clean)
 
+joy_fc_1.mod2_clean <- lm(joy.2 ~ fc_1_o_agr.2 + cor_values.2, data = US_wide_Rep_clean3)
+summary(joy_fc_1.mod2_clean)
+plot(fc_1_cn.mod_clean)
+confint(joy_fc_1.mod2_clean)
 
-joy_fc_2.mod <- lm(scale(joy.2) ~ scale(fc_2_o_agr.2), data = US_wide_Rep)
+
+joy_fc_2.mod <- lm(joy.2 ~ fc_2_o_agr.2, data = US_wide_Rep)
 summary(joy_fc_2.mod)
+ncvTest(joy_fc_1.mod) # homoscedasticity assumption not violated
 confint(joy_fc_2.mod)
 plot(joy_fc_2.mod)
+
+joy_fc_2.mod2 <- lm(joy.2 ~ fc_2_o_agr.2 + cor_values.2, data = US_wide_Rep)
+summary(joy_fc_2.mod2)
+confint(joy_fc_2.mod2)
+plot(joy_fc_2.mod2)
 
 # without outlier
 US_wide_Rep_clean4 <- US_wide_Rep %>%
   filter(., id!= "p192" & id!= "p159" & id!= "p171")
 
-joy_fc_2.mod_clean <- lm(scale(joy.2) ~ scale(fc_2_o_agr.2), data = US_wide_Rep_clean4)
+joy_fc_2.mod_clean <- lm(joy.2 ~ fc_2_o_agr.2, data = US_wide_Rep_clean4)
 summary(joy_fc_2.mod_clean)
+
+joy_fc_2.mod2_clean <- lm(joy.2 ~ fc_2_o_agr.2 + cor_values.2, data = US_wide_Rep_clean4)
+summary(joy_fc_2.mod2_clean)
+
 
 # eff
 
-eff_fc_1.mod <- lm(scale(eff.2) ~ scale(fc_1_o_agr.2), data = US_wide_Rep)
+eff_fc_1.mod <- lm(eff.2 ~ fc_1_o_agr.2, data = US_wide_Rep)
 summary(eff_fc_1.mod)
 plot(eff_fc_1.mod)
+ncvTest(eff_fc_1.mod) # homoscedasticity assumption not violated
 confint(eff_fc_1.mod)
+
+eff_fc_1.mod2 <- lm(eff.2 ~ fc_1_o_agr.2 + cor_health.2, data = US_wide_Rep)
+summary(eff_fc_1.mod2)
+plot(eff_fc_1.mod2)
+confint(eff_fc_1.mod2)
 
 # without outlier
 US_wide_Rep_clean5 <- US_wide_Rep %>%
   filter(., id!= "p154" & id!= "p073" & id!= "p049")
 
-eff_fc_1.mod_clean <- lm(scale(eff.2) ~ scale(fc_1_o_agr.2), data = US_wide_Rep_clean5)
+eff_fc_1.mod_clean <- lm(eff.2 ~ fc_1_o_agr.2, data = US_wide_Rep_clean5)
 summary(eff_fc_1.mod_clean)
 plot(eff_fc_1.mod_clean)
 confint(eff_fc_1.mod_clean)
 
+eff_fc_1.mod2_clean <- lm(eff.2 ~ fc_1_o_agr.2 + cor_health.2, data = US_wide_Rep_clean5)
+summary(eff_fc_1.mod2_clean)
+plot(eff_fc_1.mod2_clean)
+confint(eff_fc_1.mod2_clean)
 
-eff_fc_2.mod <- lm(scale(eff.2) ~ scale(fc_2_o_agr.2), data = US_wide_Rep)
+bootResults2 <- Boot(eff_fc_1.mod2, R = 10000)
+summary(bootResults2)
+boot.ci(bootResults2, type = "bca", index = 2)
+boot.ci(bootResults2, type = "bca", index = 3)
+
+
+
+eff_fc_2.mod <- lm(eff.2 ~ fc_2_o_agr.2, data = US_wide_Rep)
 summary(eff_fc_2.mod)
 plot(eff_fc_2.mod)
 confint(eff_fc_2.mod)
 
+eff_fc_2.mod2 <- lm(eff.2 ~ fc_2_o_agr.2 + cor_health.2, data = US_wide_Rep)
+summary(eff_fc_2.mod2)
+plot(eff_fc_2.mod2)
+confint(eff_fc_2.mod2)
+
+bootResults3 <- Boot(eff_fc_2.mod2, R = 10000)
+summary(bootResults3)
+boot.ci(bootResults3, type = "bca", index = 2)
+boot.ci(bootResults3, type = "bca", index = 3)
+
 
 # behavioural intention (fc_1_o_agr)
-sign_fc_1.mod <- glm(sign.2 ~ scale(fc_1_o_agr.2), data = US_wide_Rep, family = "binomial")
+sign_fc_1.mod <- glm(sign.2 ~ fc_1_o_agr.2, data = US_wide_Rep, family = "binomial")
 summary(sign_fc_1.mod)
 exp(coef(sign_fc_1.mod))
 exp(confint(sign_fc_1.mod))
 pscl::pR2(sign_fc_1.mod) ["McFadden"]
 
 # adding sign.1 
-sign_fc_1.mod2 <- glm(sign.2 ~ scale(fc_1_o_agr.2) + sign.1, data = US_wide_Rep, family = "binomial")
+sign_fc_1.mod2 <- glm(sign.2 ~ fc_1_o_agr.2 + sign.1, data = US_wide_Rep, family = "binomial")
 summary(sign_fc_1.mod2)
 exp(coef(sign_fc_1.mod2))
 exp(confint(sign_fc_1.mod2))
 pscl::pR2(sign_fc_1.mod2) ["McFadden"] # values > .40 mean that the model fits the data very well)
 car::vif(sign_fc_1.mod2) 
+
+bootResults4 <- Boot(sign_fc_1.mod2, R = 10000)
+summary(bootResults4)
+boot.ci(bootResults4, type = "bca", index = 2)
+boot.ci(bootResults4, type = "bca", index = 3)
 
 # predictions based on cn-values
 sign_fc_1_pred <- data.frame(fc_1_o_agr.2 = 7, sign.1 = 0)
@@ -436,19 +481,25 @@ plotROC(US_wide_Rep$sign.2, predicted)
 
 
 # behavioural intention (fc_2_o_agr)
-sign_fc_2.mod <- glm(sign.2 ~ scale(fc_2_o_agr.2), data = US_wide_Rep, family = "binomial")
+sign_fc_2.mod <- glm(sign.2 ~ fc_2_o_agr.2, data = US_wide_Rep, family = "binomial")
 summary(sign_fc_2.mod)
 exp(coef(sign_fc_2.mod))
 exp(confint(sign_fc_2.mod))
 pscl::pR2(sign_fc_2.mod) ["McFadden"]
 
 # adding sign.1 
-sign_fc_2.mod2 <- glm(sign.2 ~ scale(fc_2_o_agr.2) + sign.1, data = US_wide_Rep, family = "binomial")
+sign_fc_2.mod2 <- glm(sign.2 ~ fc_2_o_agr.2 + sign.1, data = US_wide_Rep, family = "binomial")
 summary(sign_fc_2.mod2)
 exp(coef(sign_fc_2.mod2))
 exp(confint(sign_fc_2.mod2))
 pscl::pR2(sign_fc_2.mod2) ["McFadden"] # values > .40 mean that the model fits the data very well)
 car::vif(sign_fc_2.mod2) 
+
+bootResults5 <- Boot(sign_fc_2.mod2, R = 10000)
+summary(bootResults5)
+boot.ci(bootResults5, type = "bca", index = 2)
+boot.ci(bootResults5, type = "bca", index = 3)
+
 
 # predictions based on cn-values
 sign_fc_2_pred <- data.frame(fc_2_o_agr.2 = 4, sign.1 = 1)
@@ -477,19 +528,24 @@ plotROC(US_wide_Rep$sign.2, predicted)
 # Empowerment and behavioural intention
 ```{r}
 # behavioural intention (joy)
-sign_joy.mod <- glm(sign.2 ~ scale(joy.2), data = US_wide_Rep, family = "binomial")
+sign_joy.mod <- glm(sign.2 ~ joy.2, data = US_wide_Rep, family = "binomial")
 summary(sign_joy.mod)
 exp(coef(sign_joy.modd))
 exp(confint(sign_joy.mod))
 pscl::pR2(sign_joy.mod) ["McFadden"]
 
 # adding sign.1 
-sign_joy.mod2 <- glm(sign.2 ~ scale(joy.2) + sign.1, data = US_wide_Rep, family = "binomial")
+sign_joy.mod2 <- glm(sign.2 ~ joy.2 + sign.1, data = US_wide_Rep, family = "binomial")
 summary(sign_joy.mod2)
 exp(coef(sign_joy.mod2))
 exp(confint(sign_joy.mod2))
 pscl::pR2(sign_joy.mod2) ["McFadden"] # values > .40 mean that the model fits the data very well)
 car::vif(sign_joy.mod2) 
+
+bootResults6 <- Boot(sign_joy.mod2, R = 10000)
+summary(bootResults6)
+boot.ci(bootResults6, type = "bca", index = 2)
+boot.ci(bootResults6, type = "bca", index = 3)
 
 # predictions based on cn-values
 sign_joy_pred <- data.frame(joy.2 = 1, sign.1 = 0)
@@ -516,19 +572,24 @@ plotROC(US_wide_Rep$sign.2, predicted)
 
 
 # behavioural intention (eff)
-sign_eff.mod <- glm(sign.2 ~ scale(eff.2), data = US_wide_Rep, family = "binomial")
+sign_eff.mod <- glm(sign.2 ~ eff.2, data = US_wide_Rep, family = "binomial")
 summary(sign_eff.mod)
 exp(coef(sign_eff.mod))
 exp(confint(sign_eff.mod))
 pscl::pR2(sign_eff.mod) ["McFadden"]
 
 # adding sign.1 
-sign_eff.mod2 <- glm(sign.2 ~ scale(eff.2) + sign.1, data = US_wide_Rep, family = "binomial")
+sign_eff.mod2 <- glm(sign.2 ~ eff.2 + sign.1, data = US_wide_Rep, family = "binomial")
 summary(sign_eff.mod2)
 exp(coef(sign_eff.mod2))
 exp(confint(sign_eff.mod2))
 pscl::pR2(sign_eff.mod2) ["McFadden"] # values > .40 mean that the model fits the data very well)
 car::vif(sign_eff.mod2) 
+
+bootResults7 <- Boot(sign_eff.mod2, R = 10000)
+summary(bootResults7)
+boot.ci(bootResults7, type = "bca", index = 2)
+boot.ci(bootResults7, type = "bca", index = 3)
 
 # predictions based on cn-values
 sign_eff_pred <- data.frame(eff = 4, sign.1 = 1)
@@ -557,14 +618,14 @@ plotROC(US_wide_Rep$sign.2, predicted)
 # Explorative
 ```{r}
 # explorative: cn on signing 
-sign_joint.mod1 <- glm(sign.2 ~ scale(cn.2) + scale(joy.2), data = US_wide_Rep, family = "binomial")
+sign_joint.mod1 <- glm(sign.2 ~ cn.2 + joy.2, data = US_wide_Rep, family = "binomial")
 summary(sign_joint.mod1)
 exp(coef(sign_joint.mod1))
 exp(confint(sign_joint.mod1))
-pscl::pR2(sign_joint.mod) ["McFadden"]
+pscl::pR2(sign_joint.mod1) ["McFadden"]
 
 # explorative: removing joy, adding secident
-sign_joint.mod2 <- glm(sign.2 ~ scale(cn.2) + scale(secident.2), data = US_wide_Rep, family = "binomial")
+sign_joint.mod2 <- glm(sign.2 ~ cn.2 + secident.2, data = US_wide_Rep, family = "binomial")
 summary(sign_joint.mod2)
 exp(coef(sign_joint.mod2))
 exp(confint(sign_joint.mod2))
@@ -572,15 +633,21 @@ pscl::pR2(sign_joint.mod2) ["McFadden"]
 car::vif(sign_joint.mod2) 
 
 # explorative: adding joy
-sign_joint.mod3 <- glm(sign.2 ~ scale(cn.2) + scale(secident.2) + scale(joy.2), data = US_wide_Rep, family = "binomial")
+sign_joint.mod3 <- glm(sign.2 ~ cn.2 + secident.2 + joy.2, data = US_wide_Rep, family = "binomial")
 summary(sign_joint.mod3)
 exp(coef(sign_joint.mod3))
 exp(confint(sign_joint.mod3))
 pscl::pR2(sign_joint.mod3) ["McFadden"]
 car::vif(sign_joint.mod3) 
 
+bootResults8 <- Boot(sign_joint.mod3, R = 10000)
+summary(bootResults8)
+boot.ci(bootResults8, type = "bca", index = 2)
+boot.ci(bootResults8, type = "bca", index = 3)
+boot.ci(bootResults8, type = "bca", index = 4)
+
 # explorative: removing joy, adding sign.1
-sign_joint.mod4 <- glm(sign.2 ~ scale(cn.2) + scale(secident.2) + sign.1, data = US_wide_Rep, family = "binomial")
+sign_joint.mod4 <- glm(sign.2 ~ cn.2 + secident.2 + sign.1, data = US_wide_Rep, family = "binomial")
 summary(sign_joint.mod4)
 exp(coef(sign_joint.mod4))
 exp(confint(sign_joint.mod4))
@@ -588,14 +655,19 @@ pscl::pR2(sign_joint.mod4) ["McFadden"]
 car::vif(sign_joint.mod4) 
 
 # explorative: predicting sign.1
-sign_joint.mod5a <- glm(sign.1 ~ scale(joy.1), data = US_wide_Rep, family = "binomial")
+sign_joint.mod5a <- glm(sign.1 ~ joy.1, data = US_wide_Rep, family = "binomial")
 summary(sign_joint.mod5a)
 exp(coef(sign_joint.mod5a))
 exp(confint(sign_joint.mod5a))
 pscl::pR2(sign_joint.mod5a) ["McFadden"]
 car::vif(sign_joint.mod5a)
 
-sign_joint.mod5 <- glm(sign.1 ~ scale(cn.1), data = US_wide_Rep, family = "binomial")
+bootResults9 <- Boot(sign_joint.mod5a, R = 10000)
+summary(bootResults9)
+boot.ci(bootResults9, type = "bca", index = 2)
+
+
+sign_joint.mod5 <- glm(sign.1 ~ cn.1, data = US_wide_Rep, family = "binomial")
 summary(sign_joint.mod5)
 exp(coef(sign_joint.mod5))
 exp(confint(sign_joint.mod5))
@@ -603,7 +675,7 @@ pscl::pR2(sign_joint.mod5) ["McFadden"]
 car::vif(sign_joint.mod5) 
 
 # explorative: adding joy.1
-sign_joint.mod6 <- glm(sign.1 ~ scale(cn.1) + scale(joy.1), data = US_wide_Rep, family = "binomial")
+sign_joint.mod6 <- glm(sign.1 ~ cn.1 + joy.1, data = US_wide_Rep, family = "binomial")
 summary(sign_joint.mod6)
 exp(coef(sign_joint.mod6))
 exp(confint(sign_joint.mod6))
@@ -611,12 +683,16 @@ pscl::pR2(sign_joint.mod6) ["McFadden"]
 car::vif(sign_joint.mod6) 
 
 # explorative: removing joy.1, adding secident.1
-sign_joint.mod7 <- glm(sign.1 ~ scale(cn.1) + scale(secident.1), data = US_wide_Rep, family = "binomial")
+sign_joint.mod7 <- glm(sign.1 ~ cn.1 + secident.1, data = US_wide_Rep, family = "binomial")
 summary(sign_joint.mod7)
 exp(coef(sign_joint.mod7))
 exp(confint(sign_joint.mod7))
 pscl::pR2(sign_joint.mod7) ["McFadden"]
 car::vif(sign_joint.mod7) 
+
+bootResults10 <- Boot(sign_joint.mod7, R = 10000)
+summary(bootResults10)
+boot.ci(bootResults10, type = "bca", index = 2)
 
 
 # predictions based on cn-values
@@ -645,19 +721,31 @@ plotROC(US_wide_Rep$sign.2, predicted)
 
 # Further anaylsis: CN on joy & eff
 ```{r}
-joy_cn.mod <- lm(scale(joy.2) ~ scale(cn.2), data = US_wide_Rep)
+joy_cn.mod <- lm(joy.2 ~ cn.2, data = US_wide_Rep)
 summary(joy_cn.mod)
 confint(joy_cn.mod)
 plot(joy_cn.mod)
 ncvTest(joy_cn.mod)# homoscedasticity assumption not violated
 
-joy_cn.mod2 <- lm(scale(joy.2) ~ scale(cn.2) + scale(secident.2), data = US_wide_Rep)
+joy_cn.mod2 <- lm(joy.2 ~ cn.2 + secident.2, data = US_wide_Rep)
 summary(joy_cn.mod2)
 confint(joy_cn.mod2)
 plot(joy_cn.mod2)
 ncvTest(joy_cn.mod2) # homoscedasticity assumption not violated
 
-eff_cn.mod <- lm(scale(eff.2) ~ scale(cn.2), data = US_wide_Rep)
+joy_cn.mod3 <- lm(joy.2 ~ cn.2 + secident.2 + cor_values.2, data = US_wide_Rep)
+summary(joy_cn.mod3)
+confint(joy_cn.mod3)
+plot(joy_cn.mod3)
+ncvTest(joy_cn.mod3) # homoscedasticity assumption not violated
+
+bootResults11 <- Boot(joy_cn.mod3, R = 10000)
+summary(bootResults11)
+boot.ci(bootResults11, type = "bca", index = 2)
+boot.ci(bootResults11, type = "bca", index = 3)
+boot.ci(bootResults11, type = "bca", index = 4)
+
+eff_cn.mod <- lm(eff.2 ~ cn.2, data = US_wide_Rep)
 summary(eff_cn.mod)
 plot(eff_cn.mod)
      
@@ -672,11 +760,16 @@ bootResults <- Boot(eff_cn.mod, R = 10000)
 summary(bootResults)
 boot.ci(bootResults, type = "bca", index = 2)
 
-eff_cn.mod2 <- lm(scale(eff.2) ~ scale(cn.2) + scale(secident.2), data = US_wide_Rep)
+eff_cn.mod2 <- lm(eff.2 ~ cn.2 + secident.2, data = US_wide_Rep)
 summary(eff_cn.mod2)
 plot(eff_cn.mod2)
 
-bootResults <- Boot(eff_cn.mod2, R = 10000)
+eff_cn.mod3 <- lm(eff.2 ~ cn.2 + secident.2 + cor_health.2, data = US_wide_Rep)
+summary(eff_cn.mod3)
+confint(eff_cn.mod3)
+plot(eff_cn.mod3)
+
+bootResults <- Boot(eff_cn.mod3, R = 10000)
 summary(bootResults)
 boot.ci(bootResults, type = "bca", index = 2)
 boot.ci(bootResults, type = "bca", index = 3)
