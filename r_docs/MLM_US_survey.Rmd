@@ -215,12 +215,13 @@ rtab_cn_sign.mod2 <- exp(ctab_cn_sign.mod2)
 print(rtab_cn_sign.mod2, digits = 3)
 
 # conditional growth model
-cn_sign.mod3 <- glmer(sign ~ time + gmc_secident + gmc_cn*time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
+cn_sign.mod3 <- glmer(sign ~ time + gmc_secident + time*gmc_cn + (time|id), US_mlm, family = "binomial", control = glmerControl(check.nobs.vs.nRE = "ignore"))
 summary(cn_sign.mod3)
 cc_cn_sign.mod3 <- confint(cn_sign.mod3, parm = "beta_")
 ctab_cn_sign.mod3 <- cbind(est=fixef(cn_sign.mod3),cc_cn_sign.mod3)
 rtab_cn_sign.mod3 <- exp(ctab_cn_sign.mod3)
 print(rtab_cn_sign.mod3, digits = 3)
+lme4::confint.merMod(cn_sign.mod3)
 
 anova(cn_sign.mod, cn_sign.mod2, cn_sign.mod3)
 
@@ -249,11 +250,19 @@ lme4::confint.merMod(fc_1_o_agr_joy.mod)
 fc_1_o_agr_joy.mod2 <- lmer(joy ~ time + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(fc_1_o_agr_joy.mod2)
 lme4::confint.merMod(fc_1_o_agr_joy.mod2)
+cc_fc_1_o_agr_joy.mod2 <- confint(fc_1_o_agr_joy.mod2, parm = "beta_")
+ctab_fc_1_o_agr_joy.mod2 <- cbind(est=fixef(fc_1_o_agr_joy.mod2),cc_fc_1_o_agr_joy.mod2)
+rtab_fc_1_o_agr_joy.mod2 <- exp(ctab_fc_1_o_agr_joy.mod2)
+print(rtab_fc_1_o_agr_joy.mod2, digits = 3)
 
 # conditional growth model
 fc_1_o_agr_joy.mod3 <- lmer(joy ~ time + time*fc_1_o_agr + (time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(fc_1_o_agr_joy.mod3)
 lme4::confint.merMod(fc_1_o_agr_joy.mod3)
+cc_fc_1_o_agr_joy.mod3 <- confint(fc_1_o_agr_joy.mod3, parm = "beta_")
+ctab_fc_1_o_agr_joy.mod3 <- cbind(est=fixef(fc_1_o_agr_joy.mod3),cc_fc_1_o_agr_joy.mod3)
+rtab_fc_1_o_agr_joy.mod3 <- exp(ctab_fc_1_o_agr_joy.mod3)
+print(rtab_fc_1_o_agr_joy.mod3, digits = 3)
 
 anova(fc_1_o_agr_joy.mod, fc_1_o_agr_joy.mod2, fc_1_o_agr_joy.mod3)
 ```
@@ -274,6 +283,10 @@ lme4::confint.merMod(fc_2_o_agr_joy.mod2)
 fc_2_o_agr_joy.mod3 <- lmer(joy ~ time + time*fc_2_o_agr + (time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(fc_2_o_agr_joy.mod3)
 lme4::confint.merMod(fc_2_o_agr_joy.mod3)
+cc_fc_2_o_agr_joy.mod3 <- confint(fc_2_o_agr_joy.mod3, parm = "beta_")
+ctab_fc_2_o_agr_joy.mod3 <- cbind(est=fixef(fc_2_o_agr_joy.mod3),cc_fc_2_o_agr_joy.mod3)
+rtab_fc_2_o_agr_joy.mod3 <- exp(ctab_fc_2_o_agr_joy.mod3)
+print(rtab_fc_2_o_agr_joy.mod3, digits = 3)
 
 anova(fc_2_o_agr_joy.mod, fc_2_o_agr_joy.mod2, fc_2_o_agr_joy.mod3)
 ```
@@ -289,11 +302,19 @@ lme4::confint.merMod(fc_1_o_agr_eff.mod)
 fc_1_o_agr_eff.mod2 <- lmer(eff ~ time + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(fc_1_o_agr_eff.mod2)
 lme4::confint.merMod(fc_1_o_agr_eff.mod2)
+cc_fc_1_o_agr_eff.mod2 <- confint(fc_1_o_agr_eff.mod2, parm = "beta_")
+ctab_fc_1_o_agr_eff.mod2 <- cbind(est=fixef(fc_1_o_agr_eff.mod2),cc_fc_1_o_agr_eff.mod2)
+rtab_fc_1_o_agr_eff.mod2 <- exp(ctab_fc_1_o_agr_eff.mod2)
+print(rtab_fc_1_o_agr_eff.mod2, digits = 3)
 
 # conditional growth model
 fc_1_o_agr_eff.mod3 <- lmer(eff ~ time + time*fc_1_o_agr + (time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(fc_1_o_agr_eff.mod3)
 lme4::confint.merMod(fc_1_o_agr_eff.mod3)
+cc_fc_1_o_agr_eff.mod3 <- confint(fc_1_o_agr_eff.mod3, parm = "beta_")
+ctab_fc_1_o_agr_eff.mod3 <- cbind(est=fixef(fc_1_o_agr_eff.mod3),cc_fc_1_o_agr_eff.mod3)
+rtab_fc_1_o_agr_eff.mod3 <- exp(ctab_fc_1_o_agr_eff.mod3)
+print(rtab_fc_1_o_agr_eff.mod3, digits = 3)
 
 anova(fc_1_o_agr_eff.mod, fc_1_o_agr_eff.mod2, fc_1_o_agr_eff.mod3)
 ```
@@ -313,6 +334,10 @@ lme4::confint.merMod(fc_2_o_agr_eff.mod2)
 fc_2_o_agr_eff.mod3 <- lmer(eff ~ time + time*fc_2_o_agr + (time|id), US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(fc_2_o_agr_eff.mod3)
 lme4::confint.merMod(fc_2_o_agr_eff.mod3)
+cc_fc_2_o_agr_eff.mod3 <- confint(fc_2_o_agr_eff.mod3, parm = "beta_")
+ctab_fc_2_o_agr_eff.mod3 <- cbind(est=fixef(fc_2_o_agr_eff.mod3),cc_fc_2_o_agr_eff.mod3)
+rtab_fc_2_o_agr_eff.mod3 <- exp(ctab_fc_2_o_agr_eff.mod3)
+print(rtab_fc_2_o_agr_eff.mod3, digits = 3)
 
 anova(fc_2_o_agr_eff.mod, fc_2_o_agr_eff.mod2, fc_2_o_agr_eff.mod3)
 ```
@@ -329,20 +354,22 @@ rtab_fc_1_o_agr_sign.mod <- exp(ctab_fc_1_o_agr_sign.mod)
 print(rtab_fc_1_o_agr_sign.mod, digits = 3)
 
 # unconditional growth model
-fc_1_o_agr_sign.mod2 <- glmer(sign ~ time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
+fc_1_o_agr_sign.mod2 <- glmer(sign ~ time + (time|id), US_mlm, family = "binomial", control = glmerControl(check.nobs.vs.nRE = "ignore"))
 summary(fc_1_o_agr_sign.mod2)
 cc_fc_1_o_agr_sign.mod2 <- confint(fc_1_o_agr_sign.mod2, parm = "beta_")
 ctab_fc_1_o_agr_sign.mod2 <- cbind(est=fixef(fc_1_o_agr_sign.mod2),cc_fc_1_o_agr_sign.mod2)
 rtab_fc_1_o_agr_sign.mod2 <- exp(ctab_fc_1_o_agr_sign.mod2)
 print(rtab_fc_1_o_agr_sign.mod2, digits = 3)
+lme4::confint.merMod(fc_1_o_agr_sign.mod2)
 
 # conditional growth model
-fc_1_o_agr_sign.mod3 <- glmer(sign ~ time + time*fc_1_o_agr + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
+fc_1_o_agr_sign.mod3 <- glmer(sign ~ time + time*fc_1_o_agr + (time|id), US_mlm, family = "binomial", control = glmerControl(check.nobs.vs.nRE = "ignore"))
 summary(fc_1_o_agr_sign.mod3)
 cc_fc_1_o_agr_sign.mod3 <- confint(fc_1_o_agr_sign.mod3, parm = "beta_")
 ctab_fc_1_o_agr_sign.mod3 <- cbind(est=fixef(fc_1_o_agr_sign.mod3),cc_fc_1_o_agr_sign.mod3)
 rtab_fc_1_o_agr_sign.mod3 <- exp(ctab_fc_1_o_agr_sign.mod3)
 print(rtab_fc_1_o_agr_sign.mod3, digits = 3)
+lme4::confint.merMod(fc_1_o_agr_sign.mod3)
 
 anova(fc_1_o_agr_sign.mod, fc_1_o_agr_sign.mod2, fc_1_o_agr_sign.mod3)
 ```
@@ -388,7 +415,7 @@ rtab_joy_sign.mod <- exp(ctab_joy_sign.mod)
 print(rtab_joy_sign.mod, digits = 3)
 
 # unconditional growth model
-joy_sign.mod2 <- glmer(sign ~ time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
+joy_sign.mod2 <- glmer(sign ~ time + (time|id), US_mlm, family = "binomial", control = glmerControl(check.nobs.vs.nRE = "ignore"))
 summary(joy_sign.mod2)
 cc_joy_sign.mod2 <- confint(joy_sign.mod2, parm = "beta_")
 ctab_joy_sign.mod2 <- cbind(est=fixef(joy_sign.mod2),cc_joy_sign.mod2)
@@ -396,7 +423,7 @@ rtab_joy_sign.mod2 <- exp(ctab_joy_sign.mod2)
 print(rtab_joy_sign.mod2, digits = 3)
 
 # conditional growth model
-joy_sign.mod3 <- glmer(sign ~ time + gmc_joy*time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
+joy_sign.mod3 <- glmer(sign ~ time + gmc_joy*time + (time|id), US_mlm, family = "binomial", control = glmerControl(check.nobs.vs.nRE = "ignore"))
 summary(joy_sign.mod3)
 cc_joy_sign.mod3 <- confint(joy_sign.mod3, parm = "beta_")
 ctab_joy_sign.mod3 <- cbind(est=fixef(joy_sign.mod3),cc_joy_sign.mod3)
@@ -418,7 +445,7 @@ rtab_eff_sign.mod <- exp(ctab_eff_sign.mod)
 print(rtab_eff_sign.mod, digits = 3)
 
 # unconditional growth model
-eff_sign.mod2 <- glmer(sign ~ time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
+eff_sign.mod2 <- glmer(sign ~ time + (time|id), US_mlm, family = "binomial", control = glmerControl(check.nobs.vs.nRE = "ignore"))
 summary(eff_sign.mod2)
 cc_eff_sign.mod2 <- confint(eff_sign.mod2, parm = "beta_")
 ctab_eff_sign.mod2 <- cbind(est=fixef(eff_sign.mod2),cc_eff_sign.mod2)
@@ -426,7 +453,7 @@ rtab_eff_sign.mod2 <- exp(ctab_eff_sign.mod2)
 print(rtab_eff_sign.mod2, digits = 3)
 
 # conditional growth model
-eff_sign.mod3 <- glmer(sign ~ time + gmc_eff*time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
+eff_sign.mod3 <- glmer(sign ~ time + gmc_eff*time + (time|id), US_mlm, family = "binomial", control = glmerControl(check.nobs.vs.nRE = "ignore"))
 summary(eff_sign.mod3)
 cc_eff_sign.mod3 <- confint(eff_sign.mod3, parm = "beta_")
 ctab_eff_sign.mod3 <- cbind(est=fixef(eff_sign.mod3),cc_eff_sign.mod3)
@@ -451,7 +478,7 @@ lme4::confint.merMod(cn_joy.mod2)
 # conditional growth model (inclusion of secident)
 cn_joy.mod3 <- lmer(joy ~ time + gmc_secident + time*gmc_cn + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(cn_joy.mod3)
-lme4::confint.merMod(cn_joy.mod4)
+lme4::confint.merMod(cn_joy.mod3)
 
 anova(cn_joy.mod, cn_joy.mod2, cn_joy.mod3)
 
