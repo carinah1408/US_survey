@@ -2175,33 +2175,37 @@ fc_plot %>%
   ggplot2::ggplot(data = ., aes(x = vote, y = mean_fc_1_s)) +
   geom_errorbar(aes(ymin = mean_fc_1_s -2*se_fc_1_s, ymax = mean_fc_1_s +2*se_fc_1_s), width = 0.02) +
   geom_point() +
-  labs (x = "Party support", y = "Mean for own approval for harsh measurements against immigrants and refugees") +
+  labs (x = "Party support", y = "Mean_Approval for harsh measurements against immigrants and refugees") +
   coord_flip() +
   theme_light()
+fc_plot
 
 fc_plot %>%
   ggplot2::ggplot(data = ., aes(x = vote, y = mean_fc_1_o_agr)) +
   geom_errorbar(aes(ymin = mean_fc_1_o_agr -2*se_fc_1_o_agr, ymax = mean_fc_1_o_agr +2*se_fc_1_o_agr), width = 0.02) +
   geom_point() +
-  labs (x = "Party support", y = "Mean for agreement estimation with this stance") +
+  labs (x = "Party support", y = "Mean_Estimated agreement for harsh measurements against immigrants and refugees") +
   coord_flip() +
   theme_light()
+fc_plot
 
 fc_plot %>%
   ggplot2::ggplot(data = ., aes(x = vote, y = mean_fc_2_s)) +
   geom_errorbar(aes(ymin = mean_fc_2_s -2*se_fc_2_s, ymax = mean_fc_2_s +2*se_fc_2_s), width = 0.02) +
   geom_point() +
-  labs (x = "Party support", y = "Mean for own approval for perception that Whites are unfairly affected by affirmative action") +
+  labs (x = "Party support", y = "Mean_Approval for perception that Whites are unfairly affected by affirmative action") +
   coord_flip() +
   theme_light()
+fc_plot
 
 fc_plot %>%
   ggplot2::ggplot(data = ., aes(x = vote, y = mean_fc_2_o_agr)) +
   geom_errorbar(aes(ymin = mean_fc_2_o_agr -2*se_fc_2_o_agr, ymax = mean_fc_2_o_agr +2*se_fc_2_o_agr), width = 0.02) +
   geom_point() +
-  labs (x = "Party support", y = "Mean for agreement estimation with this stance") +
+  labs (x = "Party support", y = "Mean_Estimated agreement for unfair affection by affirmative action") +
   coord_flip() +
   theme_light()
+fc_plot
 ```
 
 # H2
