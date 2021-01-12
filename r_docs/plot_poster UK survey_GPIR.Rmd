@@ -1,0 +1,47 @@
+---
+title: "plot_UK false consensus"
+author: "CH"
+date: "12/01/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(here) # find relative path
+library(readr) # read dataset
+library(tidyverse) # data wrangling
+library(dplyr) # data wrangling
+library(remotes) # for downloading packages not on CRAN
+library(ggplot2) # graphs
+
+data <- here::here("data/UK_fc.csv")
+
+UK_fc <- readr::read_csv(data) %>%
+  as_tibble() 
+```
+
+```{r}
+UK_fc_plot <- UK_fc %>%
+  dplyr::mutate(.data = UK_fc, se_approval = SD_approval/sqrt(n()), se_fc = SD_fc/sqrt(n()))
+
+UK_fc_plot %>%
+  ggplot2::ggplot(data = ., aes(x = X1, y = mean_approval)) +
+  geom_errorbar(aes(ymin = mean_approval -2*se_approval, ymax = mean_approval +2*se_approval), width = 0.02) +
+  geom_point() +
+  labs (x = "Party support", y = "Mean_Approval for harsh measurements against immigrants and refugees") +
+  coord_flip() +
+  theme_light()
+UK_fc_plot
+
+UK_fc_plot %>%
+  ggplot2::ggplot(data = ., aes(x = X1, y = mean_fc)) +
+  geom_errorbar(aes(ymin = mean_fc -2*se_fc, ymax = mean_fc +2*se_fc), width = 0.02) +
+  geom_point() +
+  labs (x = "Party support", y = "Mean_Estimated agreement for harsh measurements against immigrants and refugees") +
+  coord_flip() +
+  theme_light()
+UK_fc_plot
+
+
+```
+
