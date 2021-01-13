@@ -2244,94 +2244,12 @@ df<-pi_2_t_testa$parameter[[1]]
 r <- sqrt(t^2/(t^2+df))
 round(r, 3)
 
-# plot INCOMPLETE
+# for plot
 
 pi_plot <- US_t1 %>%
-  
-  dplyr::group_by(., pi_1_own, pi_1_ave) %>%
-  dplyr::summarise(., mean_pi_1_own = mean(pi_1_own), se_pi_1_own = sd(pi_1_own)/sqrt(n()), mean_pi_1_ave = mean(pi_1_ave), se_pi_1_ave = sd(pi_1_ave)/sqrt(n()))
+  dplyr::group_by(., vote) %>%
+  dplyr::summarise(., mean_pi_1_own = mean(pi_1_own), sd_pi_1_own = sd(pi_1_own), mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave), mean_pi_2_own = mean(pi_2_own), sd_pi_2_own = sd(pi_2_own), mean_pi_2_ave = mean(pi_2_ave), sd_pi_2_ave = sd(pi_2_ave))
 pi_plot
-
-
-mean_pi_2_own = mean(pi_2_own), se_pi_2_own =sd(pi_2_own)/sqrt(n()), mean_pi_2_ave = mean(pi_2_ave), se_pi_2_ave = sd(pi_2_ave)/sqrt(n()), mean_pi_2_ave = mean(pi_2_ave), se_pi_2_ave = sd(pi_2_ave)/sqrt(n()))
-pi_plot %>%
-  ggplot2::ggplot(data = ., aes(x = vote, y = mean_pi_1_own)) +
-  geom_errorbar(aes(ymin = mean_pi_1_own -2*se_pi_1_own, ymax = mean_pi_1_own +2*se_pi_1_own), width = 0.02) +
-  geom_point() +
-  labs (x = "Party support", y = "Own comfort with carrying a weapon when living in a diverse neighbourhood") +
-  coord_flip() +
-  theme_light()
-
-ggplot(US_t1, aes(x=pi_1_own, y = mean, fill=vote))+
-  geom_violin(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
-  labs(x= "Own comfort with carrying a weapon when living in a diverse neighbourhood", y= "Frequency") +
-  scale_fill_manual(name = "Vote", 
-      labels = c("Democratic Party", "Republican Party", NA), 
-      values = c("#58a6a6", "#efa355", NA)) +
-  theme_light()
-
-set.seed(0)
-x <- rep(1:10, 4)
-y <- c(rep(1:10, 2)+rnorm(20)/5, rep(6:15, 2) + rnorm(20)/5)
-treatment <- gl(2, 20, 40, labels=letters[1:2])
-replicate <- gl(2, 10, 40)
-d <- data.frame(x=x, y=y, treatment=treatment, replicate=replicate)
-
-ggplot(d, aes(x=x, y=y, colour=treatment, shape = replicate,
-  group=interaction(treatment, replicate))) + 
-  geom_point() + geom_line()
-
-
-ggplot(data = US_t1) +
-  geom_histogram(aes(x = mean(pi_1_own), y=(..count..)/sum(..count..)), 
-                       alpha=0.3, fill ="red",binwidth=2,position="dodge") +
-  geom_histogram(aes(x = mean(pi_1_ave), y=(..count..)/sum(..count..)), 
-                       alpha=0.3,, fill ="green",binwidth=2,position="dodge")
-
-
-
-data <- data.frame(
-  comfort=c(rep("Own Comfort" , 10) , rep("Perceived Comfort", 10) ),
-  Republicans =rnorm(20,10,4),
-  Democrats =rnorm(20,8,3),
-)
-
-#Let's calculate the average value for each condition and each specie with the *aggregate* function
-bilan <- aggregate(cbind(cond_A,cond_B,cond_C)~specie , data=data , mean)
-rownames(bilan) <- bilan[,1]
-bilan <- as.matrix(bilan[,-1])
- 
-#Plot boundaries
-lim <- 1.2*max(bilan)
-
-#A function to add arrows on the chart
-error.bar <- function(x, y, upper, lower=upper, length=0.1,...){
-  arrows(x,y+upper, x, y-lower, angle=90, code=3, length=length, ...)
-}
- 
-#Then I calculate the standard deviation for each specie and condition :
-stdev <- aggregate(cbind(cond_A,cond_B,cond_C)~specie , data=data , sd)
-rownames(stdev) <- stdev[,1]
-stdev <- as.matrix(stdev[,-1]) * 1.96 / 10
- 
-#I am ready to add the error bar on the plot using my "error bar" function !
-ze_barplot <- barplot(bilan , beside=T , legend.text=T,col=c("blue" , "skyblue") , ylim=c(0,lim) , ylab="height")
-error.bar(ze_barplot,bilan, stdev)
-
-# https://girke.bioinformatics.ucr.edu/GEN242/mydoc_Rgraphics_5.html#bar-plots
-US_t1_mean <- aggregate(US_t1[,39:42], by=list(vote=US_t1$vote), FUN=mean)
-US_t1_sd <- aggregate(US_t1[,39:42], by=list(vote=US_t1$vote), FUN = sd)
-
-df_mean <- melt(US_t1_mean, id.vars = c("vote"), variable.name = "Comfort with Violence", value.name = "Values")
-
-df_sd <- melt(US_t1_sd, id.vars = c("Party support"), variable.name = "Comfort with violence", value.name = "Values")
-
-limits <- aes(ymax = df_mean[, "Values"] + df_sd[, "Values"], ymin = df_mean[, "Values"] - df_sd[, "Values"])
-
-plot <- ggplot(df_mean, aes(Comfort with Violence, Values, fill = Party support)) +
-  geom_bar(position = "dodge", stat = "identity")
-plot
-
 ```
 
 # H3
