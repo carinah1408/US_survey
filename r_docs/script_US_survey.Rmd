@@ -1023,11 +1023,7 @@ residual_cn
 resid(fit_cn, type = "standardized")
 
 # xeno
-
-# 6 outliers detected: the value of 2.9826 was compared with the median of xeno_1 - xeno_6 in dataset and the following outliers were identified: p090, t1 (in xeno_1 & xeno_2), p189 (in xeno_1 & xeno_2), p192, t2 (in xeno_2 & xeno_3), p196 (in xeno_1, xeno_2, xeno_3) ####
-
 xeno.cfa <- US_data %>%
-  dplyr::filter(id != "p090" & id != "189" & id != "192" & id != "196") %>%
   dplyr::select(xeno_1, xeno_2, xeno_3, xeno_4, xeno_5, xeno_6)
   
 xeno.model <- 'Xenophobia =~ xeno_1 + xeno_2 + xeno_3 + xeno_4 + xeno_5 +
@@ -1044,44 +1040,82 @@ residual_xeno <- lavInspect(fit_xeno, what = "sampstat") $cov -
 residual_xeno
 resid(fit_xeno, type = "standardized")
 
+# without item 5 and 6 
+xeno.cfa_1 <- US_data %>%
+  dplyr::select(xeno_1, xeno_2, xeno_3, xeno_4)
+  
+xeno.model_1 <- 'Xenophobia =~ xeno_1 + xeno_2 + xeno_3 + xeno_4'
+
+fit_xeno_1 <- cfa(xeno.model_1, data = xeno.cfa_1, estimator = "MLR")
+
+fit_xeno_1 %>% summary(fit.measures = TRUE)
+
+lavInspect(fit_xeno_1, what = "sampstat")
+lavInspect(fit_xeno_1, what = "implied")
+residual_xeno <- lavInspect(fit_xeno_1, what = "sampstat") $cov - 
+  lavInspect(fit_xeno_1, what = "implied") $cov
+residual_xeno
+resid(fit_xeno_1, type = "standardized")
+
+
+# 6 outliers detected: the value of 2.9826 was compared with the median of xeno_1 - xeno_6 in dataset and the following outliers were identified: p090, t1 (in xeno_1 & xeno_2), p189 (in xeno_1 & xeno_2), p192, t2 (in xeno_2 & xeno_3), p196 (in xeno_1, xeno_2, xeno_3) ####
+
+xeno.cfa_2 <- US_data %>%
+  dplyr::filter(id != "p090" & id != "189" & id != "192" & id != "196") %>%
+  dplyr::select(xeno_1, xeno_2, xeno_3, xeno_4, xeno_5, xeno_6)
+  
+xeno.model_2 <- 'Xenophobia =~ xeno_1 + xeno_2 + xeno_3 + xeno_4 + xeno_5 +
+xeno_6'
+
+fit_xeno_2 <- cfa(xeno.model, data = xeno.cfa, estimator = "MLR")
+
+fit_xeno_2 %>% summary(fit.measures = TRUE)
+
+lavInspect(fit_xeno_2, what = "sampstat")
+lavInspect(fit_xeno_2, what = "implied")
+residual_xeno <- lavInspect(fit_xeno, what = "sampstat") $cov - 
+  lavInspect(fit_xeno_2, what = "implied") $cov
+residual_xeno
+resid(fit_xeno_2, type = "standardized")
+
 # xeno without xeno_5
 
-xeno2.cfa <- US_data %>%
+xeno.cfa_3 <- US_data %>%
   dplyr::filter(id != "p090" & id != "189" & id != "192" & id != "196") %>%
   dplyr::select(xeno_1, xeno_2, xeno_3, xeno_4, xeno_6)
   
-xeno2.model <- 'Xenophobia =~ xeno_1 + xeno_2 + xeno_3 + xeno_4 +
+xeno.model_3 <- 'Xenophobia =~ xeno_1 + xeno_2 + xeno_3 + xeno_4 +
 xeno_6'
 
-fit_xeno2 <- cfa(xeno2.model, data = xeno2.cfa, estimator = "MLR")
+fit_xeno_3 <- cfa(xeno.model_3, data = xeno.cfa_3, estimator = "MLR")
 
-fit_xeno2 %>% summary(fit.measures = TRUE)
+fit_xeno_3 %>% summary(fit.measures = TRUE)
 
-lavInspect(fit_xeno2, what = "sampstat")
-lavInspect(fit_xeno2, what = "implied")
-residual_xeno2 <- lavInspect(fit_xeno2, what = "sampstat") $cov - 
-  lavInspect(fit_xeno2, what = "implied") $cov
-residual_xeno2
-resid(fit_xeno2, type = "standardized")
+lavInspect(fit_xeno_3, what = "sampstat")
+lavInspect(fit_xeno_3, what = "implied")
+residual_xeno_3 <- lavInspect(fit_xeno_3, what = "sampstat") $cov - 
+  lavInspect(fit_xeno_3, what = "implied") $cov
+residual_xeno_3
+resid(fit_xeno_3, type = "standardized")
 
 # xeno without xeno_5 and xeno_6
 
-xeno3.cfa <- US_data %>%
+xeno.cfa_4 <- US_data %>%
   dplyr::filter(id != "p090" & id != "189" & id != "192" & id != "196") %>%
   dplyr::select(xeno_1, xeno_2, xeno_3, xeno_4)
   
-xeno3.model <- 'Xenophobia =~ xeno_1 + xeno_2 + xeno_3 + xeno_4'
+xeno.model_4 <- 'Xenophobia =~ xeno_1 + xeno_2 + xeno_3 + xeno_4'
 
-fit_xeno3 <- cfa(xeno3.model, data = xeno3.cfa, estimator = "MLR")
+fit_xeno_4 <- cfa(xeno.model_4, data = xeno3.cfa, estimator = "MLR")
 
-fit_xeno3 %>% summary(fit.measures = TRUE)
+fit_xeno_4 %>% summary(fit.measures = TRUE)
 
-lavInspect(fit_xeno3, what = "sampstat")
-lavInspect(fit_xeno3, what = "implied")
-residual_xeno3 <- lavInspect(fit_xeno3, what = "sampstat") $cov - 
-  lavInspect(fit_xeno3, what = "implied") $cov
-residual_xeno3
-resid(fit_xeno3, type = "standardized")
+lavInspect(fit_xeno_4, what = "sampstat")
+lavInspect(fit_xeno_4, what = "implied")
+residual_xeno_4 <- lavInspect(fit_xeno_4, what = "sampstat") $cov - 
+  lavInspect(fit_xeno_4, what = "implied") $cov
+residual_xeno_4
+resid(fit_xeno_4, type = "standardized")
 
 # secident is multidimensional
 
