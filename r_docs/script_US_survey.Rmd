@@ -2046,11 +2046,13 @@ Dem_exp_t1 <- subset(US, vote == "Democrats" & unexp == "Expected" & time == "1"
 Dem_exp_t1
 
 # FC Republicans (Exploratory)
-US_Rep_t2 <- subset(US, time =="2")
-US_Rep_t2
+US_t2 <- subset(US, time =="2")
+US_t2
 
 unexp_Rep_t2 <- subset(US, vote == "Republicans", unexp = "Unexpected", time =="2")
 unexp_Rep_t2
+
+
 ```
 
 # H1
@@ -2551,8 +2553,8 @@ descriptives3 <- US %>%
 descriptives3
 
 # descriptives by vote and time
-descriptives4 <- US %>% 
-  group_by(vote, time) %>%
+descriptives4 <- US_t2 %>% 
+  group_by(vote) %>%
   summarise(., mean_cn = mean(cn), sd_cn = sd(cn), 
             mean_secident = mean(secident), sd_secident = sd(secident), 
             mean_xeno = mean(xeno), sd_xeno = sd(xeno),
@@ -2568,13 +2570,13 @@ descriptives4 <- US %>%
             mean_fc_2_o_agr = mean(fc_2_o_agr), sd_fc_2_o_agr = sd(fc_2_o_agr))
 descriptives4
 
-# two-way anova: vote and time on cn
+# two-way anova: vote and unexp on cn
 
-anova_cn <- aov(cn ~ vote + time, data = US)
+anova_cn <- aov(cn ~ vote + unexp, data = US_t2)
 summary(anova_cn)
 
 # t-test cn by vote
-cn.t.test <- t.test(cn ~ vote, data = US)
+cn.t.test <- t.test(cn ~ vote, data = US_t2)
 cn.t.test
 
 # effect size
@@ -2595,6 +2597,15 @@ descriptives6 <- US_t1_clean2 %>%
   group_by(vote, time) %>%
   summarise(., mean_fc_1_o_agr = mean(fc_1_o_agr), sd_fc_1_o_agr = sd(fc_1_o_agr))
 descriptives6
+
+# plot
+ggplot(US_t2, aes(x=cn, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Collective narcissism", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
 ```
 
 
