@@ -200,28 +200,21 @@ lme4::confint.merMod(cn_fc_2_o_agr.mod4)
 # unconditional model (logisitc regression)
 cn_sign.mod <- glmer(sign ~ 1 + (1|id), US_mlm, family = "binomial")
 summary(cn_sign.mod)
-# CI and OR
-cc_cn_sign.mod <- confint(cn_sign.mod, parm = "beta_")
-ctab_cn_sign.mod <- cbind(est=fixef(cn_sign.mod),cc_cn_sign.mod)
-rtab_cn_sign.mod <- exp(ctab_cn_sign.mod)
-print(rtab_cn_sign.mod, digits = 3)
+
+
 
 # unconditional growth model
 cn_sign.mod2 <- glmer(sign ~ time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(cn_sign.mod2)
-cc_cn_sign.mod2 <- confint(cn_sign.mod2, parm = "beta_")
-ctab_cn_sign.mod2 <- cbind(est=fixef(cn_sign.mod2),cc_cn_sign.mod2)
-rtab_cn_sign.mod2 <- exp(ctab_cn_sign.mod2)
-print(rtab_cn_sign.mod2, digits = 3)
+
+
 
 # conditional growth model
 cn_sign.mod3 <- glmer(sign ~ time + gmc_secident + time*gmc_cn + (time|id), US_mlm, family = "binomial", control = glmerControl(check.nobs.vs.nRE = "ignore"))
 summary(cn_sign.mod3)
-cc_cn_sign.mod3 <- confint(cn_sign.mod3, parm = "beta_")
-ctab_cn_sign.mod3 <- cbind(est=fixef(cn_sign.mod3),cc_cn_sign.mod3)
-rtab_cn_sign.mod3 <- exp(ctab_cn_sign.mod3)
-print(rtab_cn_sign.mod3, digits = 3)
 lme4::confint.merMod(cn_sign.mod3)
+or.glmer::(US_mlm, cn_sign.mod3, complex)
+
 
 anova(cn_sign.mod, cn_sign.mod2, cn_sign.mod3)
 
