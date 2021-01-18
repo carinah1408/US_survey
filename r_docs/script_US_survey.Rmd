@@ -1,5 +1,5 @@
 ---
-title: "script_US_survey"
+title: "script_US_survey (without Exploratory H7 and MLM)"
 author: "CH"
 date: "28/11/2020"
 output: html_document
@@ -2617,7 +2617,7 @@ ggplot(US_t2, aes(x=cn, fill=vote))+
 
 
 
-# OLD
+# ### OLD
 
 # Repeated measures/ ML
 ```{r}
