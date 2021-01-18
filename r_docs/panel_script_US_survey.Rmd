@@ -1,5 +1,5 @@
 ---
-title: "panel_US_survey"
+title: "Exploratory H7_US_survey"
 author: "CH"
 date: "30/12/2020"
 output: html_document
@@ -183,13 +183,13 @@ descriptives4 <- US %>%
             mean_fc_2_o_agr = mean(fc_2_o_agr), sd_fc_2_o_agr = sd(fc_2_o_agr))
 descriptives4
 
-# two-way anova: vote and time on cn
+# two-way anova: vote and unexp on cn
 
-anova_cn <- aov(cn ~ vote + time, data = US)
+anova_cn <- aov(cn ~ vote + unexp, data = US_t2)
 summary(anova_cn)
 
 # t-test cn by vote
-cn.t.test <- t.test(cn ~ vote, data = US)
+cn.t.test <- t.test(cn ~ vote, data = US_t2)
 cn.t.test
 
 # effect size
@@ -210,6 +210,15 @@ descriptives6 <- US_t1_clean2 %>%
   group_by(vote, time) %>%
   summarise(., mean_fc_1_o_agr = mean(fc_1_o_agr), sd_fc_1_o_agr = sd(fc_1_o_agr))
 descriptives6
+
+# plot
+ggplot(US_t2, aes(x=cn, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Collective narcissism", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
 ```
 
 # Collective narcissism on FC and behavioural intention
@@ -333,6 +342,13 @@ misClassError(US_wide_Rep$sign.2, predicted, threshold = optimal)
 # ROC curve
 plotROC(US_wide_Rep$sign.2, predicted) 
 ```
+
+
+
+
+# ### FURTHER AND OLD CALCULATIONS
+
+
 
 # False consensus on empowerment and behavioural intention
 ```{r}
