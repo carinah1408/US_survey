@@ -16,6 +16,9 @@ library(lme4) # multi-level regression
 library(lmerTest) # multi-level regression
 library(dfoptim)
 library(optimx)
+library(devtools)
+install_github('mjwestgate/sppairs')
+library(sppairs)
 
 # dataset ####
 data <- here::here("data/US_data.csv")
@@ -212,16 +215,20 @@ summary(cn_sign.mod2)
 # conditional growth model
 cn_sign.mod3 <- glmer(sign ~ time + gmc_secident + time*gmc_cn + (time|id), US_mlm, family = "binomial", control = glmerControl(check.nobs.vs.nRE = "ignore"))
 summary(cn_sign.mod3)
-lme4::confint.merMod(cn_sign.mod3)
-or.glmer::(US_mlm, cn_sign.mod3, complex)
+exp()
+lme4::confint.merMod(cn_sign.mod3, devtol = 1e-01)
+or.glmer(US_mlm, cn_sign.mod3, complex)
 
+cn_sign.mod3a <- glmer(sign ~ time + gmc_secident + time*gmc_cn + (time|id), control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=100000)), US_mlm, family= "binomial")
 
 anova(cn_sign.mod, cn_sign.mod2, cn_sign.mod3)
+
+
 
 ### 
 
 
-
+cn_sign.mod3a <- glmer(sign ~ time + gmc_secident + time*gmc_cn + (time|id), control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=100000)), US_mlm, family= "binomial")
 
 # conditional growth model secident added
 cn_sign.mod4 <- glmer(sign ~ gmc_cn + gmc_secident + gmc_cn*time + gmc_secident*time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
@@ -231,6 +238,10 @@ ctab_cn_sign.mod4 <- cbind(est=fixef(cn_sign.mod4),cc_cn_sign.mod4)
 rtab_cn_sign.mod4 <- exp(ctab_cn_sign.mod4)
 print(rtab_cn_sign.mod4, digits = 3)
 ```
+
+
+
+# ### FURTHER AND OLD CALCULATIONS
 
 # fc_1_o_agr --> joy
 ```{r}
