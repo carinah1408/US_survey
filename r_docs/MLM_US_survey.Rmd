@@ -217,9 +217,12 @@ cn_sign.mod3 <- glmer(sign ~ time + gmc_secident + time*gmc_cn + (time|id), US_m
 summary(cn_sign.mod3)
 exp()
 lme4::confint.merMod(cn_sign.mod3, devtol = 1e-01)
+
+# alternative
 or.glmer(US_mlm, cn_sign.mod3, complex)
 
 cn_sign.mod3a <- glmer(sign ~ time + gmc_secident + time*gmc_cn + (time|id), control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=100000)), US_mlm, family= "binomial")
+
 
 anova(cn_sign.mod, cn_sign.mod2, cn_sign.mod3)
 
