@@ -11,14 +11,16 @@ library(here) # find relative path
 library(readr) # read dataset
 library(tidyverse) # data wrangling
 library(dplyr) # data wrangling
-library(nlme) # multi-level regression
 library(lme4) # multi-level regression
 library(lmerTest) # multi-level regression
+library(sjstats)
+library(oddsratio)
 library(dfoptim)
 library(optimx)
 library(devtools)
 install_github('mjwestgate/sppairs')
 library(sppairs)
+
 
 # dataset ####
 data <- here::here("data/US_data.csv")
@@ -159,9 +161,6 @@ anova(cn_fc_1_o_agr.mod, cn_fc_1_o_agr.mod2, cn_fc_1_o_agr.mod3)
 
 ###
 
-
-
-
 # conditional growth model (inclusion of secident)
 cn_fc_1_o_agr.mod4 <- lmer(fc_1_o_agr ~ time + gmc_secident + time*gmc_cn + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(cn_fc_1_o_agr.mod4)
@@ -189,9 +188,6 @@ anova(cn_fc_2_o_agr.mod, cn_fc_2_o_agr.mod2, cn_fc_2_o_agr.mod3)
 
 ###
 
-
-
-
 # conditional growth model (inclusion of secident)
 cn_fc_2_o_agr.mod4 <- lmer(fc_2_o_agr ~ gmc_cn + gmc_secident + time*gmc_cn + time*gmc_secident + (time|id), data = US_mlm, REML = FALSE, control = lmerControl(check.nobs.vs.nRE = "ignore"))
 summary(cn_fc_2_o_agr.mod4)
@@ -201,46 +197,35 @@ lme4::confint.merMod(cn_fc_2_o_agr.mod4)
 # cn --> signing
 ```{r}
 # unconditional model (logisitc regression)
-cn_sign.mod <- glmer(sign ~ 1 + (1|id), US_mlm, family = "binomial")
-summary(cn_sign.mod)
-
-
+sign.mod <- glmer(sign ~ 1 + (1|id), US_mlm, family = "binomial")
+summary(sign.mod)
+cc <- confint(sign.mod,parm="beta_")  
+ctab <- cbind(est=fixef(sign.mod),cc)
+ctab
+sjstats::icc(sign.mod)
+# An ICC of 0.96 means that 96% of the variation in the outcome variable can be accounted for by the clustering structure of the data. This provides evidence that a multilevel model may make a difference to the model estimates, in comparison with a non-multilevel model. Therefore, the use of multilevel models is necessary and warrantied. (adjusted and taken from: https://www.rensvandeschoot.com/tutorials/generalised-linear-models-with-glm-and-lme4/)
 
 # unconditional growth model
-cn_sign.mod2 <- glmer(sign ~ time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
-summary(cn_sign.mod2)
-
-
+sign.mod2 <- glmer(sign ~ time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
+summary(sign.mod2)
 
 # conditional growth model
-cn_sign.mod3 <- glmer(sign ~ time + gmc_secident + time*gmc_cn + (time|id), US_mlm, family = "binomial", control = glmerControl(check.nobs.vs.nRE = "ignore"))
-summary(cn_sign.mod3)
-exp()
-lme4::confint.merMod(cn_sign.mod3, devtol = 1e-01)
+sign.mod3 <- glmer(sign ~ time + gmc_secident + time*gmc_cn + (time|id), US_mlm, family = "binomial", control = glmerControl(check.nobs.vs.nRE = "ignore"), nAGQ = 0)
+summary(sign.mod3)
 
-# alternative
+# problem calculating CI and OR
+lme4::confint.merMod(sign.mod3, devtol = 1e-01)
 or.glmer(US_mlm, cn_sign.mod3, complex)
+or_glm(US_mlm, sign.mod3, incr = list(time = 2))
+cc3 <- confint(sign.mod3,parm="beta_")  
+ctab3 <- cbind(est=fixef(sign.mod3),cc3)
+ctab3
 
-cn_sign.mod3a <- glmer(sign ~ time + gmc_secident + time*gmc_cn + (time|id), control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=100000)), US_mlm, family= "binomial")
-
-
-anova(cn_sign.mod, cn_sign.mod2, cn_sign.mod3)
-
-
-
-### 
-
-
-cn_sign.mod3a <- glmer(sign ~ time + gmc_secident + time*gmc_cn + (time|id), control=glmerControl(optimizer="bobyqa", optCtrl=list(maxfun=100000)), US_mlm, family= "binomial")
-
-# conditional growth model secident added
-cn_sign.mod4 <- glmer(sign ~ gmc_cn + gmc_secident + gmc_cn*time + gmc_secident*time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
-summary(cn_sign.mod4)
-cc_cn_sign.mod4 <- confint(cn_sign.mod4, parm = "beta_")
-ctab_cn_sign.mod4 <- cbind(est=fixef(cn_sign.mod4),cc_cn_sign.mod4)
-rtab_cn_sign.mod4 <- exp(ctab_cn_sign.mod4)
-print(rtab_cn_sign.mod4, digits = 3)
+anova(sign.mod, sign.mod2, sign.mod3)
 ```
+
+
+
 
 
 
@@ -925,3 +910,8 @@ model4a_all <- allFit(model4a)
 
 anova(model1a, model2a, model3a, model4a)
 ```
+
+
+
+
+
