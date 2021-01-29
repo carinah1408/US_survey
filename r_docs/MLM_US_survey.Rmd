@@ -20,6 +20,9 @@ library(optimx)
 library(devtools)
 install_github('mjwestgate/sppairs')
 library(sppairs)
+library(nlme)
+library(grid)
+library(ggplot2)
 
 
 # dataset ####
@@ -136,11 +139,30 @@ US_mlm <- US_mlm %>%
   dplyr::group_by(id) %>%
   dplyr::mutate(gmc_cn = mean(cn), gmc_secident = mean(secident), gmc_joy = mean(joy), gmc_eff = mean(eff))
 
+# factor categorical variable
+US_mlm$time <- factor(US_mlm$time)
+
 allFit(show.meth.tab = TRUE)
 ```
 
 # cn --> fc_1_o_agr
 ```{r}
+# MLM approach: nested effect (as alternative to rmANOVA)
+fc_1_o_agr.mod0 <- lme(fc_1_o_agr  ~ time + gmc_secident + gmc_cn, random =  ~ 1|id/time, US_mlm, method = "ML")
+summary(fc_1_o_agr.mod0)
+nlme::intervals(fc_1_o_agr.mod0, which = "fixed")
+
+# plot
+plot_fc_1_o_agr_time <- theme(panel.margin=unit(0,"lines"))
+ggplot(US_mlm,aes(time,fc_1_o_agr))+
+  geom_point()+
+  geom_line(aes(group=id))+
+plot_fc_1_o_agr_time
+
+
+
+# growth model approach
+
 # unconditional model (grand mean fc_1_o_agr across all individuals and time points)
 cn_fc_1_o_agr.mod <- lmer(fc_1_o_agr ~ 1 + (1|id), data = US_mlm, REML = FALSE)
 summary(cn_fc_1_o_agr.mod)
@@ -169,6 +191,20 @@ lme4::confint.merMod(cn_fc_1_o_agr.mod4)
 
 # cn --> fc_2_o_agr
 ```{r}
+# MLM approach: nested effect (as alternative to rmANOVA)
+fc_2_o_agr.mod0 <- lme(fc_2_o_agr  ~ time + gmc_secident + gmc_cn, random =  ~ 1|id/time, US_mlm, method = "ML")
+summary(fc_2_o_agr.mod0)
+nlme::intervals(fc_2_o_agr.mod0, which = "fixed")
+
+# plot
+plot_fc_2_o_agr_time <- theme(panel.margin=unit(0,"lines"))
+ggplot(US_mlm,aes(time,fc_2_o_agr))+
+  geom_point()+
+  geom_line(aes(group=id))+
+plot_fc_2_o_agr_time
+
+# growth model approach
+
 # unconditional model (grand mean fc_1_o_agr across all individuals and time points)
 cn_fc_2_o_agr.mod <- lmer(fc_2_o_agr ~ 1 + (1|id), data = US_mlm, REML = FALSE)
 summary(cn_fc_2_o_agr.mod)
@@ -196,6 +232,21 @@ lme4::confint.merMod(cn_fc_2_o_agr.mod4)
 
 # cn --> signing
 ```{r}
+# MLM approach: nested effects (as alternative to rmANOVA)
+sign.mod01 <- glmer(sign ~ time + gmc_secident + gmc_cn + (time|id), US_mlm, family = binomial(link="logit"), control = glmerControl(optimizer = "bobyqa"),nAGQ = 0)
+summary(sign.mod01)
+lme4::confint.merMod(sign.mod01, devtol = 1e-01)
+
+# plot (has to be adjusted)
+plot_sign_time <- theme(panel.margin=unit(0,"lines"))
+ggplot(US_mlm,aes(time,sign))+
+  geom_point()+
+  geom_line(aes(group=id))+
+plot_sign_time
+
+
+# growth model approach
+
 # unconditional model (logisitc regression)
 sign.mod <- glmer(sign ~ 1 + (1|id), US_mlm, family = "binomial")
 summary(sign.mod)
@@ -206,12 +257,15 @@ sjstats::icc(sign.mod)
 # An ICC of 0.96 means that 96% of the variation in the outcome variable can be accounted for by the clustering structure of the data. This provides evidence that a multilevel model may make a difference to the model estimates, in comparison with a non-multilevel model. Therefore, the use of multilevel models is necessary and warrantied. (adjusted and taken from: https://www.rensvandeschoot.com/tutorials/generalised-linear-models-with-glm-and-lme4/)
 
 # unconditional growth model
-sign.mod2 <- glmer(sign ~ time + (time|id), US_mlm, family = "binomial", control = lmerControl(check.nobs.vs.nRE = "ignore"))
+sign.mod2 <- glmer(sign ~ time + (time|id), US_mlm, family = "binomial", control = glmerControl(check.nobs.vs.nRE = "ignore"))
 summary(sign.mod2)
 
 # conditional growth model
 sign.mod3 <- glmer(sign ~ time + gmc_secident + time*gmc_cn + (time|id), US_mlm, family = "binomial", control = glmerControl(check.nobs.vs.nRE = "ignore"), nAGQ = 0)
 summary(sign.mod3)
+
+
+
 
 # problem calculating CI and OR
 lme4::confint.merMod(sign.mod3, devtol = 1e-01)
@@ -223,6 +277,14 @@ ctab3
 
 anova(sign.mod, sign.mod2, sign.mod3)
 ```
+
+
+
+
+
+
+
+
 
 
 
