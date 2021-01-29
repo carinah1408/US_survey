@@ -2530,6 +2530,19 @@ Dem_exp %>%
 
 ```
 
+
+
+
+
+
+
+
+
+
+
+
+# OLD CALCULATIONS
+
 # Collective narcissism  
 ```{r}
 # descriptives by vote
