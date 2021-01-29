@@ -1,0 +1,159 @@
+---
+title: "LGM_US_survey"
+author: "CH"
+date: "29/01/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(readr)
+library(tidyverse)
+library(dplyr)
+library(QuantPsyc) 
+library(plm) # panel for regression
+library(lmtest)
+library(pglm) # panel logistic regression
+library(pscl)
+library(tidyr)
+library(reshape2)
+library(car)
+library(MASS)
+library(InformationValue) 
+library(Epi)
+library(ez)
+library(lavaan)
+library(foreign)
+
+
+data <- here::here("data/US_data.csv")
+US_data <- readr::read_csv(data) %>%
+  as.data.frame()
+
+US_data <- US_data %>%
+  mutate(vote = case_when(
+  vote=='1' ~ 'Democrats',
+  vote=='2' ~ 'Republicans',
+  TRUE ~ 'Other'))
+
+US_data <- US_data %>%
+  mutate(unexp = case_when(
+    unexp == "0" ~ "Expected",
+    unexp == "1" ~ "Unexpected",
+    unexp == "2" ~ "Neither expected nor unexpected"))
+
+US_data <- US_data %>%
+  mutate(gend = case_when(
+    gend == "1" ~ "Female",
+    gend == "2" ~ "Male",
+    gend == "3" ~ "Non-binary"
+  ))
+
+US_data <- US_data %>%
+  mutate(ethn = case_when(
+    ethn == "1" ~ "Asian-American",
+    ethn == "2" ~ "Black or African American",
+    ethn == "3" ~ "Hispanic or Latino American",
+    ethn == "4" ~ "Native American",
+    ethn == "5" ~ "White or European American",
+    ethn == "6" ~ "Other"
+  ))
+
+US_data <- US_data %>%
+  mutate(degree =case_when(
+    degree == "1" ~ "No degree",
+    degree == "2" ~ "High School",
+    degree == "3" ~ "Bachelor´s degree",
+    degree == "4" ~ "Master´s degree",
+    degree == "5" ~ "Doctoral degree",
+    degree == "6" ~ "Professional degree",
+    degree == "7" ~ "Other"
+  ))
+
+US_data <- US_data %>%
+  mutate(employ = case_when(
+    employ == "1" ~ "Working - paid employee",
+    employ == "2" ~ "Working - self-employed",
+    employ == "3" ~ "Not working - temporary layoff from a job",
+    employ == "4" ~ "Not working - looking for a job",
+    employ == "5" ~ "Not working - retired",
+    employ == "6" ~ "Not working - disabled",
+    employ == "7" ~ "Not working - student",
+    employ == "8" ~ "Other"
+  ))
+
+US_data <- US_data %>%
+  mutate(income = case_when(
+    income == "1" ~ "$0 - $10,000",
+    income == "2" ~ "$10,000 - $20,000",
+    income == "3" ~ "$20,000 - $30,000",
+    income == "4" ~ "$30,000 - $40,000",
+    income == "5" ~ "$40,000 - $50,000",
+    income == "6" ~ "over $50,000"
+  ))
+
+US <- US_data %>%
+  mutate(cn = (cn_1 + cn_2 + cn_3 + cn_4 + cn_5)/5,
+        secident = (secident_1 + secident_2 + secident_3 + secident_4 + secident_5 +
+        secident_6 + secident_7 + secident_8 + secident_9 + secident_10)/10,
+        ingroup_satis = (secident_4 + secident_5 + secident_6 + secident_7)/4,
+        xeno = (xeno_1 + xeno_2 + xeno_3 + xeno_4)/4, 
+        joy = (joy_1 + joy_2)/2,
+        eff = (eff_1 + eff_2)/2) %>%
+  as.data.frame()
+US
+
+US$id <- as.factor(US$id)
+US$time <- as.factor(US$time)
+
+US_lgm <- US %>%
+  dplyr::select(., id, time, vote, unexp, cn, secident, sd, joy, eff, fc_1_o_agr, fc_2_o_agr, cor_values, cor_health, sign, donate, share) %>%
+  dplyr::filter(., vote == "Republicans")
+head(US_lgm)
+
+# convert character variable to factors
+US_lgm$id <- factor(US_lgm$id)
+US_lgm$time <-factor(US_lgm$time)
+US_lgm$vote <- factor(US_lgm$vote)
+
+# from long to wide dataset
+US_lgm_wide <- reshape(US_lgm, direction = "wide", idvar = "id", timevar = "time")
+
+# standardize variables which are on different scales (than 1 to 7)
+US_lgm$sd = scale(US_lgm$sd)
+US_lgm$fc_1_o_agr = scale(US_lgm$fc_1_o_agr)
+US_lgm$fc_2_o_agr = scale(US_lgm$fc_2_o_agr)
+US_lgm$cor_health = scale(US_lgm$cor_health)
+US_lgm$cor_values = scale(US_lgm$cor_values)
+US_lgm$donate = scale(US_lgm$donate)
+```
+
+```{r}
+# fc_1_o_agr
+
+time <- c("fc_1_o_agr.1", "fc_1_o_agr.2")
+fc_1_o_agr.cov <- cov(US_lgm_wide[time])
+fc_1_o_agr.mean <- colMeans(US_lgm_wide[time])
+names(fc_1_o_agr.mean) <- colnames(fc_1_o_agr.cov) <- rownames(fc_1_o_agr.cov) <- c("Time1_FC_1", "Time2_FC_1")
+
+fc_1_o_agr_lgm.mod <-
+
+'
+# intercept
+i =~ 1*Time1_FC_1 + 1*Time2_FC_1 
+
+# slope
+s =~ 0*Time1_FC_1 + 1*Time2_FC_1 
+
+# covariance
+s~~i
+
+# residual variances
+Time1_FC_1 ~~ r*Time1_FC_1
+Time2_FC_1 ~~ r*Time2_FC_1
+'
+fc_1_o_agr_lgm.fit <- growth(fc_1_o_agr_lgm.mod, sample.cov=fc_1_o_agr.cov, sample.mean=fc_1_o_agr.mean, sample.nobs=52)
+summary(fc_1_o_agr_lgm.fit)
+```
+
