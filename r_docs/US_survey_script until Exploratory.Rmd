@@ -2483,7 +2483,7 @@ num_sign
 
 # among those that signed at t1 and t2: 2* donate increases, 2* donate decreases; 2* share decreases, 1* increases, 1* remains the same
 
-fisher.test(unexp_Rep$time, unexp_Rep$sign)
+chisq.test(unexp_Rep$time, unexp_Rep$sign)
 ```
 
 ## Exploratory
