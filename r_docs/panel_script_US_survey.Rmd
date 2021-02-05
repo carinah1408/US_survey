@@ -21,6 +21,7 @@ library(car)
 library(MASS)
 library(InformationValue) 
 library(Epi)
+library(DSUR.noof)
 
 # loading dataset
 data <- here::here("data/US_data.csv")
@@ -192,6 +193,7 @@ descriptives4
 # rmANOVA (influence of time and vote on cn)
 anova_cn <- aov(cn ~ time + vote + Error(id/time), data = US)
 summary(anova_cn)
+rcontrast(62.37, 1)
 
 # not working because of unequal group size between Democrats and Republicans
 stats::pairwise.t.test(US$cn, US$vote, paired = TRUE, p.adjust.method = "bonferroni")
@@ -237,9 +239,11 @@ ggplot(US_t2, aes(x=cn, fill=vote))+
 # rmANOVA
 fc_1.rm <- aov(fc_1_o_agr ~ time + cn + secident + Error(id/time), data = US_Rep)
 summary(fc_1.rm)
+eta_sq(fc_1.rm)
 
 fc_2.rm <- aov(fc_2_o_agr ~ time + cn + secident + cor_health + Error(id/time), data = US_Rep)
 summary(fc_2.rm)
+eta_sq(fc_2.rm)
 
 # --> see script "MLM_US_survey.Rmd" for alternative approach using MLM
 
@@ -248,6 +252,7 @@ summary(fc_2.rm)
 # rmANOVA
 sign.rm <- aov(sign ~ time + cn + secident + Error(id/time), data = US_Rep)
 summary(sign.rm)
+eta_sq(sign.rm)
 
 # --> see script "MLM_US_survey.Rmd" for alternative approach using MLM
 ```
