@@ -158,6 +158,7 @@ fc_1_o_agr.mod0 <- lme(fc_1_o_agr  ~ time + gmc_secident + gmc_cn, random =  ~ 1
 summary(fc_1_o_agr.mod0)
 nlme::intervals(fc_1_o_agr.mod0, which = "fixed")
 
+
 # plot
 plot_fc_1_o_agr_time <- theme(panel.margin=unit(0,"lines"))
 ggplot(US_mlm,aes(time,fc_1_o_agr))+
@@ -173,6 +174,8 @@ fc_2_o_agr.mod0 <- lme(fc_2_o_agr  ~ time + gmc_secident + gmc_cn, random =  ~ 1
 summary(fc_2_o_agr.mod0)
 nlme::intervals(fc_2_o_agr.mod0, which = "fixed")
 
+
+
 # plot
 plot_fc_2_o_agr_time <- theme(panel.margin=unit(0,"lines"))
 ggplot(US_mlm,aes(time,fc_2_o_agr))+
@@ -187,6 +190,7 @@ plot_fc_2_o_agr_time
 sign.mod01 <- glmer(sign ~ time + gmc_secident + gmc_cn + (time|id), US_mlm, family = binomial(link="logit"), control = glmerControl(optimizer = "bobyqa"),nAGQ = 0)
 summary(sign.mod01)
 lme4::confint.merMod(sign.mod01)
+
 
 # plot (has to be adjusted)
 plot_sign_time <- theme(panel.margin=unit(0,"lines"))
