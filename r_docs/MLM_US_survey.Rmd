@@ -7,11 +7,12 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(here) 
-library(readr) 
-library(tidyverse) 
-library(dplyr) 
-library(lme4) 
+library(here) # loading dataset
+library(readr)# loading dataset
+library(tidyverse)# data wrangling
+library(dplyr) # data wrangling
+library(lme4) # for MLM
+library(nlme) # for MLM
 library(lmerTest) 
 library(sjstats)
 library(oddsratio)
@@ -20,7 +21,6 @@ library(optimx)
 library(devtools)
 install_github('mjwestgate/sppairs')
 library(sppairs)
-library(nlme)
 library(grid)
 library(ggplot2)
 
@@ -116,6 +116,8 @@ US$time <- factor(US$time)
 US$unexp <- factor(US$unexp)
 US$vote <- factor(US$vote)
 
+
+
 # credits go to Jenny Terry for providing advice and code (https://github.com/jenny-terry)
 
 # select variables for MLM analyses and filter Republicans
@@ -154,10 +156,12 @@ allFit(show.meth.tab = TRUE)
 # cn --> fc_1_o_agr
 ```{r}
 # MLM approach: nested effect (as alternative to rmANOVA)
+
+# outlier in fc_1_o_agr "p160" not listed in dataset US_mlm
+
 fc_1_o_agr.mod0 <- lme(fc_1_o_agr  ~ time + gmc_secident + gmc_cn, random =  ~ 1|id/time, US_mlm, method = "ML")
 summary(fc_1_o_agr.mod0)
 nlme::intervals(fc_1_o_agr.mod0, which = "fixed")
-
 
 # plot
 plot_fc_1_o_agr_time <- theme(panel.margin=unit(0,"lines"))
@@ -174,8 +178,6 @@ fc_2_o_agr.mod0 <- lme(fc_2_o_agr  ~ time + gmc_secident + gmc_cn, random =  ~ 1
 summary(fc_2_o_agr.mod0)
 nlme::intervals(fc_2_o_agr.mod0, which = "fixed")
 
-
-
 # plot
 plot_fc_2_o_agr_time <- theme(panel.margin=unit(0,"lines"))
 ggplot(US_mlm,aes(time,fc_2_o_agr))+
@@ -189,10 +191,10 @@ plot_fc_2_o_agr_time
 # MLM approach: nested effects (as alternative to rmANOVA)
 sign.mod01 <- glmer(sign ~ time + gmc_secident + gmc_cn + (time|id), US_mlm, family = binomial(link="logit"), control = glmerControl(optimizer = "bobyqa"),nAGQ = 0)
 summary(sign.mod01)
+# issues with CI
 lme4::confint.merMod(sign.mod01)
 
-
-# plot (has to be adjusted)
+# plot (an attempt)
 plot_sign_time <- theme(panel.margin=unit(0,"lines"))
 ggplot(US_mlm,aes(time,sign))+
   geom_point()+
@@ -201,6 +203,11 @@ plot_sign_time
 ```
 
 
+
+
+
+
+# Growth model approach (not appropriate since using two time points only)
 ```{r}
 # growth models approach: fc_1_o_agr
 
