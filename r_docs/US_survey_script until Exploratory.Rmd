@@ -124,7 +124,7 @@ US$vote <- factor(US$vote)
 
 ## Data inspection
 
-# boxplots 
+# boxplots (visual outlier inspection)
 ```{r boxplots, include=TRUE}
 # cn
 
@@ -173,7 +173,7 @@ box_eff_2 <- boxplot(US_data$eff_2) # "Thinking about the US presidential electi
 # 1 outlier in eff_1
 ```
 
-# histogram
+# histogram (visual frequency inspection)
 ```{r histograms, include=TRUE}
 # cn 
 ggplot(US_data, aes(x=cn_1))+
@@ -353,6 +353,7 @@ ggplot(US_data, aes(x=cn_5, fill=vote))+
       values = c("#58a6a6", "#efa355", NA)) +
   theme_light()
 
+# plot in paper
 ggplot(US, aes(x=cn, fill=vote))+
   geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
   labs(x= "Collective narcissism", y= "Frequency") +
@@ -780,7 +781,7 @@ ggplot(US_data, aes(x=eff_2, fill=time))+
   theme_light()
 ```
 
-# outlier detection
+# outlier detection (using MAD)
 ```{r outlier detection using MAD, include = TRUE}
 # cn
 cn <- rowMeans(US_data[, c("cn_1", "cn_2", "cn_3", "cn_4", "cn_5")])
@@ -1297,6 +1298,8 @@ cor.test(US_data$xeno_3, US_data$xeno_4,
 
 cor.test(US_data$xeno_5, US_data$xeno_6,
          method = "spearman")
+
+# no indication of acquiescent responding
 ```
 
 # assumption checks for PI, FC & corona (do not sum!) items
@@ -1675,7 +1678,7 @@ degree
 
 # Descriptive statistics variables
 ```{r, descriptive statistics, include= TRUE}
-# APA table hasnt worked yet
+# APA table (hasnt worked yet)
 descriptives <- US %>%
   summarise(., mean_cn = mean(cn), sd_cn = sd(cn), 
             mean_secident = mean(secident), sd_secident = sd(secident),
@@ -1831,6 +1834,7 @@ save_correlation_matrix = function(df, filename, ...) {
 }
 
 save_correlation_matrix(df = corr, filename = "Intercorrelation Matrix new2.csv")
+
 
 # partial correlation, controlled for secident
 pc_secident1 <- pcor.test(US$cn, US$xeno, US$secident, method = "spearman")
@@ -2067,77 +2071,6 @@ unexp_Rep_t2
 
 # H1
 ```{r, H1, include=TRUE}
-# One-tailed t-test
-# f_1_s
-fc_1_s_one_tailed <- t.test(fc_1_s ~ vote_relev, US_t1, alternative = "greater")
-fc_1_s_one_tailed
-
-# effect size
-
-t<-fc_1_s_one_tailed$statistic[[1]]
-df<-fc_1_s_one_tailed$parameter[[1]]
-r <- sqrt(t^2/(t^2+df))
-round(r, 3)
-
-# without outliers
-
-# f_1_s
-f_1_s_one_tailed_clean <- t.test(fc_1_s ~ vote_relev, data = US_t1_clean, alternative = "greater")
-f_1_s_one_tailed_clean
-
-# effect size
-
-t<-f_1_s_one_tailed_clean$statistic[[1]]
-df<-f_1_s_one_tailed_clean$parameter[[1]]
-r <- sqrt(t^2/(t^2+df))
-round(r, 3)
-
-# f_1_o_agr
-f_1_o_agr_one_tailed <- t.test(fc_1_o_agr ~ vote_relev, data = US_t1, alternative = "greater")
-f_1_o_agr_one_tailed
-
-# effect size
-
-t<-f_1_o_agr_one_tailed$statistic[[1]]
-df<-f_1_o_agr_one_tailed$parameter[[1]]
-r <- sqrt(t^2/(t^2+df))
-round(r, 3)
-
-# without outliers
-f_1_o_agr_one_tailed_clean <- t.test(fc_1_o_agr ~ vote_relev, data = US_t1_clean2, alternative = "greater")
-f_1_o_agr_one_tailed_clean
-
-# effect size
-
-t<-f_1_o_agr_one_tailed_clean$statistic[[1]]
-df<-f_1_o_agr_one_tailed_clean$parameter[[1]]
-r <- sqrt(t^2/(t^2+df))
-round(r, 3)
-
-# f_2_s
-f_2_s_one_tailed <- t.test(fc_2_s ~ vote_relev, data = US_t1, alternative = "greater")
-f_2_s_one_tailed
-
-# effect size
-
-t<-f_2_s_one_tailed$statistic[[1]]
-df<-f_2_s_one_tailed$parameter[[1]]
-r <- sqrt(t^2/(t^2+df))
-round(r, 3)
-
-# f_2_o_agr
-
-f_2_o_agr_one_tailed <- t.test(fc_2_o_agr ~ vote_relev, data = US_t1, alternative = "greater")
-f_2_o_agr_one_tailed
-
-# effect size
-
-t<-f_2_o_agr_one_tailed$statistic[[1]]
-df<-f_2_o_agr_one_tailed$parameter[[1]]
-r <- sqrt(t^2/(t^2+df))
-round(r, 3)
-
-
 # Two-tailed t-test
 
 # f_1_s
@@ -2210,7 +2143,7 @@ df<-f_2_o_agr.t.test$parameter[[1]]
 r <- sqrt(t^2/(t^2+df))
 round(r, 3)
 
-# plots
+# plots in paper
 
 fc_plot <- US_t1_plot %>%
   dplyr::group_by(., vote) %>%
@@ -2252,6 +2185,77 @@ fc_plot %>%
   coord_flip() +
   theme_classic()
 fc_plot
+
+
+# One-tailed t-test
+# f_1_s
+fc_1_s_one_tailed <- t.test(fc_1_s ~ vote_relev, US_t1, alternative = "greater")
+fc_1_s_one_tailed
+
+# effect size
+
+t<-fc_1_s_one_tailed$statistic[[1]]
+df<-fc_1_s_one_tailed$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# without outliers
+
+# f_1_s
+f_1_s_one_tailed_clean <- t.test(fc_1_s ~ vote_relev, data = US_t1_clean, alternative = "greater")
+f_1_s_one_tailed_clean
+
+# effect size
+
+t<-f_1_s_one_tailed_clean$statistic[[1]]
+df<-f_1_s_one_tailed_clean$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# f_1_o_agr
+f_1_o_agr_one_tailed <- t.test(fc_1_o_agr ~ vote_relev, data = US_t1, alternative = "greater")
+f_1_o_agr_one_tailed
+
+# effect size
+
+t<-f_1_o_agr_one_tailed$statistic[[1]]
+df<-f_1_o_agr_one_tailed$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# without outliers
+f_1_o_agr_one_tailed_clean <- t.test(fc_1_o_agr ~ vote_relev, data = US_t1_clean2, alternative = "greater")
+f_1_o_agr_one_tailed_clean
+
+# effect size
+
+t<-f_1_o_agr_one_tailed_clean$statistic[[1]]
+df<-f_1_o_agr_one_tailed_clean$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# f_2_s
+f_2_s_one_tailed <- t.test(fc_2_s ~ vote_relev, data = US_t1, alternative = "greater")
+f_2_s_one_tailed
+
+# effect size
+
+t<-f_2_s_one_tailed$statistic[[1]]
+df<-f_2_s_one_tailed$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# f_2_o_agr
+
+f_2_o_agr_one_tailed <- t.test(fc_2_o_agr ~ vote_relev, data = US_t1, alternative = "greater")
+f_2_o_agr_one_tailed
+
+# effect size
+
+t<-f_2_o_agr_one_tailed$statistic[[1]]
+df<-f_2_o_agr_one_tailed$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
 ```
 
 # H2
@@ -2292,7 +2296,7 @@ df<-pi_2_t_testa$parameter[[1]]
 r <- sqrt(t^2/(t^2+df))
 round(r, 3)
 
-# descriptive statistics for plots
+# descriptive statistics for plots (plot itself was generated in Excel)
 pi_plot <- US_t1 %>%
   dplyr::group_by(., vote) %>%
   dplyr::summarise(., mean_pi_1_own = mean(pi_1_own), sd_pi_1_own = sd(pi_1_own), mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave), mean_pi_2_own = mean(pi_2_own), sd_pi_2_own = sd(pi_2_own), mean_pi_2_ave = mean(pi_2_ave), sd_pi_2_ave = sd(pi_2_ave))
