@@ -7,21 +7,22 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-library(readr)
-library(tidyverse)
-library(dplyr)
-library(QuantPsyc) 
+library(readr) # loading dataset
+library(tidyverse) # data wrangling
+library(dplyr) # data wrangingl
+library(QuantPsyc) # standardizing    
 library(plm) 
 library(lmtest)
 library(pglm) 
 library(pscl)
 library(tidyr)
-library(reshape2)
+library(reshape2) # convert format of dataset
 library(car)
 library(MASS)
 library(InformationValue) 
 library(Epi)
 library(DSUR.noof)
+library(sjmisc)
 
 # loading dataset
 data <- here::here("data/US_data.csv")
@@ -190,6 +191,20 @@ descriptives4 <- US %>%
             mean_fc_2_o_agr = mean(fc_2_o_agr), sd_fc_2_o_agr = sd(fc_2_o_agr))
 descriptives4
 
+# without outliers fc_1_s 
+descriptives5 <- US_t1_clean %>% 
+  group_by(vote, time) %>%
+  summarise(., mean_fc_1_s = mean(fc_1_s), sd_fc_1_s = sd(fc_1_s))
+descriptives5
+
+# without outliers fc_1_o_agr
+descriptives6 <- US_t1_clean2 %>% 
+  group_by(vote, time) %>%
+  summarise(., mean_fc_1_o_agr = mean(fc_1_o_agr), sd_fc_1_o_agr = sd(fc_1_o_agr))
+descriptives6
+
+
+
 # rmANOVA (influence of time and vote on cn)
 anova_cn <- aov(cn ~ time + vote + Error(id/time), data = US)
 summary(anova_cn)
@@ -209,20 +224,7 @@ df<-cn.t.test$parameter[[1]]
 r <- sqrt(t^2/(t^2+df))
 round(r, 3)
 
-
-# without outliers fc_1_s 
-descriptives5 <- US_t1_clean %>% 
-  group_by(vote, time) %>%
-  summarise(., mean_fc_1_s = mean(fc_1_s), sd_fc_1_s = sd(fc_1_s))
-descriptives5
-
-# without outliers fc_1_o_agr
-descriptives6 <- US_t1_clean2 %>% 
-  group_by(vote, time) %>%
-  summarise(., mean_fc_1_o_agr = mean(fc_1_o_agr), sd_fc_1_o_agr = sd(fc_1_o_agr))
-descriptives6
-
-# plot
+# plot in paper
 ggplot(US_t2, aes(x=cn, fill=vote))+
   geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
   labs(x= "Collective narcissism", y= "Frequency") +
@@ -237,9 +239,16 @@ ggplot(US_t2, aes(x=cn, fill=vote))+
 # fc_1_o_agr & fc_2_o_agr
 
 # rmANOVA
+US_fc_1_o_agr_clean <- subset(US, vote == "Republicans", id =! "160")
+
 fc_1.rm <- aov(fc_1_o_agr ~ time + cn + secident + Error(id/time), data = US_Rep)
 summary(fc_1.rm)
 eta_sq(fc_1.rm)
+
+#without outlier in fc_1_o_agr (no difference in results)
+fc_1.rm_clean <- aov(fc_1_o_agr ~ time + cn + secident + Error(id/time), data = US_fc_1_o_agr_clean)
+summary(fc_1.rm_clean)
+eta_sq(fc_1.rm_clean)
 
 fc_2.rm <- aov(fc_2_o_agr ~ time + cn + secident + cor_health + Error(id/time), data = US_Rep)
 summary(fc_2.rm)
@@ -258,7 +267,7 @@ eta_sq(sign.rm)
 ```
 
 
-# ### FURTHER CALCULATIONS
+# ### ADDITIONAL CALCULATIONS
 
 # Further anaylsis: CN on joy & eff
 ```{r}
@@ -315,6 +324,19 @@ summary(bootResults)
 boot.ci(bootResults, type = "bca", index = 2)
 boot.ci(bootResults, type = "bca", index = 3)
 ```
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
