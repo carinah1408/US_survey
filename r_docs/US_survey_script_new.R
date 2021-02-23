@@ -1,6 +1,5 @@
 # load packages
 library(tidyverse)# data wrangling
-library(compare)
 
 # load datasets and remove first row 
 US_t1 <- read_csv("./data/US survey_t1.csv") %>%
@@ -81,7 +80,7 @@ merge_US[,c(18:67)]= apply(merge_US[,c(18:67)], 2, function(x) as.numeric(as.cha
 merge_US <- merge_US %>%
   dplyr::select(-Duration_sec, -Finished, -consent_sign, -pro_id, -manu, -PROLIFIC_PID, -degree_7_TEXT_Topics, -degree_7_TEXT_Parent_Topics)
 
-# check age
+# check participant age
 min(merge_US$age)
 max(merge_US$age)
 
@@ -148,11 +147,59 @@ merge_US <- merge_US %>%
 
 ## transform sd
 
-## transform fc_o_agr variables
+merge_US <- merge_US %>%
+  dplyr::mutate(sd1n = case_when(
+                        sd1 <= "5" ~ "0",
+                        sd1 >= "6" ~ "1"), 
+                sd2n = case_when(
+                        sd2 <= "5" ~ "0",
+                        sd2 >= "6" ~ "1"),
+                sd3n = case_when(
+                        sd3 <= "5" ~ "0",
+                        sd3 >= "6" ~ "1"),
+                sd4n = case_when(
+                        sd4 <= "5" ~ "0",
+                        sd4 >= "6" ~ "1"),
+                sd5n = case_when(
+                        sd5 <= "5" ~ "0",
+                        sd5 >= "6" ~ "1"),
+                sd6n = case_when(
+                        sd_6 <= "5" ~ "0",
+                        sd_6 >= "6" ~ "1"),
+                sd7n = case_when(
+                        sd7 <= "5" ~ "0",
+                        sd7 >= "6" ~ "1"),
+                sd8n = case_when(
+                        sd8 <= "5" ~ "0",
+                        sd8 >= "6" ~ "1")) %>%
+  dplyr::mutate(sd1n = as.numeric(sd1n), 
+                sd2n = as.numeric(sd2n), 
+                sd3n = as.numeric(sd3n), 
+                sd4n = as.numeric(sd4n), 
+                sd5n = as.numeric(sd5n), 
+                sd6n = as.numeric(sd6n), 
+                sd7n = as.numeric(sd7n), 
+                sd8n = as.numeric(sd8n))
+
+merge_US <- merge_US %>%
+  dplyr::mutate(sd = sd1n + sd2n + sd3n + sd4n + sd5n + sd6n + sd7n + sd8n)
+    
+
+## rename fc_o_agr variables
+
+merge_US <- merge_US %>%
+  dplyr::rename(fc_1s = fc1s,
+                fc_1_o_agr = fc1o_1,
+                fc_1_o_disagr = fc1o_2,
+                fc_2s = fc2s, 
+                fc_2_o_agr = fc2o_2, 
+                fc_2_o_disagr = fc2o_2)
+
+## rename dataset
+
+US <- merge_US
 
 ## participants
-
-
 
 
 # participant description
@@ -165,16 +212,13 @@ sample_size_t2 <- nrow(US_t2)
 ## outliers
 
 
+## Descriptive Statistic
 
-test
+## Correlation
 
+## False consensus effect
 
-
-
-
-
-
-# examine false consensus with correlation (see potentially review Rikki?!; "Measuring Misperceptions?")
+# examine false consensus a) traditionally: group-based (= between groups), b) with a focus on Republicans only (individual based, see paper "False consensus in the Echo Chamber" --> with correlation between own approval and estimated agreement (see potentially review Rikki?!; see also , Measuring Misperceptions?")
 
 # examining change see papers: "Collective narcissism as a basis for nationalism" and "Persistent beliefs: Political extremism predicts ideological stability over time" (syntax here: https://osf.io/358vx/?view_only=f2ab8ce453b34643b6df4f3dfb9d2514)
 
