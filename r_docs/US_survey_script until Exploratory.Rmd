@@ -2143,48 +2143,41 @@ df<-f_2_o_agr.t.test$parameter[[1]]
 r <- sqrt(t^2/(t^2+df))
 round(r, 3)
 
-# plots in paper
+# plot
 
-fc_plot <- US_t1_plot %>%
-  dplyr::group_by(., vote) %>%
-  dplyr::summarise(., mean_fc_1_s = mean(fc_1_s), se_fc_1_s = sd(fc_1_s)/sqrt(n()), mean_fc_2_s = mean(fc_2_s), se_fc_2_s =sd(fc_2_s)/sqrt(n()), mean_fc_1_o_agr = mean(fc_1_o_agr), se_fc_1_o_agr = sd(fc_1_o_agr)/sqrt(n()), mean_fc_2_o_agr = mean(fc_2_o_agr), se_fc_2_o_agr = sd(fc_2_s)/sqrt(n()))
-fc_plot
+fc_summary <- US_t1 %>% 
+  dplyr::group_by(vote) %>%
+  dplyr::summarise(n = n(),
+                   mean_fc_1_s = mean(fc_1_s), 
+                   se_fc_1_s = sd(fc_1_s)/sqrt(n()), 
+                   lower_ci_fc_1_s = mean_fc_1_s - (1.96* se_fc_1_s),
+                   upper_ci_fc_1_s = mean_fc_1_s + (1.96* se_fc_1_s),
+                   mean_fc_2_s = mean(fc_2_s), 
+                   se_fc_2_s =sd(fc_2_s)/sqrt(n()), 
+                   lower_ci_fc_2_s = mean_fc_2_s - (1.96* se_fc_2_s),
+                   upper_ci_fc_2_s = mean_fc_2_s + (1.96* se_fc_2_s),
+                   mean_fc_1_o_agr = mean(fc_1_o_agr), 
+                   se_fc_1_o_agr = sd(fc_1_o_agr)/sqrt(n()), 
+                   lower_ci_fc_1_o_agr = mean_fc_1_o_agr - (1.96* se_fc_1_o_agr),
+                   upper_ci_fc_1_o_agr = mean_fc_1_o_agr + (1.96* se_fc_1_o_agr),
+                   mean_fc_2_o_agr = mean(fc_2_o_agr), 
+                   se_fc_2_o_agr = sd(fc_2_s)/sqrt(n()),
+                   lower_ci_fc_2_o_agr = mean_fc_2_o_agr - (1.96* se_fc_2_o_agr),
+                   upper_ci_fc_2_o_agr = mean_fc_2_o_agr + (1.96* se_fc_2_o_agr),
+                   )
 
-fc_plot %>%
-  ggplot2::ggplot(data = ., aes(x = vote, y = mean_fc_1_s)) +
-  geom_errorbar(aes(ymin = mean_fc_1_s -2*se_fc_1_s, ymax = mean_fc_1_s +2*se_fc_1_s), width = 0.02) +
-  geom_point() +
-  labs (x = "Party support", y = "Mean approval for harsh measurements against immigrants and refugees") +
-  coord_flip() +
-  theme_classic()
-fc_plot
+fc_summary %>%
+  ggplot2::ggplot(aes (x = vote, y = mean_fc_2_o_agr)) +
+           geom_line(stat="summary", fun = mean, aes(group = NA)) +
+           geom_errorbar(aes(ymin = lower_ci_fc_2_o_agr, ymax = upper_ci_fc_2_o_agr), width = .2) +
+           geom_point(size = 3, pch = 23, fill = "grey", colour = "grey") +
+           scale_x_discrete(name = "Party support") +
+           scale_y_continuous(name = "Estimated agreement (%)", limits = c(50, 65)) +
+           cowplot::theme_cowplot()
 
-fc_plot %>%
-  ggplot2::ggplot(data = ., aes(x = vote, y = mean_fc_1_o_agr)) +
-  geom_errorbar(aes(ymin = mean_fc_1_o_agr -2*se_fc_1_o_agr, ymax = mean_fc_1_o_agr +2*se_fc_1_o_agr), width = 0.02) +
-  geom_point() +
-  labs (x = "Party support", y = "Mean estimated agreement for harsh measurements against immigrants and refugees (%)") +
-  coord_flip() +
-  theme_classic()
-fc_plot
+# add coord_flip() for reversed scales
 
-fc_plot %>%
-  ggplot2::ggplot(data = ., aes(x = vote, y = mean_fc_2_s)) +
-  geom_errorbar(aes(ymin = mean_fc_2_s -2*se_fc_2_s, ymax = mean_fc_2_s +2*se_fc_2_s), width = 0.02) +
-  geom_point() +
-  labs (x = "Party support", y = "Mean approval for perception that Whites are unfairly affected by affirmative action") +
-  coord_flip() +
-  theme_classic()
-fc_plot
 
-fc_plot %>%
-  ggplot2::ggplot(data = ., aes(x = vote, y = mean_fc_2_o_agr)) +
-  geom_errorbar(aes(ymin = mean_fc_2_o_agr -2*se_fc_2_o_agr, ymax = mean_fc_2_o_agr +2*se_fc_2_o_agr), width = 0.02) +
-  geom_point() +
-  labs (x = "Party support", y = "Mean estimated agreement for unfair affection by affirmative action (%)") +
-  coord_flip() +
-  theme_classic()
-fc_plot
 
 
 # One-tailed t-test
