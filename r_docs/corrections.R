@@ -1,7 +1,7 @@
-## establishing FC effect: correlation (the extent to which each party support is associated with consensus for one´s views)
+US_t1 <- US %>%
+  filter(time == "1") 
 
-# "FCE was conceptualized as the correlation between participants’ own stance towards a topic and their estimated percentage 
-# of the public with positive stance towards the topic" (extract from: Luzsa & Mayr, 2021; see also: Sargent & Newman, 2021) 
+## 1) establishing FCE by "FCE was conceptualized as the correlation between participants’ own stance towards a topic and their estimated percentage of the public with positive stance towards the topic" (extract from: Luzsa & Mayr, 2021; see also: Sargent & Newman, 2021) 
 
 US_t1 <- US_t1 %>%
   mutate(vote = case_when(
@@ -11,21 +11,26 @@ US_t1 <- US_t1 %>%
 US_t1 <- US_t1 %>%
   mutate(vote = as.numeric(vote))
 
-# within-group: correlation between own approval (among Republicans) and estimated consensus
-cor.test(US_vote_Rep_t1$fc_1_s, US_vote_Rep_t1$fc_1_o_agr)
-cor.test(US_vote_Dem_t1$fc_1_s, US_vote_Dem_t1$fc_1_o_agr)
+## within-between-group: correlation between own approval and estimated consensus for each party support
 
-# between-group: correlation between party support and estimated consensus
-cor.test(US_t1$vote, US_t1$fc_1_o_agr)
+# z-transform variables measured on different scales
+US_vote_Rep_t1$fc_1_s_z <- scale(US_vote_Rep_t1$fc_1_s)
+US_vote_Rep_t1$fc_1_o_agr_z <- scale(US_vote_Rep_t1$fc_1_o_agr)
+US_vote_Dem_t1$fc_1_s_z <- scale(US_vote_Dem_t1$fc_1_s)
+US_vote_Dem_t1$fc_1_o_agr_z <- scale(US_vote_Dem_t1$fc_1_o_agr)
 
-US_t1 <- US_t1 %>%
-  mutate(vote = case_when(
-    vote=='1' ~ 'Democrats',
-    vote=='2' ~ 'Republicans')) 
+# correlation
+cor.test(US_vote_Rep_t1$fc_1_s_z, US_vote_Rep_t1$fc_1_o_agr_z)
+cor.test(US_vote_Dem_t1$fc_1_s_z, US_vote_Dem_t1$fc_1_o_agr_z)
 
 # plot association between fc_1_s and fc_1_o_agr by vote
 
-ggplot(data = US_t1,aes(x=fc_1_s,y=fc_1_o_agr, color = vote))+
+# z-transform variables measured on different scales
+US_t1$fc_1_s_z <- scale(US_t1$fc_1_s)
+US_t1$fc_1_o_agr_z <- scale(US_t1$fc_1_o_agr)
+
+# plot
+ggplot(data = US_t1,aes(x=fc_1_s_z,y=fc_1_o_agr_z, color = vote))+
   stat_ellipse(expand = 0,aes(fill=vote))+
   geom_point(position = "jitter")+
   scale_y_continuous(name = "Mean estimated agreement fc1") +
@@ -33,15 +38,19 @@ ggplot(data = US_t1,aes(x=fc_1_s,y=fc_1_o_agr, color = vote))+
   scale_color_grey() +
   labs(color = "Party support") +
   cowplot::theme_cowplot()
-  
 
-## subsequently: between-group analysis (because focus of this paper): 
+# OPTIONAL: between-group: correlation (the extent to which each party support is associated with consensus for one´s views --> correlation between party support and estimated consensus)
+cor.test(US_t1$vote, US_t1$fc_1_o_agr)
 
-# "Consistent with Ross et al. (1977), false consensus was operationalized as existing when individuals rate the incidence 
-# of their own opinions and behaviors in the wider community more highly than those who do not share those opinions and 
-# behaviors. On this basis, prejudiced respondents would tend to estimate that more community members are prejudiced (i.e 
-# ., agree with their views) than non-prejudiced respondents estimate community members are prejudiced (i.e., disagree with 
-# their views), and vice versa" (extract from: Watts & Larkin, 2010)
+US_t1 <- US_t1 %>%
+  mutate(vote = case_when(
+    vote=='1' ~ 'Democrats',
+    vote=='2' ~ 'Republicans')) 
+
+
+## 2) measuring the extent of FC between groups (because focus of this paper): 
+
+# "Consistent with Ross et al. (1977), false consensus was operationalized as existing when individuals rate the incidence of their own opinions and behaviors in the wider community more highly than those who do not share those opinions and behaviors. On this basis, prejudiced respondents would tend to estimate that more community members are prejudiced (i.e ., agree with their views) than non-prejudiced respondents estimate community members are prejudiced (i.e., disagree with their views), and vice versa" (extract from: Watts & Larkin, 2010)
 
 # --> Mdiff = extent of false consensus
 
@@ -69,7 +78,7 @@ US_t1 %>%
 t.test(US_t1_Rep$fc_1_o_agr, mu = 43.4)
 
 
-## change in false consensus
+## 3) change in false consensus
 
 # within-groups: conduct t-tests on difference (like what I have already done in paper)
 
@@ -78,6 +87,8 @@ t.test(x, mu = y)
 
 # plot
 US$time <- as.factor(US$time)
+US$fc_1_o_agr_z <- scale(US$fc_1_o_agr)
+US$fc_1_o_disagr <- scale(US$fc_1_o_disagr)
 
 plot_summary <- US %>%
   dplyr::group_by(time, vote) %>%
@@ -104,15 +115,29 @@ plot_summary
 
 
 # plot 1
-
 US <- tibble(
   vote = c('Democrats', 'Republicans', 'Democrats', 'Republicans'),
   time = c('Pre', 'Pre', 'Post', 'Post'),
-  val = c(43.4, 61.6, 45.3, 61.2),
+  val = c(43.4, 63.4, 45.3, 61.4),
 )
 
 n_groups <- length(unique(US$vote))
 group_names <- unique(US$vote)
+
+US %>%
+  mutate(vote = factor(vote)) %>%
+  # Manually calculate x positions
+  mutate(x = as.integer(vote) - (n_groups + 1) * (time == "Pre")) %>%
+  ggplot(aes(x = x, y = val, vote = vote, col = vote, shape = vote)) +
+  geom_point(shape = 16, size = 2, pch = 23) +
+  geom_line(linetype = 3) +
+  # Manually add labels
+  scale_x_continuous(breaks = (-n_groups):n_groups,
+                     labels = c(group_names, 'Election', group_names))+
+  scale_y_continuous(name = "Consensus estimation (Unexp_Rep/agreement; Dem/disagreement)")+
+  scale_color_grey() +
+  cowplot::theme_cowplot() + 
+  geom_vline(xintercept = 0, linetype = "dashed")
 
 US %>%
   mutate(vote = factor(vote)) %>%
@@ -144,10 +169,47 @@ plot_summary %>%
   cowplot::theme_cowplot()
 
 
-
 # between-groups: # t1 Rep/agree - Dem/disagree (= value one in t-test)  vs t2 Rep/agree - Dem/disagree (= reference value in t-test)
 
 # compare tables by time point
+US_t1_unexp_Rep <- subset(US_t1, unexp == "Unexpected", vote == "Republicans")
+US_t2_unexp_Rep <- subset(US_t2, unexp == "Unexpected", vote == "Republicans")
+US_t1_Dem <- subset(US_t1, vote == "Democrats")
+US_t2_Dem <- subset(US_t2, vote == "Democrats")
+
+# descriptives grouped by vote and unexpectedness (captures Republicans)
+US_t1 %>% 
+  dplyr::group_by(vote, unexp) %>% 
+  dplyr::summarise(mean_fc_1 = mean(fc_1_s),
+                   sd_approval_fc_1 = sd(fc_1_s),
+                   mean_agree_fc_1 = mean(fc_1_o_agr), 
+                   sd_agree_fc_1 = sd(fc_1_o_agr),
+                   mean_disagr_fc_1 = mean(fc_1_o_disagr),
+                   sd_disagr_fc_1 = sd(fc_1_o_disagr),
+                   mean_fc_2 = mean(fc_2_s),
+                   sd_approval_fc_2 = sd(fc_2_s),
+                   mean_agree_fc_2 = mean(fc_2_o_agr), 
+                   sd_agree_fc_2 = sd(fc_2_o_agr),
+                   mean_disagr_fc_2 = mean(fc_2_o_disagr),
+                   sd_disagr_fc_2 = sd(fc_2_o_disagr))
+
+US_t2 %>% 
+  dplyr::group_by(vote, unexp) %>% 
+  dplyr::summarise(mean_fc_1 = mean(fc_1_s),
+                   sd_approval_fc_1 = sd(fc_1_s),
+                   mean_agree_fc_1 = mean(fc_1_o_agr), 
+                   sd_agree_fc_1 = sd(fc_1_o_agr),
+                   mean_disagr_fc_1 = mean(fc_1_o_disagr),
+                   sd_disagr_fc_1 = sd(fc_1_o_disagr),
+                   mean_fc_2 = mean(fc_2_s),
+                   sd_approval_fc_2 = sd(fc_2_s),
+                   mean_agree_fc_2 = mean(fc_2_o_agr), 
+                   sd_agree_fc_2 = sd(fc_2_o_agr),
+                   mean_disagr_fc_2 = mean(fc_2_o_disagr),
+                   sd_disagr_fc_2 = sd(fc_2_o_disagr))
+
+
+# descriptves group by vote only (captures Democrats)
 US_t1 %>% 
   dplyr::group_by(vote) %>% 
   dplyr::summarise(mean_fc_1 = mean(fc_1_s),
@@ -178,21 +240,13 @@ US_t2 %>%
                    mean_disagr_fc_2 = mean(fc_2_o_disagr),
                    sd_disagr_fc_2 = sd(fc_2_o_disagr))
 
-# t-test
+# t-test: (Rep/agreement t1 vs Dem/disagreement time 1) = x vs (Rep/agreement t2 vs Dem/disagreement t2) = mu
 t.test(x, mu = y)
 
 
+## using false consensus measure in regressions (Bauman & Geher (2002))
 
-## using false consensus measure as predictor (Bauman & Geher (2002))
-
-# Calculating false consensus scores. Initially, participants' false consensus scores were calculated in a number of 
-# different ways. Based on Krueger and Zeiger's (1993) truly false consensus measure, a score was computed for each 
-# individual which assessed his/her overall tendency (across all issues) to overestimate support for his/her position. A
-# similar measure was computed based on people's behavioral endorsements and estimates, rather than their attitudes. 
-# Ultimately, neither of these indices of false consensus was significantly related to behavioral intentions for the issues 
-# incorporated in this research. Thus, false consensus scores were computed for each issue by subtracting the actual 
-# consensus (based on the actual percentage of people who agreed with a particular issue) from each person's estimate to 
-# determine the extent to which he or she overestimated support for his or her position using the behavioral measure. 
+# Calculating false consensus scores. Initially, participants' false consensus scores were calculated in a number of different ways. Based on Krueger and Zeiger's (1993) truly false consensus measure, a score was computed for each individual which assessed his/her overall tendency (across all issues) to overestimate support for his/her position. A similar measure was computed based on people's behavioral endorsements and estimates, rather than their attitudes. Ultimately, neither of these indices of false consensus was significantly related to behavioral intentions for the issues incorporated in this research. Thus, false consensus scores were computed for each issue by subtracting the actual consensus (based on the actual percentage of people who agreed with a particular issue) from each person's estimate to determine the extent to which he or she overestimated support for his or her position using the behavioral measure. 
 
 # actual consensus = frequency of endorsement of items
 # estimated consensus = estimated agreement 
@@ -233,14 +287,8 @@ write.csv(US_Rep, "US_Rep.csv")
 
 US_Rep <- read_csv("./data/US_Rep.csv")
 
-# "endorsement" ?? see Krueger & Zeiger (1993)
+# "Signed values were used as it is necessary to know if a particular individual demonstrates the effect to a greater or lesser degree. Positive scores indicate people who are overestimating support, while negative scores suggest that students were underestimating actual consensus." (Bauman & Geher (2002)) --> see Krueger & Zeiger (1993): 
 
-
-
-
-
-
-
-
-
-
+US_Rep %>%
+  dplyr::group_by(time) %>%
+  dplyr::summarise(mean_TFCE = mean(TFCE_fc_1))
