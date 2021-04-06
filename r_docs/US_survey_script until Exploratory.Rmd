@@ -2481,6 +2481,35 @@ num_sign
 # among those that signed at t1 and t2: 2* donate increases, 2* donate decreases; 2* share decreases, 1* increases, 1* remains the same
 
 chisq.test(unexp_Rep$time, unexp_Rep$sign)
+
+# descriptives for behavioural measures
+
+# petition signing
+
+unexp_Rep %>%
+  dplyr::select(., time, sign) %>%
+  group_by(time, sign) %>%
+  summarise(n = n(),
+            perc = n/nrow(unexp_Rep)*100) %>%
+  kableExtra::kable(col.names = c("*Time*", "*Signed*", "*N*", "*%*"),
+                    digits = 2)
+
+# donating
+
+unexp_Rep %>%
+  dplyr::select(time, share, donate) %>%
+  group_by(time) %>%
+  filter(!is.na(share) & !is.na(donate)) %>%
+  summarise(mean = mean(share),
+            sd = sd(share),
+            min = min(share),
+            max = max(share),
+            mean_don = mean(donate),
+            sd_don = sd(donate),
+            min_don = min(donate),
+            max_don = max(donate)
+            )
+  
 ```
 
 ## Exploratory
