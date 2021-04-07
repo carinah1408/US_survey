@@ -292,3 +292,68 @@ US_Rep <- read_csv("./data/US_Rep.csv")
 US_Rep %>%
   dplyr::group_by(time) %>%
   dplyr::summarise(mean_TFCE = mean(TFCE_fc_1))
+
+## alternative correlations (different measure for FC and correlations for t1 and t2)
+
+# z-transform scales
+
+# t1
+US_t1$cn_z <- scale(US_t1$cn)
+US_t1$secident_z <- scale(US_t1$secident)
+US_t1$xeno_z <- scale(US_t1$xeno)
+US_t1$joy_z <- scale(US_t1_joy)
+US_t1$eff_z <- scale(US_t1$eff)
+US_t1$pi_1_own_z <- scale(US_t1$pi_1_own)
+US_t1$pi_1_ave_z <- scale(US_t1$pi_1_ave)
+US_t1$pi_2_own_z <- scale(US_t1$pi_2_own)
+US_t1$pi_2_ave_z <- scale(US_t1$pi_2_ave)
+
+# t2
+US_t2$cn_z <- scale(US_t2$cn)
+US_t2$secident_z <- scale(US_t2$secident)
+US_t2$xeno_z <- scale(US_t2$xeno)
+US_t2$joy_z <- scale(US_t2_joy)
+US_t2$eff_z <- scale(US_t2$eff)
+US_t2$pi_1_own_z <- scale(US_t2$pi_1_own)
+US_t2$pi_1_ave_z <- scale(US_t2$pi_1_ave)
+US_t2$pi_2_own_z <- scale(US_t2$pi_2_own)
+US_t2$pi_2_ave_z <- scale(US_t2$pi_2_ave)
+
+
+corr <- US_t1 %>%
+  dplyr::select(., cn_z, secident_z, xeno_z, joy_z, eff_z, pi_1_own_z, pi_1_ave_z, pi_2_own_z, pi_2_ave_z, age_z, sd_z, cor_values_z, cor_health_z)
+
+corr <- US_t2 %>%
+  dplyr::select(., cn_z, secident_z, xeno_z, joy_z, eff_z, pi_1_own_z, pi_1_ave_z, pi_2_own_z, pi_2_ave_z, age_z, sd_z, cor_values_z, cor_health_z)
+
+
+## alternative MLM
+library(lme4) 
+library(nlme)
+library(lmerTest) 
+library(jtools)
+
+# intercept model
+sign.mod00 <- glmer(sign ~ 1 + (1|id), family = binomial(logit), data = US_mlm, control = glmerControl(optimizer = "bobyqa"),nAGQ = 0)
+summary(sign.mod00)
+
+# model with time predictor
+sign.mod01 <- glmer(sign ~ 1 + time + (1|id), family = binomial(logit), data = US_mlm, control = glmerControl(optimizer = "bobyqa"),nAGQ = 0)
+summary(sign.mod01) # time not significant
+summ(sign.mod01, exp=TRUE)
+
+performance::icc(sign.mod01)
+
+# full model: further predictors and random slopes
+sign.mod03 <- glmer(sign ~ gmc_secident + gmc_cn + (time|id), US_mlm, family = binomial(link="logit"), control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun=2e5)))
+summary(sign.mod03) # gmc_cn and gmc_secident not significant
+summ(sign.mod03, exp=TRUE)
+
+
+
+
+
+
+sign.mod04 <- glmer(sign ~ gmc_cn + (time|id), US_mlm, family = binomial(link="logit"), control = glmerControl(optimizer = "bobyqa"),nAGQ = 0)
+summary(sign.mod04)
+summ(sign.mod04, exp=TRUE)
