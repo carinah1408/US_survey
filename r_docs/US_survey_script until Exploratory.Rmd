@@ -1715,7 +1715,7 @@ rownames(v_tab) <- c("Collective Narcissism", "Secure Ingroup Identity", "Ingrou
 kable(v_tab)
 ```
 
-# correlationn (partical correlation, multicollinearity)
+# correlation (partical correlation, multicollinearity)
 # partial correlations: when the associations between cn and the other variables is controlled for secident, the associations become weaker (even xenophobia), when the associations between secident and the other variables are controlled for cn, the associations become weaker too (xeno becomes n.s.), interesting is that the association between cn and eff becomes n.s. while secident and joy become n.s. (mirrored results)
 # Own approval and perceived agreement (item 1) "Harsh measures against immigrants and refugees are necessary." are not significantly correlated. 
 ```{r, correlations, include=TRUE}
@@ -1806,8 +1806,33 @@ correlation_matrix <- function(df,
   return(Rnew)
 }
 
+# z-transform scores
+
+US$cn_z <- scale(US$cn)
+US$secident_z <- scale(US$secident)
+US$xeno_z <- scale(US$xeno)
+US$joy_z <- scale(US$joy)
+US$eff_z <- scale(US$eff)
+US$pi_1_own_z <- scale(US$pi_1_own)
+US$pi_1_ave_z <- scale(US$pi_1_ave)
+US$pi_2_own_z <- scale(US$pi_2_own)
+US$pi_2_ave_z <- scale(US$pi_2_ave)
+US$fc_1_s_z <- scale(US$fc_1_s)
+US$fc_1_o_agr_z <- scale(US$fc_1_o_agr)
+US$fc_2_s_z <- scale(US$fc_2_s)
+US$fc_2_o_agr_z <- scale(US$fc_2_o_agr)
+US$age_z <- scale(US$age)
+US$sd_z <- scale(US$sd)
+US$cor_values_z <- scale(US$cor_values)
+US$cor_health_z <- scale(US$cor_health)
+
 corr <- US %>%
   dplyr::select(., cn, secident, xeno, joy, eff, pi_1_own, pi_1_ave, pi_2_own, pi_2_ave, fc_1_s, fc_1_o_agr, fc_2_s, fc_2_o_agr, age, sd, cor_values, cor_health)
+
+corr <- US %>%
+  dplyr::select(., cn_z, secident_z, xeno_z, joy_z, eff_z, pi_1_own_z, pi_1_ave_z, pi_2_own_z, pi_2_ave_z, fc_1_s_z, fc_1_o_agr_z, fc_2_s_z, fc_2_o_agr_z, age_z, sd_z, cor_values_z, cor_health_z)
+corr
+
 
 correlation_matrix(corr)
 
