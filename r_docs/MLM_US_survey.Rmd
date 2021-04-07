@@ -23,6 +23,7 @@ install_github('mjwestgate/sppairs')
 library(sppairs)
 library(grid)
 library(ggplot2)
+library(jtools)
 
 # loading dataset ####
 data <- here::here("data/US_data.csv")
@@ -140,11 +141,11 @@ US_mlm$donate = scale(US_mlm$donate)
 
 # mlm is chosen to account for (repeated measures within-participant) dependency: the scores measured are nested within the individual with makes the individual (id) = level 2, and the values level 1 --> we need to center by id ("group" center)
 
-# group mean center level 1 predictors (note: fc_1_o_agr, fc_2_o_agr, joy and eff are also DVs and will be added in their non-centered form when used as a DV)
+# group mean center level 2 predictors (note: fc_1_o_agr, fc_2_o_agr, joy and eff are also DVs and will be added in their non-centered form when used as a DV)
 
 US_mlm <- US_mlm %>%
   dplyr::group_by(id) %>%
-  dplyr::mutate(gmc_cn = mean(cn), gmc_secident = mean(secident), gmc_joy = mean(joy), gmc_eff = mean(eff))
+  dplyr::mutate(gmc_cn = cn - mean(cn), gmc_secident = secident - mean(secident), gmc_joy = joy - mean(joy), gmc_eff = eff - mean(eff))
 
 # factor categorical variable
 US_mlm$time <- factor(US_mlm$time)
@@ -189,8 +190,35 @@ plot_fc_2_o_agr_time
 # cn --> signing
 ```{r}
 # MLM approach: nested effects (as alternative to rmANOVA)
-sign.mod01 <- glmer(sign ~ time + gmc_secident + gmc_cn + (time|id), US_mlm, family = binomial(link="logit"), control = glmerControl(optimizer = "bobyqa"),nAGQ = 0)
-summary(sign.mod01)
+# intercept model
+sign.mod00 <- glmer(sign ~ 1 + (1|id), family = binomial(logit), data = US_mlm, control = glmerControl(optimizer = "bobyqa"),nAGQ = 0)
+summary(sign.mod00)
+
+# model with time predictor
+sign.mod01 <- glmer(sign ~ 1 + time + (1|id), family = binomial(logit), data = US_mlm, control = glmerControl(optimizer = "bobyqa"),nAGQ = 0)
+summary(sign.mod01) # time not significant
+summ(sign.mod01, exp=TRUE)
+
+performance::icc(sign.mod01)
+
+# full model: further predictors and random slopes
+sign.mod03 <- glmer(sign ~ gmc_secident + gmc_cn + (time|id), US_mlm, family = binomial(link="logit"), control = glmerControl(optimizer = "bobyqa", optCtrl = list(maxfun=2e5)))
+summary(sign.mod03) # gmc_cn and gmc_secident not significant
+summ(sign.mod03, exp=TRUE)
+
+
+
+
+
+
+sign.mod04 <- glmer(sign ~ gmc_cn + (time|id), US_mlm, family = binomial(link="logit"), control = glmerControl(optimizer = "bobyqa"),nAGQ = 0)
+summary(sign.mod04)
+summ(sign.mod04, exp=TRUE)
+
+
+
+
+
 # issues with CI
 lme4::confint.merMod(sign.mod01)
 
