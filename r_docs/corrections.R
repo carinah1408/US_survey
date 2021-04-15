@@ -326,6 +326,8 @@ corr <- US_t1 %>%
 corr <- US_t2 %>%
   dplyr::select(., cn_z, secident_z, xeno_z, joy_z, eff_z, pi_1_own_z, pi_1_ave_z, pi_2_own_z, pi_2_ave_z, age_z, sd_z, cor_values_z, cor_health_z)
 
+# DONT ADD
+
 
 ## alternative MLM
 library(lme4) 
