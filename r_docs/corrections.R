@@ -1,6 +1,23 @@
 US_t1 <- US %>%
   filter(time == "1") 
 
+US_t2 <- US %>%
+  filter(time == "2")
+
+US_t1_Rep <- US_t1 %>%
+  filter(vote == 'Republicans')
+
+US_t2_Rep <- US_t2 %>%
+  filter(vote == "Republicans")
+
+US_t1_unexp_Rep <- US_t1_Rep %>%
+  filter(unexp == "Unexpected")
+
+US_t2_unexp_Rep <- US_t2_Rep %>%
+  filter(unexp == "Unexpected")
+
+
+
 ## 1) establishing FCE by "FCE was conceptualized as the correlation between participants’ own stance towards a topic and their estimated percentage of the public with positive stance towards the topic" (extract from: Luzsa & Mayr, 2021; see also: Sargent & Newman, 2021) 
 
 US_t1 <- US_t1 %>%
@@ -19,9 +36,17 @@ US_vote_Rep_t1$fc_1_o_agr_z <- scale(US_vote_Rep_t1$fc_1_o_agr)
 US_vote_Dem_t1$fc_1_s_z <- scale(US_vote_Dem_t1$fc_1_s)
 US_vote_Dem_t1$fc_1_o_agr_z <- scale(US_vote_Dem_t1$fc_1_o_agr)
 
+US_vote_Rep_t1$fc_2_s_z <- scale(US_vote_Rep_t1$fc_2_s)
+US_vote_Rep_t1$fc_2_o_agr_z <- scale(US_vote_Rep_t1$fc_2_o_agr)
+US_vote_Dem_t1$fc_2_s_z <- scale(US_vote_Dem_t1$fc_2_s)
+US_vote_Dem_t1$fc_2_o_agr_z <- scale(US_vote_Dem_t1$fc_2_o_agr)
+
 # correlation
 cor.test(US_vote_Rep_t1$fc_1_s_z, US_vote_Rep_t1$fc_1_o_agr_z)
 cor.test(US_vote_Dem_t1$fc_1_s_z, US_vote_Dem_t1$fc_1_o_agr_z)
+
+cor.test(US_vote_Rep_t1$fc_2_s_z, US_vote_Rep_t1$fc_2_o_agr_z)
+cor.test(US_vote_Dem_t1$fc_2_s_z, US_vote_Dem_t1$fc_2_o_agr_z)
 
 # plot association between fc_1_s and fc_1_o_agr by vote
 
@@ -29,17 +54,31 @@ cor.test(US_vote_Dem_t1$fc_1_s_z, US_vote_Dem_t1$fc_1_o_agr_z)
 US_t1$fc_1_s_z <- scale(US_t1$fc_1_s)
 US_t1$fc_1_o_agr_z <- scale(US_t1$fc_1_o_agr)
 
+US_t1$fc_2_s_z <- scale(US_t1$fc_2_s)
+US_t1$fc_2_o_agr_z <- scale(US_t1$fc_2_o_agr)
+
+US_t1$vote <- as.factor(US_t1$vote)
+
 # plot
 ggplot(data = US_t1,aes(x=fc_1_s_z,y=fc_1_o_agr_z, color = vote))+
   stat_ellipse(expand = 0,aes(fill=vote))+
   geom_point(position = "jitter")+
-  scale_y_continuous(name = "Mean estimated agreement fc1") +
-  scale_x_continuous(name = "Mean own approval fc1") +
+  scale_y_continuous(name = "M est. agreement") +
+  scale_x_continuous(name = "M approval necessesity of harsh measures against immigrants and refugees") +
   scale_color_grey() +
   labs(color = "Party support") +
   cowplot::theme_cowplot()
 
-# OPTIONAL: between-group: correlation (the extent to which each party support is associated with consensus for one´s views --> correlation between party support and estimated consensus)
+ggplot(data = US_t1,aes(x=fc_2_s_z,y=fc_2_o_agr_z, color = vote))+
+  stat_ellipse(expand = 0,aes(fill=vote))+
+  geom_point(position = "jitter")+
+  scale_y_continuous(name = "M est. agreement") +
+  scale_x_continuous(name = "M approval whites are unfairly affected by affirmative action") +
+  scale_color_grey() +
+  labs(color = "Party support") +
+  cowplot::theme_cowplot()
+
+# between-group: correlation (the extent to which each party support is associated with consensus for one´s views --> correlation between party support and estimated consensus)
 cor.test(US_t1$vote, US_t1$fc_1_o_agr)
 
 US_t1 <- US_t1 %>%
@@ -57,26 +96,37 @@ US_t1 <- US_t1 %>%
 # descriptive statistics per party support
 US_t1 %>% 
   dplyr::group_by(vote) %>% 
-  dplyr::summarise(mean_fc_1 = mean(fc_1_s),
+  dplyr::summarise( mean_fc_2 = mean(fc_2_s),
+                    sd_approval_fc_2 = sd(fc_2_s),
+                    mean_agree_fc_2 = mean(fc_2_o_agr), 
+                    sd_agree_fc_2 = sd(fc_2_o_agr),
+                    mean_disagr_fc_2 = mean(fc_2_o_disagr),
+                    sd_disagr_fc_2 = sd(fc_2_o_disagr),
+                    mean_fc_1 = mean(fc_1_s),
                    sd_approval_fc_1 = sd(fc_1_s),
                    mean_agree_fc_1 = mean(fc_1_o_agr), 
                    sd_agree_fc_1 = sd(fc_1_o_agr),
                    mean_disagr_fc_1 = mean(fc_1_o_disagr),
-                   sd_disagr_fc_1 = sd(fc_1_o_disagr),
-                   mean_fc_2 = mean(fc_2_s),
-                   sd_approval_fc_2 = sd(fc_2_s),
-                   mean_agree_fc_2 = mean(fc_2_o_agr), 
-                   sd_agree_fc_2 = sd(fc_2_o_agr),
-                   mean_disagr_fc_2 = mean(fc_2_o_disagr),
-                   sd_disagr_fc_2 = sd(fc_2_o_disagr))
+                   sd_disagr_fc_1 = sd(fc_1_o_disagr))
 
 # by creating the descriptives, we also see how the party supporters score on own approval (i.e., Republicans > Democrats on own approval for racist remarks)
 
 # run t-test with Democrats´ mean as reference
 # is Mdiff significant?
 
-t.test(US_t1_Rep$fc_1_o_agr, mu = 43.4)
+f_1_s_.t.test <- t.test(US_t1_Rep$fc_1_o_agr, mu = 43.4)
+f_1_s_.t.test
+t<-f_1_s_.t.test$statistic[[1]]
+df<-f_1_s_.t.test$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
 
+f_2_s_.t.test <- t.test(US_t1_Rep$fc_2_o_agr, mu = 45.6)
+f_2_s_.t.test
+t<-f_2_s_.t.test$statistic[[1]]
+df<-f_2_s_.t.test$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
 
 ## 3) change in false consensus
 
@@ -89,6 +139,24 @@ t.test(x, mu = y)
 US$time <- as.factor(US$time)
 US$fc_1_o_agr_z <- scale(US$fc_1_o_agr)
 US$fc_1_o_disagr <- scale(US$fc_1_o_disagr)
+
+# descriptives unexp Rep
+US_t1_unexp_Rep %>%
+  summarise(mean_fc_1 = mean(fc_1_o_agr),
+            sd_fc_1 = sd(fc_1_o_agr),
+            mean_fc_2 = mean(fc_2_o_agr),
+            sd_fc_2 = sd(fc_2_o_agr))
+
+US_t2_unexp_Rep %>%
+  summarise(mean_fc_1 = mean(fc_1_o_agr),
+            sd_fc_1 = sd(fc_1_o_agr),
+            mean_fc_2 = mean(fc_2_o_agr),
+            sd_fc_2 = sd(fc_2_o_agr))
+
+
+US_t1_unexp_Rep %>%
+  summarise(mean_agree_fc_1 = mean(fc_1_o_agr),
+            mean_agree_fc_2 = mean(fc_2_o_agr))
 
 plot_summary <- US %>%
   dplyr::group_by(time, vote) %>%
@@ -115,6 +183,8 @@ plot_summary
 
 
 # plot 1
+
+# FC_1
 US <- tibble(
   vote = c('Democrats', 'Republicans', 'Democrats', 'Republicans'),
   time = c('Pre', 'Pre', 'Post', 'Post'),
@@ -134,10 +204,37 @@ US %>%
   # Manually add labels
   scale_x_continuous(breaks = (-n_groups):n_groups,
                      labels = c(group_names, 'Election', group_names))+
-  scale_y_continuous(name = "Consensus estimation (Unexp_Rep/agreement; Dem/disagreement)")+
+  scale_y_continuous(name = "Harsh measures immigrants & refugees: Agreem. (unexp_Rep) & disagreem. est. (Dem)")+
   scale_color_grey() +
   cowplot::theme_cowplot() + 
   geom_vline(xintercept = 0, linetype = "dashed")
+
+
+# FC_2
+US <- tibble(
+  vote = c('Democrats', 'Republicans', 'Democrats', 'Republicans'),
+  time = c('Pre', 'Pre', 'Post', 'Post'),
+  val = c(45.6, 62.4, 46.4, 62.7),
+)
+
+n_groups <- length(unique(US$vote))
+group_names <- unique(US$vote)
+
+US %>%
+  mutate(vote = factor(vote)) %>%
+  # Manually calculate x positions
+  mutate(x = as.integer(vote) - (n_groups + 1) * (time == "Pre")) %>%
+  ggplot(aes(x = x, y = val, vote = vote, col = vote, shape = vote)) +
+  geom_point(shape = 16, size = 2, pch = 23) +
+  geom_line(linetype = 3) +
+  # Manually add labels
+  scale_x_continuous(breaks = (-n_groups):n_groups,
+                     labels = c(group_names, 'Election', group_names))+
+  scale_y_continuous(name = "Whites unfairly affected: Agreem. (unexp_Rep) & disagreem. est. (Dem)")+
+  scale_color_grey() +
+  cowplot::theme_cowplot() + 
+  geom_vline(xintercept = 0, linetype = "dashed")
+
 
 US %>%
   mutate(vote = factor(vote)) %>%
@@ -241,7 +338,11 @@ US_t2 %>%
                    sd_disagr_fc_2 = sd(fc_2_o_disagr))
 
 # t-test: (Rep/agreement t1 vs Dem/disagreement time 1) = x vs (Rep/agreement t2 vs Dem/disagreement t2) = mu
-t.test(x, mu = y)
+US_t1 <- US_t1 %>%
+  mutate(diff_1 = )
+
+# FC1 agreement mean Republicans = 
+diff1 <- t.test(20, mu = 16.1)
 
 
 ## using false consensus measure in regressions (Bauman & Geher (2002))
@@ -253,6 +354,7 @@ t.test(x, mu = y)
 
 # TFCE = estimated agreement - actual consensus
 
+# FC1
 # establish actual consensus time 1
 
 approval_fc_1_s_t1 <- US_t1 %>% 
@@ -266,21 +368,30 @@ approval_fc_1_s_t2 <- US_t2 %>%
   nrow()
 approval_fc_1_s_t2 # results in 37 (out of 139 --> 26.6%)
 
+#FC2
+# establish actual consensus time 1
+
+approval_fc_2_s_t1 <- US_t1 %>% 
+  dplyr::filter(fc_2_s >= 4) %>%
+  nrow()
+approval_fc_2_s_t1 # results in 72 (out of 139 --> 51.8%)
+
+# establish actual consensus time 2
+approval_fc_2_s_t2 <- US_t2 %>% 
+  dplyr::filter(fc_2_s >= 4) %>%
+  nrow()
+approval_fc_2_s_t2 # results in 70 (out of 139 --> 50.4%)
+
 # --> establish overall mean of estimated agreement for Republicans
 
 US_Rep <- subset(US, vote == "Republicans")
 
-# old
-US_Rep <- US_Rep %>% 
-  group_by(id) %>%
-  dplyr::mutate(fc_1_o_agr_sum = sum(fc_1_o_agr),
-                mean_fc_1_o_agr = fc_1_o_agr_sum/2, 
-                TFCE = mean_fc_1_o_agr -61) # minus 61 from the overall mean 
-
 # minus the actual consensus from estimated per time each
 US_Rep <- US_Rep %>%
-  dplyr::mutate(TFCE_t1 = fc_1_o_agr - 29.5,
-                TFCE_t2 = fc_1_o_agr - 26.6) 
+  dplyr::mutate(TFCE_fc1_t1 = fc_1_o_agr - 29.5,
+                TFCE_fc1_t2 = fc_1_o_agr - 26.6,
+                TFCE_fc2_t1 = fc_2_o_agr - 51.8,
+                TFCE_fc2_t2 = fc_2_o_agr - 50.4) 
 
 # export file and deleted every row that was wrongly calculated by hand!
 write.csv(US_Rep, "US_Rep.csv")
@@ -289,9 +400,64 @@ US_Rep <- read_csv("./data/US_Rep.csv")
 
 # "Signed values were used as it is necessary to know if a particular individual demonstrates the effect to a greater or lesser degree. Positive scores indicate people who are overestimating support, while negative scores suggest that students were underestimating actual consensus." (Bauman & Geher (2002)) --> see Krueger & Zeiger (1993): 
 
-US_Rep %>%
+# descriptives
+US_Rep_summary <- US_Rep %>%
   dplyr::group_by(time) %>%
-  dplyr::summarise(mean_TFCE = mean(TFCE_fc_1))
+  dplyr::summarise(mean_TFCE_fc1 = mean(TFCE_fc1),
+                   sd_TFCE_fc1 = sd(TFCE_fc1),
+                   mean_TFCE_fc2 = mean(TFCE_fc2),
+                   sd_TFCE_fc2 = sd(TFCE_fc2))
+
+# regression fc, empowerment, and signing by cn
+# requires sjstats
+library(sjstats)
+
+# fc
+fc1cn <- aov(TFCE_fc1 ~ cn + secident + time + Error(id/time), data = US_Rep)
+summary(fc1cn)
+eta_sq(fc1cn)
+effectsize::eta_squared(fc1cn)
+
+fc2cn <- aov(TFCE_fc2 ~ cn + secident + time + Error(id/time), data = US_Rep)
+summary(fc2cn)
+eta_sq(fc2cn)
+effectsize::eta_squared(fc2cn)
+
+# empowerment
+joycn <- aov(joy ~ cn + secident + time + Error(id/time), data = US_Rep)
+summary(joycn)
+eta_sq(joycn)
+
+effcn <- aov(eff ~ cn + secident + time + Error(id/time), data = US_Rep)
+summary(effcn)
+eta_sq(effcn)
+
+# petition signing
+signcn <- aov(sign ~ cn + secident + time + Error(id/time), data = US_Rep)
+summary(signcn)
+eta_sq(signcn)
+
+
+
+
+
+
+
+
+
+# old
+US_Rep <- US_Rep %>% 
+  group_by(id) %>%
+  dplyr::mutate(fc_1_o_agr_sum = sum(fc_1_o_agr),
+                mean_fc_1_o_agr = fc_1_o_agr_sum/2, 
+                TFCE = mean_fc_1_o_agr -61) # minus 61 from the overall mean 
+
+
+
+
+
+
+
 
 ## alternative correlations (different measure for FC and correlations for t1 and t2)
 
