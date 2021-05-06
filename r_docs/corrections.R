@@ -411,32 +411,31 @@ US_Rep_summary <- US_Rep %>%
 # regression fc, empowerment, and signing by cn
 # requires sjstats
 library(sjstats)
+library(nlme)
+
+# standardize variables
+US_Rep$TFCE_fc1z <- scale(US_Rep$TFCE_fc1)
+US_Rep$TFCE_fc2z <- scale(US_Rep$TFCE_fc2)
+US_Rep$cnz <- scale(US_Rep$cn)
+US_Rep$secidentz <- scale(US_Rep$secident)
+US_Rep$joyz <- scale(US_Rep$joy)
+US_Rep$effz <- scale(US_Rep$eff)
 
 # fc
-fc1cn <- aov(TFCE_fc1 ~ cn + secident + time + Error(id/time), data = US_Rep)
+fc1cn <- aov(TFCE_fc1z ~ cnz + secidentz + time + Error(id/time), data = US_Rep)
 summary(fc1cn)
 eta_sq(fc1cn)
 effectsize::eta_squared(fc1cn)
 
-fc2cn <- aov(TFCE_fc2 ~ cn + secident + time + Error(id/time), data = US_Rep)
+fc2cn <- aov(TFCE_fc2z ~ cnz + secidentz + time + Error(id/time), data = US_Rep)
 summary(fc2cn)
 eta_sq(fc2cn)
 effectsize::eta_squared(fc2cn)
 
-# empowerment
-joycn <- aov(joy ~ cn + secident + time + Error(id/time), data = US_Rep)
-summary(joycn)
-eta_sq(joycn)
-
-effcn <- aov(eff ~ cn + secident + time + Error(id/time), data = US_Rep)
-summary(effcn)
-eta_sq(effcn)
-
 # petition signing
-signcn <- aov(sign ~ cn + secident + time + Error(id/time), data = US_Rep)
+signcn <- aov(sign ~ cnz + secidentz + time + Error(id/time), data = US_Rep)
 summary(signcn)
 eta_sq(signcn)
-
 
 
 
