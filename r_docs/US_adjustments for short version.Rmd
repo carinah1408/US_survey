@@ -104,7 +104,7 @@ US <- US_data %>%
 US
 ```
 
-```{r biserial correlations}
+```{r biserial correlations, partial correlations and chi-square}
 US_unexpvsexp <- US %>%
   dplyr::filter(unexp != "2")
 
@@ -168,6 +168,9 @@ pcor.test(US_unexpvsexp$cn, US_unexpvsexp$sign, US_unexpvsexp$secident, method =
 pcor.test(US$secident, US$vote, US$cn, method = "spearman")
 pcor.test(US_unexpvsexp$secident, US_unexpvsexp$unexp, US_unexpvsexp$cn, method = "spearman")
 pcor.test(US_unexpvsexp$secident, US_unexpvsexp$sign, US_unexpvsexp$cn, method = "spearman")
+
+pcor.test(US$cn, US$sign, US$secident, method = "spearman")
+pcor.test(US$secident, US$sign, US$cn, method = "spearman")
 ```
 ```{r descriptives sign}
 min(US$sign)
