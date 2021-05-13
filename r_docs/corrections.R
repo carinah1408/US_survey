@@ -418,7 +418,13 @@ US_Rep_wide <- US_Rep_wide %>%
   gather("cnz", "secidentz", "joyz", "effz", "TFCE_fc1z", "TFCE_fc2z", "sign", key = variable, value = number) %>%
   unite(combi, variable, Visit) %>%
   spread(combi, number)
-  
+
+# export csv to manually remove NAs
+write.csv(US_Rep_wide, "US_Rep_wide.csv")
+
+# read in cleaned csv
+
+US_Rep_wide <- read_csv("./data/US_Rep_wide.csv")  
 
 # "Signed values were used as it is necessary to know if a particular individual demonstrates the effect to a greater or lesser degree. Positive scores indicate people who are overestimating support, while negative scores suggest that students were underestimating actual consensus." (Bauman & Geher (2002)) --> see Krueger & Zeiger (1993): 
 
@@ -443,59 +449,56 @@ US_Rep$secidentz <- scale(US_Rep$secident)
 US_Rep$joyz <- scale(US_Rep$joy)
 US_Rep$effz <- scale(US_Rep$eff)
 
-US_t2_Rep <- US_Rep %>%
-  filter(vote == "Republicans", time == "2")
-
 # cn = predictor
 
-fc1cn <- lm(TFCE_fc1z ~ cnz + secidentz, data = US_t2_Rep)
+fc1cn <- lm(TFCE_fc1z_2 ~ cnz_2 + secidentz_2 + TFCE_fc1z_1, data = US_Rep_wide)
 summary(fc1cn)
-eta_sq(fc1cn)
+confint(fc1cn)
 
-fc2cn <- lm(TFCE_fc2z ~ cnz + secidentz, data = US_t2_Rep)
+fc2cn <- lm(TFCE_fc2z_2 ~ cnz_2 + secidentz_2 + TFCE_fc2z_1, data = US_Rep_wide)
 summary(fc2cn)
-eta_sq(fc2cn)
+confint(fc2cn)
 
-signcn <- glm(sign ~ cnz + secidentz, data = US_t2_Rep, family = "binomial")
+signcn <- glm(sign_2 ~ cnz_2 + secidentz_2 + sign_1, data = US_Rep_wide, family = "binomial")
 summary(signcn)
 exp(confint(signcn))
-exp(1.3473) # 3.847025
+exp(1.0430) # 2.837717
 
 # fc = predictor
-joyfc1 <- lm(joyz ~ TFCE_fc1z, data = US_t2_Rep)
+joyfc1 <- lm(joyz_2 ~ TFCE_fc1z_2 + joyz_1, data = US_Rep_wide)
 summary(joyfc1)
 
-joyfc2 <- lm(joyz ~ TFCE_fc2z, data = US_t2_Rep)
+joyfc2 <- lm(joyz_2 ~ TFCE_fc2z_2 + joyz_1, data = US_Rep_wide)
 summary(joyfc2)
 
-efffc1 <- lm(effz ~ TFCE_fc1z, data = US_t2_Rep)
+efffc1 <- lm(effz_2 ~ TFCE_fc1z_2 + effz_1, data = US_Rep_wide)
 summary(efffc1)
 
-efffc2 <- lm(effz ~ TFCE_fc2z, data = US_t2_Rep)
+efffc2 <- lm(effz_2 ~ TFCE_fc2z_2 + effz_1, data = US_Rep_wide)
 summary(efffc2)
 
-signfc1 <- glm(sign ~ TFCE_fc1z, data = US_t2_Rep, family = "binomial")
+signfc1 <- glm(sign_2 ~ TFCE_fc1z_2 + sign_1, data = US_Rep_wide, family = "binomial")
 summary(signfc1)
 
-signfc2 <- glm(sign ~ TFCE_fc2z, data = US_t2_Rep, family = "binomial")
+signfc2 <- glm(sign_2 ~ TFCE_fc2z_2 + sign_1, data = US_Rep_wide, family = "binomial")
 summary(signfc2)
 
 # emp = predictor
-signjoy <- glm(sign ~ joy, data = US_t2_Rep, family = "binomial")
+signjoy <- glm(sign_2 ~ joyz_2 + sign_1, data = US_Rep_wide, family = "binomial")
 summary(signjoy)
-exp(0.5639) # 1.757513
+exp(0.7860) # 2.1946
 exp(confint(signjoy))
 
-signeff <- glm(sign ~ effz, data = US_t2_Rep, family = "binomial")
+signeff <- glm(sign_2 ~ effz_2 + sign_1, data = US_Rep_wide, family = "binomial")
 summary(signeff)
-exp(0,2729) # 1.3473
+exp(0.1172) # 1.124344
 exp(confint(signeff))
 
 
 
 
 
-
+# OLD
 
 # fc
 fc1cn <- aov(TFCE_fc1z ~ cnz + secidentz + time + Error(id/time), data = US_Rep)
