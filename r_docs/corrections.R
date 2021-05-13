@@ -191,6 +191,7 @@ US <- tibble(
   val = c(43.4, 63.4, 45.3, 61.4),
 )
 
+color_group <- c("blue","red")
 n_groups <- length(unique(US$vote))
 group_names <- unique(US$vote)
 
@@ -204,8 +205,8 @@ US %>%
   # Manually add labels
   scale_x_continuous(breaks = (-n_groups):n_groups,
                      labels = c(group_names, 'Election', group_names))+
-  scale_y_continuous(name = "Harsh measures immigrants & refugees: Agreem. (unexp_Rep) & disagreem. est. (Dem)")+
-  scale_color_grey() +
+  scale_y_continuous(name = "Harsh measures immigr. & refug.: Agreem. (unexp_Rep) & disagreem. est. (Dem)")+
+  scale_colour_manual(values=color_group) +
   cowplot::theme_cowplot() + 
   geom_vline(xintercept = 0, linetype = "dashed")
 
@@ -217,6 +218,7 @@ US <- tibble(
   val = c(45.6, 62.4, 46.4, 62.7),
 )
 
+color_group <- c("blue","red")
 n_groups <- length(unique(US$vote))
 group_names <- unique(US$vote)
 
@@ -231,7 +233,7 @@ US %>%
   scale_x_continuous(breaks = (-n_groups):n_groups,
                      labels = c(group_names, 'Election', group_names))+
   scale_y_continuous(name = "Whites unfairly affected: Agreem. (unexp_Rep) & disagreem. est. (Dem)")+
-  scale_color_grey() +
+  scale_colour_manual(values=color_group) +
   cowplot::theme_cowplot() + 
   geom_vline(xintercept = 0, linetype = "dashed")
 
@@ -398,6 +400,26 @@ write.csv(US_Rep, "US_Rep.csv")
 
 US_Rep <- read_csv("./data/US_Rep.csv")
 
+# convert from long into wide format
+
+US_Rep_wide <- US_Rep %>%
+  dplyr::select("id", "time", "cnz", "secidentz", "joyz", "effz", "TFCE_fc1z", "TFCE_fc2z", "sign") 
+
+US_Rep_wide %>%
+  gather("cnz", "secidentz", "joyz", "effz", "TFCE_fc1z", "TFCE_fc2z", "sign", key = variable, value = number)
+
+US_Rep_wide %>% group_by(id) %>%
+  mutate(Visit = 1:n()) %>%
+  gather("cnz", "secidentz", "joyz", "effz", "TFCE_fc1z", "TFCE_fc2z", "sign", key = variable, value = number)
+
+US_Rep_wide <- US_Rep_wide %>%
+  group_by(id) %>%
+  mutate(Visit = 1:n()) %>%
+  gather("cnz", "secidentz", "joyz", "effz", "TFCE_fc1z", "TFCE_fc2z", "sign", key = variable, value = number) %>%
+  unite(combi, variable, Visit) %>%
+  spread(combi, number)
+  
+
 # "Signed values were used as it is necessary to know if a particular individual demonstrates the effect to a greater or lesser degree. Positive scores indicate people who are overestimating support, while negative scores suggest that students were underestimating actual consensus." (Bauman & Geher (2002)) --> see Krueger & Zeiger (1993): 
 
 # descriptives
@@ -420,6 +442,60 @@ US_Rep$cnz <- scale(US_Rep$cn)
 US_Rep$secidentz <- scale(US_Rep$secident)
 US_Rep$joyz <- scale(US_Rep$joy)
 US_Rep$effz <- scale(US_Rep$eff)
+
+US_t2_Rep <- US_Rep %>%
+  filter(vote == "Republicans", time == "2")
+
+# cn = predictor
+
+fc1cn <- lm(TFCE_fc1z ~ cnz + secidentz, data = US_t2_Rep)
+summary(fc1cn)
+eta_sq(fc1cn)
+
+fc2cn <- lm(TFCE_fc2z ~ cnz + secidentz, data = US_t2_Rep)
+summary(fc2cn)
+eta_sq(fc2cn)
+
+signcn <- glm(sign ~ cnz + secidentz, data = US_t2_Rep, family = "binomial")
+summary(signcn)
+exp(confint(signcn))
+exp(1.3473) # 3.847025
+
+# fc = predictor
+joyfc1 <- lm(joyz ~ TFCE_fc1z, data = US_t2_Rep)
+summary(joyfc1)
+
+joyfc2 <- lm(joyz ~ TFCE_fc2z, data = US_t2_Rep)
+summary(joyfc2)
+
+efffc1 <- lm(effz ~ TFCE_fc1z, data = US_t2_Rep)
+summary(efffc1)
+
+efffc2 <- lm(effz ~ TFCE_fc2z, data = US_t2_Rep)
+summary(efffc2)
+
+signfc1 <- glm(sign ~ TFCE_fc1z, data = US_t2_Rep, family = "binomial")
+summary(signfc1)
+
+signfc2 <- glm(sign ~ TFCE_fc2z, data = US_t2_Rep, family = "binomial")
+summary(signfc2)
+
+# emp = predictor
+signjoy <- glm(sign ~ joy, data = US_t2_Rep, family = "binomial")
+summary(signjoy)
+exp(0.5639) # 1.757513
+exp(confint(signjoy))
+
+signeff <- glm(sign ~ effz, data = US_t2_Rep, family = "binomial")
+summary(signeff)
+exp(0,2729) # 1.3473
+exp(confint(signeff))
+
+
+
+
+
+
 
 # fc
 fc1cn <- aov(TFCE_fc1z ~ cnz + secidentz + time + Error(id/time), data = US_Rep)
