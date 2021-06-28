@@ -91,7 +91,7 @@ US_t1 <- US_t1 %>%
 
 # "Consistent with Ross et al. (1977), false consensus was operationalized as existing when individuals rate the incidence of their own opinions and behaviors in the wider community more highly than those who do not share those opinions and behaviors. On this basis, prejudiced respondents would tend to estimate that more community members are prejudiced (i.e ., agree with their views) than non-prejudiced respondents estimate community members are prejudiced (i.e., disagree with their views), and vice versa" (extract from: Watts & Larkin, 2010)
 
-# --> Mdiff = extent of false consensus
+# -> Mdiff = extent of false consensus
 
 # descriptive statistics per party support
 US_t1 %>% 
