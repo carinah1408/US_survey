@@ -1,0 +1,2615 @@
+---
+title: "script_US_survey (without Exploratory H7 and MLM)"
+author: "CH"
+date: "28/11/2020"
+output: html_document
+---
+
+```{r setup, include=TRUE}
+knitr::opts_chunk$set(echo = TRUE)
+# packages ####
+library(here) # find relative path
+library(readr) # read dataset
+library(tidyverse) # data wrangling
+library(dplyr) # data wrangling
+library(remotes) # for downloading packages not on CRAN
+library(Routliers) # outlier detection
+library(psych) # normality, reliability
+library(lavaan) # CFA
+library(ggplot2) # graphs
+library(MVN) # assumption check CFA
+library(papaja) # APA tables
+library(knitr) # kable function
+library(Hmisc) # for correlation
+library(ppcor) # partial correlation
+library(polycor) # polyserial correlation
+library(forcats) # factor relevel
+library(QuantPsyc) # standardized coefficients
+library(pscl) # R2 for logistic regression
+library(InformationValue) # model diagnostics logistic regression
+library(car) # vif
+
+
+# loading dataset ####
+data <- here::here("data/US_data.csv")
+
+US_data <- readr::read_csv(data) %>%
+  as_tibble() 
+
+# transform factor variables
+US_data$time <- factor(US_data$time)
+US_data$unexp <- factor(US_data$unexp)
+US_data$vote <- factor(US_data$vote)
+
+# change variable labels
+US_data <- US_data %>%
+  mutate(vote = case_when(
+  vote=='1' ~ 'Democrats',
+  vote=='2' ~ 'Republicans',
+  TRUE ~ 'Other'))
+
+US_data <- US_data %>%
+  mutate(unexp = case_when(
+    unexp == "0" ~ "Expected",
+    unexp == "1" ~ "Unexpected",
+    unexp == "2" ~ "Neither expected nor unexpected"))
+
+US_data <- US_data %>%
+  mutate(gend = case_when(
+    gend == "1" ~ "Female",
+    gend == "2" ~ "Male",
+    gend == "3" ~ "Non-binary"
+  ))
+
+US_data <- US_data %>%
+  mutate(ethn = case_when(
+    ethn == "1" ~ "Asian-American",
+    ethn == "2" ~ "Black or African American",
+    ethn == "3" ~ "Hispanic or Latino American",
+    ethn == "4" ~ "Native American",
+    ethn == "5" ~ "White or European American",
+    ethn == "6" ~ "Other"
+  ))
+
+US_data <- US_data %>%
+  mutate(degree =case_when(
+    degree == "1" ~ "No degree",
+    degree == "2" ~ "High School",
+    degree == "3" ~ "Bachelor´s degree",
+    degree == "4" ~ "Master´s degree",
+    degree == "5" ~ "Doctoral degree",
+    degree == "6" ~ "Professional degree",
+    degree == "7" ~ "Other"
+  ))
+
+US_data <- US_data %>%
+  mutate(employ = case_when(
+    employ == "1" ~ "Working - paid employee",
+    employ == "2" ~ "Working - self-employed",
+    employ == "3" ~ "Not working - temporary layoff from a job",
+    employ == "4" ~ "Not working - looking for a job",
+    employ == "5" ~ "Not working - retired",
+    employ == "6" ~ "Not working - disabled",
+    employ == "7" ~ "Not working - student",
+    employ == "8" ~ "Other"
+  ))
+
+US_data <- US_data %>%
+  mutate(income = case_when(
+    income == "1" ~ "$0 - $10,000",
+    income == "2" ~ "$10,000 - $20,000",
+    income == "3" ~ "$20,000 - $30,000",
+    income == "4" ~ "$30,000 - $40,000",
+    income == "5" ~ "$40,000 - $50,000",
+    income == "6" ~ "over $50,000"
+  ))
+
+# create new variables
+US <- US_data %>%
+  mutate(cn = (cn_1 + cn_2 + cn_3 + cn_4 + cn_5)/5,
+        secident = (secident_1 + secident_2 + secident_3 + secident_4 + secident_5 +
+        secident_6 + secident_7 + secident_8 + secident_9 + secident_10)/10,
+        ingroup_satis = (secident_4 + secident_5 + secident_6 + secident_7)/4,
+        xeno = (xeno_1 + xeno_2 + xeno_3 + xeno_4)/4, 
+        joy = (joy_1 + joy_2)/2,
+        eff = (eff_1 + eff_2)/2) %>%
+  as.tibble()
+US
+
+# transform factor variables in new dataset
+US$time <- factor(US$time)
+US$unexp <- factor(US$unexp)
+US$vote <- factor(US$vote)
+```
+
+## Data inspection
+
+# boxplots (visual outlier inspection)
+```{r boxplots, include=TRUE}
+# cn
+
+box_cn_1 <- boxplot(US_data$cn_1) # "American people deserve special treatment."
+# 1 outlier in cn_1
+
+box_cn_2 <- boxplot (US_data$cn_2) # "I will never be satisfied until American people get all they deserve."
+box_cn_3 <- boxplot(US_data$cn_3) # "It really makes me angry when others criticize American people."
+box_cn_4 <- boxplot(US_data$cn_4) # "If American people had a major say in the world, the world would be a much better place."
+box_cn_5 <- boxplot(US_data$cn_5) # "Not many people seem to fully understand the importance of American people."
+
+# secident
+
+box_secident_1 <- boxplot(US_data$secident_1) # "I feel a bond with Americans."
+box_secident_2 <- boxplot(US_data$secident_2) # "I feel solidarity with Americans."
+box_secident_3 <- boxplot(US_data$secident_3) # "I feel committed to Americans."
+box_secident_4 <- boxplot(US_data$secident_4) # "I am glad to be American."
+box_secident_5 <- boxplot(US_data$secident_5) # "I think that Americans have a lot to be proud of."
+box_secident_6 <- boxplot(US_data$secident_6) # "It is pleasant to be American."
+box_secident_7 <- boxplot(US_data$secident_7) # "Being American gives me a good feeling."
+box_secident_8 <- boxplot(US_data$secident_8) # "I often think about the fact that I am American."
+box_secident_9 <- boxplot(US_data$secident_9) # "The fact that I am American is an important part of my identity."
+box_secident_10 <- boxplot(US_data$secident_10) # "Being American is an important part of how I see myself."
+
+# Striking is that items secident _7 to _10 show the same boxplot. I checked the raw data to make sure that the values were not accidentally doublicated and copy-pasted but the items are unique in values, yet similar to each other in expression. Potentially colinear? ####
+
+# xeno
+
+box_xeno_1 <- boxplot(US_data$xeno_1) # "It would be ok for me if my child married a person of color."
+box_xeno_2 <- boxplot(US_data$xeno_2) # "It would be ok for me if my child married a person that immigrated to America."
+box_xeno_3 <- boxplot(US_data$xeno_3) # "To be truly American you have to be White."
+box_xeno_4 <- boxplot(US_data$xeno_4) # "America has benefited from diversity."
+box_xeno_5 <- boxplot(US_data$xeno_5) # "When I think about the Black Lives Matter movement, I think that all lives matter."
+box_xeno_6 <- boxplot(US_data$xeno_6) # "I support the Black Lives Matter movement."
+# 1 outlier in xeno_1, 1 in xeno_2, 3 in xeno_3 ####
+
+# joy
+
+box_joy_1 <- boxplot(US_data$joy_1) # "The US presidential election 2020 makes me feel joyful."
+box_joy_2 <- boxplot(US_data$joy_2) # "The US presidential election 2020 makes me feel excited."
+
+# eff
+
+box_eff_1 <- boxplot(US_data$eff_1) # "Thinking about the US presidential election 2020, I believe that we Americans can change society."
+box_eff_2 <- boxplot(US_data$eff_2) # "Thinking about the US presidential election 2020, I believe that we Americans can realize our values."
+# 1 outlier in eff_1
+```
+
+# histogram (visual frequency inspection)
+```{r histograms, include=TRUE}
+# cn 
+ggplot(US_data, aes(x=cn_1))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "I will never be satisfied until American people get all they deserve.", y = "Frequency") +
+  theme_light()
+
+ggplot(US_data, aes(x=cn_2))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "I will never be satisfied until American people get all they deserve.", y = "Frequency") +
+  theme_light()
+
+ggplot(US_data, aes(x=cn_3))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "It really makes me angry when others criticize American people.", y = "Frequency") +
+  theme_light()
+
+ggplot(US_data, aes(x=cn_4))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "If American people had a major say in the world, the world would be a much better place.", y = "Frequency") +
+  theme_light()
+
+ggplot(US_data, aes(x=cn_5))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Not many people seem to fully understand the importance of American people.", y = "Frequency") +
+  theme_light()
+
+
+# xeno 
+ggplot(US_data, aes(x=xeno_1))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "rev_It would be ok for me if my child married a person of color.", y = "Frequency") +
+  theme_light()
+
+ggplot(US_data, aes(x=xeno_2))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "rev_It would be ok for me if my child married a person that immigrated to America.", y = "Frequency") +
+  theme_light()
+
+ggplot(US_data, aes(x=xeno_3))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "To be truly American you have to be White.", y = "Frequency") +
+  theme_light()
+
+ggplot(US_data, aes(x=xeno_4))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "rev_America has benefited from diversity.", y = "Frequency") +
+  theme_light()
+
+ggplot(US_data, aes(x=xeno_5))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "When I think about the Black Lives Matter movement, I think that all lives matter.", y = "Frequency") +
+  theme_light()
+# potentially problematic wording!
+
+ggplot(US_data, aes(x=xeno_6))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "rev_I support the Black Lives Matter movement.", y = "Frequency") +
+  theme_light()
+
+
+# secident
+ggplot(US_data, aes(x=secident_1))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "I feel a bond with Americans.", y = "Frequency") +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_2))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "I feel solidarity with Americans.", y = "Frequency") +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_3))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "I feel committed to Americans.", y = "Frequency") +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_4))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "I am glad to be American.", y = "Frequency") +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_5))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "I think that Americans have a lot to be proud of.", y = "Frequency") +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_6))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "It is pleasant to be American.", y = "Frequency") +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_7))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Being American gives me a good feeling.", y = "Frequency") +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_8))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "I often think about the fact that I am American.", y = "Frequency") +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_9))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "The fact that I am American is an important part of my identity.", y = "Frequency") +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_10))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Being American is an important part of how I see myself.", y = "Frequency") +
+  theme_light()
+
+# joy
+ggplot(US_data, aes(x=joy_1))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "The US presidential election 2020 makes me feel joyful.", y = "Frequency") +
+  theme_light()
+
+ggplot(US_data, aes(x=joy_2))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "The US presidential election 2020 makes me feel excited.", y = "Frequency") +
+  theme_light()
+
+
+# eff
+ggplot(US_data, aes(x=eff_1))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Thinking about the US presidential election 2020, I believe that we Americans can change society.", y = "Frequency") +
+  theme_light()
+
+ggplot(US_data, aes(x=eff_2))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Thinking about the US presidential election 2020, I believe that we Americans can realize our values.", y = "Frequency") +
+  theme_light()
+```
+
+```{r histograms by group, include=TRUE}
+
+# cn by vote
+ggplot(US_data, aes(x=cn_1, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "American people deserve special treatment.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=cn_2, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I will never be satisfied until American people get all they deserve.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=cn_3, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "It really makes me angry when others criticize American people.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=cn_4, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "If American people had a major say in the world, the world would be a much better place.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=cn_5, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Not many people seem to fully understand the importance of American people.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+# plot in paper
+ggplot(US, aes(x=cn, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Collective narcissism", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_classic()
+
+
+# cn by time
+ggplot(US_data, aes(x=cn_1, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "American people deserve special treatment.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=cn_2, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I will never be satisfied until American people get all they deserve.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=cn_3, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "It really makes me angry when others criticize American people.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=cn_4, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "If American people had a major say in the world, the world would be a much better place.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=cn_5, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Not many people seem to fully understand the importance of American people.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+
+# xeno by vote
+ggplot(US_data, aes(x=xeno_1, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "rev_It would be ok for me if my child married a person of color.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=xeno_2, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "rev_It would be ok for me if my child married a person that immigrated to America.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=xeno_3, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "To be truly American you have to be White.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=xeno_4, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "rev_America has benefited from diversity.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=xeno_5, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "When I think about the Black Lives Matter movement, I think that all lives matter.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=xeno_6, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "rev_I support the Black Lives Matter movement.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US, aes(x=xeno, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Xenophobia", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+
+# xeno by time
+ggplot(US_data, aes(x=xeno_1, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "rev_It would be ok for me if my child married a person of color.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=xeno_2, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "rev_It would be ok for me if my child married a person that immigrated to America.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=xeno_3, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "To be truly American you have to be White.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=xeno_4, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "rev_America has benefited from diversity.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=xeno_5, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "When I think about the Black Lives Matter movement, I think that all lives matter.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=xeno_6, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "rev_I support the Black Lives Matter movement.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+
+# secident by vote
+ggplot(US_data, aes(x=secident_1, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I feel a bond with Americans.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_2, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I feel solidarity with Americans.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_3, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I feel committed to Americans.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_4, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I am glad to be American.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_5, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I think that Americans have a lot to be proud of.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_6, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "It is pleasant to be American.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_7, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Being American gives me a good feeling.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_8, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I often think about the fact that I am American.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_9, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "The fact that I am American is an important part of my identity.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_10, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Being American is an important part of how I see myself.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=secident, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Secure ingroup identification", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+
+# secident by time
+ggplot(US_data, aes(x=secident_1, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I feel a bond with Americans.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_2, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I feel solidarity with Americans.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_3, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I feel committed to Americans.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_4, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I am glad to be American.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_5, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I think that Americans have a lot to be proud of.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_6, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "It is pleasant to be American.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_7, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Being American gives me a good feeling.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_8, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "I often think about the fact that I am American.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_9, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "The fact that I am American is an important part of my identity.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=secident_10, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Being American is an important part of how I see myself.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+
+# joy by vote
+ggplot(US_data, aes(x=joy_1, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "The US presidential election 2020 makes me feel joyful.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=joy_2, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "The US presidential election 2020 makes me feel excited.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+
+# joy by time
+ggplot(US_data, aes(x=joy_1, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "The US presidential election 2020 makes me feel joyful.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=joy_2, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "The US presidential election 2020 makes me feel excited.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+
+# eff by vote
+ggplot(US_data, aes(x=eff_1, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Thinking about the US presidential election 2020, I believe that we Americans can change society.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=eff_2, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Thinking about the US presidential election 2020, I believe that we Americans can realize our values.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+# eff by time
+ggplot(US_data, aes(x=eff_1, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Thinking about the US presidential election 2020, I believe that we Americans can change society.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=eff_2, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Thinking about the US presidential election 2020, I believe that we Americans can realize our values.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+```
+
+# outlier detection (using MAD)
+```{r outlier detection using MAD, include = TRUE}
+# cn
+cn <- rowMeans(US_data[, c("cn_1", "cn_2", "cn_3", "cn_4", "cn_5")])
+cn_mad <- outliers_mad(x = cn)
+cn_mad
+
+
+# secident
+secident <- rowMeans(US_data[, c("secident_1", "secident_2", "secident_3", "secident_4", "secident_5", "secident_6", "secident_7", "secident_8", "secident_9", "secident_10")])
+secident_mad <- outliers_mad(x = secident)
+secident_mad
+
+# xeno
+xeno <- rowMeans(US_data[, c("xeno_1", "xeno_2", "xeno_3", "xeno_4", "xeno_5", "xeno_6")])
+xeno_mad <- outliers_mad(x = xeno)
+xeno_mad
+plot_outliers_mad(xeno_mad, x = xeno, pos_display = TRUE)
+# 6 outliers detected: the value of 2.9826 was compared with the median of xeno_1 - xeno_6 in dataset and the following outliers were identified: p090, t1 (in xeno_1 & xeno_2), p189 (in xeno_1 & xeno_2), p192, t2 (in xeno_2 & xeno_3), p196 (in xeno_1, xeno_2, xeno_3) ####
+
+# joy
+joy <- rowMeans(US_data[, c("joy_1", "joy_2")])
+joy_mad <- outliers_mad(x = joy)
+joy_mad
+
+
+# eff
+eff <- rowMeans(US_data[, c("eff_1", "eff_2")])
+eff_mad <- outliers_mad(x = eff)
+eff_mad
+```
+
+# reliability (internal consistency and Spearman rho) 
+```{r, reliability, include=TRUE}
+# Reliability if item is dropped (--> raw alpha)
+
+# cn
+key <- list(
+  CN = c("cn_1", "cn_2", "cn_3", "cn_4", "cn_5")
+)
+
+# Cronbach´s alpha
+scoreItems(key, US_data)
+
+US_data %>%
+  dplyr::select(5:9) %>%
+  psych::alpha()
+
+# cronbach´s alpha for cn = 0.84
+
+
+# secident
+key <- list(
+  secident = c("secident_1", "secident_2", "secident_3", "secident_4", "secident_5", 
+               "secident_6", "secident_7", "secident_8", "secident_9", "secident_10")
+)
+
+# Cronbach´s alpha
+scoreItems(key, US_data)
+
+US_data %>%
+  dplyr::select(16:25) %>%
+  psych::alpha()
+
+# cronbach´s alpha for secident = 0.96
+
+# ingroup_satis
+key <- list(
+  ingroup_satis = c("secident_4", "secident_5", 
+               "secident_6", "secident_7")
+)
+
+# Cronbach´s alpha
+scoreItems(key, US_data)
+
+US_data %>%
+  dplyr::select(19:22) %>%
+  psych::alpha()
+
+# cronbach´s alpha for ingroup_satis = 0.95
+
+# ingroup_central
+key <- list(
+  ingroup_central = c("secident_8", "secident_9", 
+               "secident_10")
+)
+
+# Cronbach´s alpha
+scoreItems(key, US_data)
+
+US_data %>%
+  dplyr::select(23:25) %>%
+  psych::alpha()
+
+# cronbach´s alpha for ingroup_central = 0.85
+
+# ingroup_soli
+key <- list(
+  ingroup_soli = c("secident_1", "secident_2", 
+               "secident_3")
+)
+
+# Cronbach´s alpha
+scoreItems(key, US_data)
+
+US_data %>%
+  dplyr::select(16:18) %>%
+  psych::alpha()
+
+# cronbach´s alpha for ingroup_soli = 0.91
+
+# xeno
+key <- list(
+  xeno = c("xeno_1", "xeno_2", "xeno_3", "xeno_4", "xeno_5", "xeno_6")
+)
+
+# Cronbach´s alpha
+scoreItems(key, US_data)
+
+US_data %>%
+  dplyr::select(10:15) %>%
+  psych::alpha()
+
+# xeno without xeno_5 (see CFA)
+key <- list(
+  xeno_1 = c("xeno_1", "xeno_2", "xeno_3", "xeno_4", "xeno_6")
+)
+
+# Cronbach´s alpha
+scoreItems(key, US_data)
+
+US_data %>%
+  dplyr::select(10, 11, 12, 13, 15) %>%
+  psych::alpha()
+
+
+# cronbach´s alpha for xeno without xeno_5 = 0.71
+
+# xeno without xeno_5 and xeno_6 (see CFA)
+key <- list(
+  xeno_2 = c("xeno_1", "xeno_2", "xeno_3", "xeno_4")
+)
+
+# Cronbach´s alpha
+scoreItems(key, US_data)
+
+US_data %>%
+  dplyr::select(10, 11, 12, 13) %>%
+  psych::alpha()
+
+
+# cronbach´s alpha for xeno without xeno_5 = 0.71
+
+# joy (Spearman-Brown statistic)
+
+cor.test(US_data$joy_1, US_data$joy_2,
+         method = "spearman")
+
+# Spearman rho = .69
+
+# eff (Spearman-Brown statistic)
+
+cor.test(US_data$eff_1, US_data$eff_2,
+         method = "spearman")
+
+# Spearman rho = .65
+```
+
+# normality test for those items, a normal distribution is expected (use ML estimation, for those items no normal distribution is expected (xenophobia), use MLR in CFA
+
+# action required if skewness > 2, kurtosis > 7, multivariate kurtosis (Mardia´s coefficient) > 3
+# psych package: describe() --> skew and kurtosis, mardia ()
+```{r, normality, include=TRUE}
+# cn 
+describe(US_data$cn_1)
+describe(US_data$cn_2)
+describe(US_data$cn_3)
+describe(US_data$cn_4)
+describe(US_data$cn_5)
+
+# secident
+describe(US_data$secident_1)
+describe(US_data$secident_2)
+describe(US_data$secident_3)
+describe(US_data$secident_4)
+describe(US_data$secident_5)
+describe(US_data$secident_6)
+describe(US_data$secident_7)
+describe(US_data$secident_8)
+describe(US_data$secident_9)
+describe(US_data$secident_10)
+
+# xeno
+describe(US_data$xeno_1)
+describe(US_data$xeno_2)
+describe(US_data$xeno_3)
+describe(US_data$xeno_4)
+describe(US_data$xeno_5)
+describe(US_data$xeno_6)
+# xeno_3 shows issues: use MLR in estimation since non-normality is excepted here
+
+# joy
+describe(US_data$joy_1)
+describe(US_data$joy_2)
+
+# eff
+describe(US_data$eff_1)
+describe(US_data$joy_2)
+```
+
+# validity (CFA) based on items that were chosen to be kept
+# data has to be data matrix
+```{r, cfa, include=TRUE}
+# Check the results, quick check with "User Model versus
+# Baseline Model," which should have values above 0.9 or
+# possibly 0.95
+
+# cn
+
+cn.cfa <- US_data %>%
+  dplyr::select(cn_1, cn_2, cn_3, cn_4, cn_5) 
+
+mardia(cn.cfa, plot = TRUE)
+
+keep <- function(x) {
+(x >= mean(x) - 3*sd(x)) & 
+(x <= mean(x) + 3*sd(x))  
+}
+
+cn.cfa_clean <- cn.cfa %>%
+  filter(keep(cn_1) &
+           keep(cn_2) &
+           keep(cn_3) &
+           keep(cn_4) &
+           keep(cn_5))
+
+cn.model <- 'CollectNar =~ cn_1 + cn_2 + cn_3 + cn_4 + cn_5'
+
+fit_cn <- cfa(cn.model, data = cn.cfa_clean)
+
+fit_cn %>% summary(fit.measures = TRUE, standardized = TRUE)
+
+lavInspect(fit_cn, what = "sampstat")
+lavInspect(fit_cn, what = "implied")
+residual_cn <- lavInspect(fit_cn, what = "sampstat") $cov - 
+  lavInspect(fit_cn, what = "implied") $cov
+residual_cn
+
+# Residual divided by an estimate of its standard error.
+# If greater than 2, it is significantly different from zero.
+resid(fit_cn, type = "standardized")
+
+# xeno
+xeno.cfa <- US_data %>%
+  dplyr::select(xeno_1, xeno_2, xeno_3, xeno_4, xeno_5, xeno_6)
+  
+xeno.model <- 'Xenophobia =~ xeno_1 + xeno_2 + xeno_3 + xeno_4 + xeno_5 +
+xeno_6'
+
+fit_xeno <- cfa(xeno.model, data = xeno.cfa, estimator = "MLR")
+
+fit_xeno %>% summary(fit.measures = TRUE)
+
+lavInspect(fit_xeno, what = "sampstat")
+lavInspect(fit_xeno, what = "implied")
+residual_xeno <- lavInspect(fit_xeno, what = "sampstat") $cov - 
+  lavInspect(fit_xeno, what = "implied") $cov
+residual_xeno
+resid(fit_xeno, type = "standardized")
+
+# without item 5 and 6 
+xeno.cfa_1 <- US_data %>%
+  dplyr::select(xeno_1, xeno_2, xeno_3, xeno_4)
+  
+xeno.model_1 <- 'Xenophobia =~ xeno_1 + xeno_2 + xeno_3 + xeno_4'
+
+fit_xeno_1 <- cfa(xeno.model_1, data = xeno.cfa_1, estimator = "MLR")
+
+fit_xeno_1 %>% summary(fit.measures = TRUE)
+
+lavInspect(fit_xeno_1, what = "sampstat")
+lavInspect(fit_xeno_1, what = "implied")
+residual_xeno <- lavInspect(fit_xeno_1, what = "sampstat") $cov - 
+  lavInspect(fit_xeno_1, what = "implied") $cov
+residual_xeno
+resid(fit_xeno_1, type = "standardized")
+
+
+# 6 outliers detected: the value of 2.9826 was compared with the median of xeno_1 - xeno_6 in dataset and the following outliers were identified: p090, t1 (in xeno_1 & xeno_2), p189 (in xeno_1 & xeno_2), p192, t2 (in xeno_2 & xeno_3), p196 (in xeno_1, xeno_2, xeno_3) ####
+
+xeno.cfa_2 <- US_data %>%
+  dplyr::filter(id != "p090" & id != "189" & id != "192" & id != "196") %>%
+  dplyr::select(xeno_1, xeno_2, xeno_3, xeno_4, xeno_5, xeno_6)
+  
+xeno.model_2 <- 'Xenophobia =~ xeno_1 + xeno_2 + xeno_3 + xeno_4 + xeno_5 +
+xeno_6'
+
+fit_xeno_2 <- cfa(xeno.model, data = xeno.cfa, estimator = "MLR")
+
+fit_xeno_2 %>% summary(fit.measures = TRUE)
+
+lavInspect(fit_xeno_2, what = "sampstat")
+lavInspect(fit_xeno_2, what = "implied")
+residual_xeno <- lavInspect(fit_xeno, what = "sampstat") $cov - 
+  lavInspect(fit_xeno_2, what = "implied") $cov
+residual_xeno
+resid(fit_xeno_2, type = "standardized")
+
+# xeno without xeno_5
+
+xeno.cfa_3 <- US_data %>%
+  dplyr::filter(id != "p090" & id != "189" & id != "192" & id != "196") %>%
+  dplyr::select(xeno_1, xeno_2, xeno_3, xeno_4, xeno_6)
+  
+xeno.model_3 <- 'Xenophobia =~ xeno_1 + xeno_2 + xeno_3 + xeno_4 +
+xeno_6'
+
+fit_xeno_3 <- cfa(xeno.model_3, data = xeno.cfa_3, estimator = "MLR")
+
+fit_xeno_3 %>% summary(fit.measures = TRUE)
+
+lavInspect(fit_xeno_3, what = "sampstat")
+lavInspect(fit_xeno_3, what = "implied")
+residual_xeno_3 <- lavInspect(fit_xeno_3, what = "sampstat") $cov - 
+  lavInspect(fit_xeno_3, what = "implied") $cov
+residual_xeno_3
+resid(fit_xeno_3, type = "standardized")
+
+# xeno without xeno_5 and xeno_6
+
+xeno.cfa_4 <- US_data %>%
+  dplyr::filter(id != "p090" & id != "189" & id != "192" & id != "196") %>%
+  dplyr::select(xeno_1, xeno_2, xeno_3, xeno_4)
+  
+xeno.model_4 <- 'Xenophobia =~ xeno_1 + xeno_2 + xeno_3 + xeno_4'
+
+fit_xeno_4 <- cfa(xeno.model_4, data = xeno3.cfa, estimator = "MLR")
+
+fit_xeno_4 %>% summary(fit.measures = TRUE)
+
+lavInspect(fit_xeno_4, what = "sampstat")
+lavInspect(fit_xeno_4, what = "implied")
+residual_xeno_4 <- lavInspect(fit_xeno_4, what = "sampstat") $cov - 
+  lavInspect(fit_xeno_4, what = "implied") $cov
+residual_xeno_4
+resid(fit_xeno_4, type = "standardized")
+
+# secident is multidimensional
+
+sec.cfa <- US_data %>%
+  dplyr::select(secident_1, secident_2, secident_3, secident_4, secident_5, secident_6,
+                secident_7, secident_8, secident_9, secident_10) 
+
+mardia(sec.cfa, plot = TRUE)
+
+keep <- function(x) {
+(x >= mean(x) - 3*sd(x)) & 
+(x <= mean(x) + 3*sd(x))  
+}
+
+sec.cfa_clean <- sec.cfa %>%
+  filter(keep(secident_1) &
+           keep(secident_2) &
+           keep(secident_3) &
+           keep(secident_4) &
+           keep(secident_5) &
+           keep(secident_6) &
+           keep(secident_7) &
+           keep(secident_8) &
+           keep(secident_9) &
+           keep(secident_10))
+sec.cfa_clean
+
+sec.model <- 'satisfac =~ secident_4 + secident_5 + secident_6 + secident_7 
+              solidar =~ secident_1 + secident_2 + secident_3 
+              central  =~ secident_8 + secident_9 + secident_10'
+
+fit_secident <- cfa(sec.model, data = sec.cfa_clean)
+
+fit_secident %>% summary(fit.measures = TRUE)
+
+lavInspect(fit_secident, what = "sampstat")
+lavInspect(fit_secident, what = "implied")
+residual_secident <- lavInspect(fit_secident, what = "sampstat") $cov - 
+  lavInspect(fit_secident, what = "implied") $cov
+residual_secident
+resid(fit_secident, type = "standardized")
+
+# joy
+
+joy.model <- 'Joy at Success =~ a*joy_1 + a*joy_2'
+
+fit_joy <- cfa(joy.model, data = US_data, estimator = "ML", std.lv = TRUE)
+
+fit_joy %>% summary(fit.measures = TRUE)
+
+# --> fit of model is not accessible due to two-item construction
+
+# eff
+
+eff.model <- 'Group efficacy =~ a*eff_1 + a*eff_2'
+
+fit_eff <- cfa(eff.model, data = US_data, estimator = "ML", std.lv = TRUE)
+
+fit_eff %>% summary(fit.measures = TRUE)
+
+# --> fit of model is not accessible due to two-item construction
+
+# empowerment
+
+emp.cfa <- US_data %>%
+  dplyr::select(joy_1, joy_2, eff_1, eff_2) 
+
+mardia(emp.cfa, plot = TRUE)
+
+keep <- function(x) {
+(x >= mean(x) - 3*sd(x)) & 
+(x <= mean(x) + 3*sd(x))  
+}
+
+emp.cfa_clean <- emp.cfa %>%
+  filter(keep(joy_1) &
+           keep(joy_2) &
+           keep(eff_1) &
+           keep(eff_2))
+
+emp.model <- 'Empowerment =~ joy_1 + joy_2 + eff_1 + eff_2'
+
+fit_emp <- cfa(emp.model, data = emp.cfa_clean)
+
+fit_emp %>% summary(fit.measures = TRUE)
+
+lavInspect(fit_emp, what = "sampstat")
+lavInspect(fit_emp, what = "implied")
+residual_emp <- lavInspect(fit_emp, what = "sampstat") $cov - 
+  lavInspect(fit_emp, what = "implied") $cov
+residual_emp
+resid(fit_emp, type = "standardized")
+
+# --> overall empowerment shows low construct validity (.82)
+```
+
+# new variables (cn, secident, xeno, joy & eff): assumption checks
+Graphs show some deviance from normality but skew and kurtosis for the majority within the limits of acceptance (exemption: joy at success, however not outlier detected). Xenophobia shows non-normality (was to be expected) and outliers (come back to this)
+```{r, assumption checks new variables, include=TRUE}
+# cn
+ggplot(US, aes(x=cn))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Collective Narcissism", y = "Frequency") +
+  theme_light()
+
+psych::describe(US$cn)
+
+cn <- rowMeans(US[,"cn"])
+cn_mad <- outliers_mad(x = cn)
+cn_mad
+
+# secident
+ggplot(US, aes(x=secident))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Secure Ingroup Identity", y = "Frequency") +
+  theme_light()
+
+psych::describe(US$secident)
+
+secident <- rowMeans(US[,"secident"])
+secident_mad <- outliers_mad(x = secident)
+secident_mad
+
+# xeno
+ggplot(US, aes(x=xeno))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Xenophobia", y = "Frequency") +
+  theme_light()
+
+psych::describe(US$xeno) # kurtosis and skew > 1
+
+xeno <- rowMeans(US[,"xeno"])
+xeno_mad <- outliers_mad(x = xeno)
+xeno_mad # 122 outlier (extremly high)
+
+# joy
+ggplot(US, aes(x=joy))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Joy at Success", y = "Frequency") +
+  theme_light()
+
+psych::describe(US$joy) # kurtosis < -1
+
+box_joy <- boxplot(US$joy)
+
+joy <- rowMeans(US[,"joy"])
+joy_mad <- outliers_mad(x = joy)
+joy_mad
+
+# but no outlier detected
+
+# eff
+ggplot(US, aes(x=eff))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Group Efficacy", y = "Frequency") +
+  theme_light()
+
+psych::describe(US$eff)
+
+eff <- rowMeans(US[,"eff"])
+eff_mad <- outliers_mad(x = eff)
+eff_mad
+```
+
+# acquiescent responding
+```{r, acquiescent responding, include= TRUE}
+cor.test(US_data$xeno_3, US_data$xeno_4,
+         method = "spearman")
+
+cor.test(US_data$xeno_5, US_data$xeno_6,
+         method = "spearman")
+
+# no indication of acquiescent responding
+```
+
+# assumption checks for PI, FC & corona (do not sum!) items
+PI_own shows issues with normality, however no outlier detected. PI_ave is fine. FC_s shows issues with normality, in fc_1_s were 9 outlier detected. Fc_o_agr normality seems ok but one outlier detected in fc_1_o_agr. Corona_health shows issues with normality and corona_health shows 122 outliers (extremely high, come back to that). 
+```{r, assumption checks PI, FC, corona, include = TRUE}
+# pi_own
+ggplot(US, aes(x=pi_1_own))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "How comfortable would you feel with carrying a weapon if you lived in a diverse neighborhood?", y = "Frequency") +
+  theme_light()
+
+ggplot(US, aes(x=pi_2_own))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "How comfortable would you feel with doing whatever it takes to protect yourself and other Americans?", y = "Frequency") +
+  theme_light()
+
+psych::describe(US$pi_1_own) # kurtosis < -1
+psych::describe(US$pi_2_own) # kurtosis slightly smaller than -1
+
+pi <- rowMeans(US[,"pi_1_own"])
+pi_mad <- outliers_mad(x = pi)
+pi_mad
+
+# but no outlier detected
+
+pi2 <- rowMeans(US[,"pi_2_own"])
+pi2_mad <- outliers_mad(x = pi2)
+pi2_mad
+
+# pi_own by vote
+ggplot(US_data, aes(x=pi_1_own, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "How comfortable would you feel with carrying a weapon if you lived in a diverse neighborhood?", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=pi_2_own, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "How comfortable would you feel with doing whatever it takes to protect yourself and other Americans?", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+# pi_own by vote and time
+ggplot(US_data, aes(x=pi_1_own, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "How comfortable would you feel with carrying a weapon if you lived in a diverse neighborhood?", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=pi_2_own, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "How comfortable would you feel with doing whatever it takes to protect yourself and other Americans?", y= "Frequency") +
+  scale_fill_manual(name = "Time",
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+# pi_ave
+ggplot(US, aes(x=pi_1_ave))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "How comfortable would the average American feel with carrying a weapon if they lived in a diverse neighborhood?", y = "Frequency") +
+  theme_light()
+
+ggplot(US, aes(x=pi_2_ave))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "How comfortable would the average American with doing whatever it takes to protect themselves and other Americans?", y = "Frequency") +
+  theme_light()
+
+psych::describe(US$pi_1_ave)
+psych::describe(US$pi_2_ave)
+
+pi3 <- rowMeans(US[,"pi_1_ave"])
+pi3_mad <- outliers_mad(x = pi3)
+pi3_mad
+
+pi4 <- rowMeans(US[,"pi_2_ave"])
+pi4_mad <- outliers_mad(x = pi4)
+pi4_mad
+
+# pi_ave by vote
+ggplot(US_data, aes(x=pi_1_ave, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "How comfortable would the average American feel with carrying a weapon if they lived in a diverse neighborhood?", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=pi_2_ave, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "How comfortable would the average American with doing whatever it takes to protect themselves and other Americans?", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+# pi_ave by vote and time
+ggplot(US_data, aes(x=pi_1_ave, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "How comfortable would the average American feel with carrying a weapon if they lived in a diverse neighborhood?", y= "Frequency") +
+  scale_fill_manual(name = "Time",
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=pi_2_ave, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "How comfortable would the average American with doing whatever it takes to protect themselves and other Americans?", y= "Frequency") +
+  scale_fill_manual(name = "Time",
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+# fc
+
+# fc_s
+ggplot(US, aes(x=fc_1_s))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Harsh measures against immigrants and refugees are necessary.", y = "Frequency") +
+  theme_light()
+
+psych::describe(US$fc_1_s)
+
+fc <- rowMeans(US[,"fc_1_s"])
+fc_mad <- outliers_mad(x = fc)
+fc_mad
+# 9 outlier
+
+# the value 6.4478 was compared with fc_1_s in raw dataset and the following outlier detected: p022, t1 & t2; p079, t2; p101, t1; p140, t1; p156, t1 &t2; p167, t1; p192, t2
+
+fc_1_s_clean <- US %>%
+  dplyr::filter(id != "p022" & id != "p079" & id!= "p101" & id != "p140" & id != "p156" & id != "p167" & id != "192")
+
+ggplot(fc_1_s_clean, aes(x=fc_1_s))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Harsh measures against immigrants and refugees are necessary.", y = "Frequency") +
+  theme_light()
+
+psych::describe(fc_1_s_clean$fc_1_s)
+
+# results in no difference
+
+
+ggplot(US, aes(x=fc_2_s))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Social policies, such as affirmative action, discriminate unfairly against White people.", y = "Frequency") +
+  theme_light()
+
+psych::describe(US$fc_2_s) # kurtosis > 1
+
+fc2 <- rowMeans(US[,"fc_2_s"])
+fc2_mad <- outliers_mad(x = fc2)
+fc2_mad
+
+# but no outlier detected
+
+# fc_s by vote
+ggplot(US_data, aes(x=fc_1_s, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Harsh measures against immigrants and refugees are necessary.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=fc_2_s, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Social policies, such as affirmative action, discriminate unfairly against White people.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+# fc_s by vote and time
+ggplot(US_data, aes(x=fc_1_s, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Harsh measures against immigrants and refugees are necessary.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=fc_2_s, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Social policies, such as affirmative action, discriminate unfairly against White people.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+# fc_other_agree
+ggplot(US, aes(x=fc_1_o_agr))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Others agree: Harsh measures against immigrants and refugees are necessary.", y = "Frequency") +
+  theme_light()
+
+psych::describe(US$fc_1_o_agr)
+
+fc3 <- rowMeans(US[,"fc_1_o_agr"])
+fc3_mad <- outliers_mad(x = fc3)
+fc3_mad
+# 2 outlier
+
+# the value 15.522 was compared with fc_1_o_agr in raw dataset and the following outlier detected: p160, t1 & t2 
+
+
+ggplot(US, aes(x=fc_2_o_agr))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "Others agree: Social policies, such as affirmative action, discriminate unfairly against White people.", y = "Frequency") +
+  theme_light()
+
+psych::describe(US$fc_2_o_agr)
+
+fc4 <- rowMeans(US[,"fc_2_o_agr"])
+fc4_mad <- outliers_mad(x = fc4)
+fc4_mad
+
+# fc_other_agree by vote
+ggplot(US_data, aes(x=fc_1_o_agr, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Others agree: Harsh measures against immigrants and refugees are necessary.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+ggplot(US_data, aes(x=fc_2_o_agr, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Others agree: Social policies, such as affirmative action, discriminate unfairly against White people.", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+# fc_other_agree by vote and time
+ggplot(US_data, aes(x=fc_1_o_agr, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Others agree: Harsh measures against immigrants and refugees are necessary.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+ggplot(US_data, aes(x=fc_2_o_agr, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "Others agree: Social policies, such as affirmative action, discriminate unfairly against White people.", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+# corona
+
+# cor health
+ggplot(US, aes(x=cor_health))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "How much of a threat, if any, is the coronavirus outbreak for the health of the U.S. population as a whole?", y = "Frequency") +
+  theme_light()
+
+psych::describe(US$cor_health)
+
+cor <- rowMeans(US[,"cor_health"])
+cor_mad <- outliers_mad(x = cor)
+cor_mad
+# 122 outliers (low)
+
+# cor health by vote
+ggplot(US_data, aes(x=cor_health, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "How much of a threat, if any, is the coronavirus outbreak for the health of the U.S. population as a whole?", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+# cor health by vote and time
+
+ggplot(US_data, aes(x=cor_health, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "How much of a threat, if any, is the coronavirus outbreak for the health of the U.S. population as a whole?", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+
+# cor values
+ggplot(US, aes(x=cor_values))+
+  stat_bin(colour="grey",fill="steelblue", geom = "bar") +
+  labs(x = "How much of a threat, if any, is the coronavirus outbreak for American values and traditions?", y = "Frequency") +
+  theme_light()
+
+psych::describe(US$cor_values)
+
+cor2 <- rowMeans(US[,"cor_values"])
+cor2_mad <- outliers_mad(x = cor2)
+cor2_mad
+
+# cor values by vote
+ggplot(US_data, aes(x=cor_values, fill=vote))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "How much of a threat, if any, is the coronavirus outbreak for American values and traditions?", y= "Frequency") +
+  scale_fill_manual(name = "Vote", 
+      labels = c("Democratic Party", "Republican Party", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  theme_light()
+
+# cor values by vote and time
+ggplot(US_data, aes(x=cor_values, fill=time))+
+  geom_histogram(aes(y=..density..),binwidth=1, alpha=.5, position="identity") +
+  labs(x= "How much of a threat, if any, is the coronavirus outbreak for American values and traditions?", y= "Frequency") +
+  scale_fill_manual(name = "Time", 
+      labels = c("Before election", "After election", NA), 
+      values = c("#58a6a6", "#efa355", NA)) +
+  facet_wrap(vars(vote), scales = "free_y", nrow = 2, strip.position = "top") +
+  theme_light()
+```
+
+## Descriptive statistics
+
+# descriptives for participants
+```{r, participants, include= TRUE}
+age <- group_by(.data = US, time) %>%
+    summarise(., mean_age = mean(age), sd_age = sd(age), min_age = min(age), max_age = max(age))
+age
+
+gend <- group_by(.data = US, time) %>%
+  select(., gend) %>%
+  table()
+gend
+
+par_support <- group_by(.data = US, time) %>%
+  select(., vote) %>%
+  table()
+par_support
+
+par_support_gend <- group_by(.data = US, time, gend) %>%
+  select(., vote) %>%
+  table()
+par_support_gend
+
+ethn <- group_by(.data = US, time) %>%
+  select(., ethn) %>%
+  table()
+ethn
+
+employ <- group_by(.data = US, time) %>%
+  select(., employ) %>%
+  table()
+employ
+
+income <- group_by(.data = US, time) %>%
+  select(., income) %>%
+  table()
+income
+
+degree <- group_by(.data = US, time) %>%
+  select(., degree) %>%
+  table()
+degree
+```
+
+# Descriptive statistics variables
+```{r, descriptive statistics, include= TRUE}
+# APA table (hasnt worked yet)
+descriptives <- US %>%
+  summarise(., mean_cn = mean(cn), sd_cn = sd(cn), 
+            mean_secident = mean(secident), sd_secident = sd(secident),
+            mean_ingroup_satis = mean(ingroup_satis), sd_ingroup_satis = sd(ingroup_satis), 
+            mean_xeno = mean(xeno), sd_xeno = sd(xeno),
+            mean_joy = mean(joy), sd_joy = sd(joy),
+            mean_eff = mean(eff), sd_eff = sd(eff),
+            mean_pi_1_own = mean(pi_1_own), sd_pi_1_own = sd(pi_1_own),
+            mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave),
+            mean_pi_2_own = mean(pi_2_own), sd_pi_2_own = sd(pi_2_own),
+            mean_pi_2_ave = mean(pi_2_ave), sd_pi_2_ave = sd(pi_2_ave),
+            mean_fc_1_s = mean(fc_1_s), sd_fc_1_s = sd(fc_1_s),
+            mean_fc_1_o_agr = mean(fc_1_o_agr), sd_fc_1_o_agr = sd(fc_1_o_agr),
+            mean_fc_2_s = mean(fc_2_s), sd_fc_2_s = sd(fc_2_s),
+            mean_fc_2_o_agr = mean(fc_2_o_agr), sd_fc_2_o_agr = sd(fc_2_o_agr))
+descriptives
+apa_table(descriptives)
+
+
+# descriptive statistic variables
+descriptives2 <- c("cn", "secident", "ingroup_satis", "xeno", "joy", "eff", "pi_1_own", "pi_1_ave", "pi_2_own", "pi_2_ave", "fc_1_s", "fc_1_o_agr", "fc_2_s", "fc_2_o_agr")
+
+v_mean <- lapply(US[descriptives2], mean, na.rm = TRUE)
+v_mean <- round(as.numeric(v_mean),2)
+v_sd <- lapply(US [descriptives2], sd, na.rm = TRUE)
+v_sd <- round(as.numeric(v_sd),2)
+v_min <- lapply(US [descriptives2], min, na.rm = TRUE)
+v_min <- round(as.numeric(v_min),2)
+v_max <- lapply(US [descriptives2], max, na.rm = TRUE)
+v_max <- round(as.numeric(v_max),2)
+
+v_tab <- cbind(mean = v_mean, sd = v_sd, min = v_min, max = v_max)
+rownames(v_tab) <- c("Collective Narcissism", "Secure Ingroup Identity", "Ingroup satisfacation", "Xenophobia", "Joy at Success", "Group Efficacy", "PI Item 1 Own Comfort", "PI Item 1 Perceived Comfort", "PI Item 2 Own Comfort", "PI Item 2 Perceived Comfort", "FC Item 1 Own Approval", "FC Item 1 Perceived Agreement", "FC Item 2 Own Approval", "FC Item 2 Perceived Agreement")
+kable(v_tab)
+```
+
+# correlation (partical correlation, multicollinearity)
+# partial correlations: when the associations between cn and the other variables is controlled for secident, the associations become weaker (even xenophobia), when the associations between secident and the other variables are controlled for cn, the associations become weaker too (xeno becomes n.s.), interesting is that the association between cn and eff becomes n.s. while secident and joy become n.s. (mirrored results)
+# Own approval and perceived agreement (item 1) "Harsh measures against immigrants and refugees are necessary." are not significantly correlated. 
+```{r, correlations, include=TRUE}
+# credits to Paul van der Laken: https://paulvanderlaken.com/2020/07/28/publication-ready-correlation-matrix-significance-r/#correlation_matrix
+
+#' correlation_matrix
+#' Creates a publication-ready / formatted correlation matrix, using `Hmisc::rcorr` in the backend.
+#'
+#' @param df dataframe; containing numeric and/or logical columns to calculate correlations for
+#' @param type character; specifies the type of correlations to compute; gets passed to `Hmisc::rcorr`; options are `"pearson"` or `"spearman"`; defaults to `"pearson"`
+#' @param digits integer/double; number of decimals to show in the correlation matrix; gets passed to `formatC`; defaults to `3`
+#' @param decimal.mark character; which decimal.mark to use; gets passed to `formatC`; defaults to `.`
+#' @param use character; which part of the correlation matrix to display; options are `"all"`, `"upper"`, `"lower"`; defaults to `"all"`
+#' @param show_significance boolean; whether to add `*` to represent the significance levels for the correlations; defaults to `TRUE`
+#' @param replace_diagonal boolean; whether to replace the correlations on the diagonal; defaults to `FALSE`
+#' @param replacement character; what to replace the diagonal and/or upper/lower triangles with; defaults to `""` (empty string)
+#'
+#' @return a correlation matrix
+#' @export
+#'
+#' @examples
+#' `correlation_matrix(iris)`
+#' `correlation_matrix(mtcars)`
+
+correlation_matrix <- function(df, 
+                               type = "spearman",
+                               digits = 3, 
+                               decimal.mark = ".",
+                               use = "all", 
+                               show_significance = TRUE, 
+                               replace_diagonal = FALSE, 
+                               replacement = ""){
+    # check arguments
+  stopifnot({
+    is.numeric(digits)
+    digits >= 0
+    use %in% c("all", "upper", "lower")
+    is.logical(replace_diagonal)
+    is.logical(show_significance)
+    is.character(replacement)
+  })
+  # we need the Hmisc package for this
+  require(Hmisc)
+  
+  # retain only numeric and boolean columns
+  isNumericOrBoolean = vapply(df, function(x) is.numeric(x) | is.logical(x), logical(1))
+  if (sum(!isNumericOrBoolean) > 0) {
+    cat('Dropping non-numeric/-boolean column(s):', paste(names(isNumericOrBoolean)[!isNumericOrBoolean], collapse = ', '), '\n\n')
+  }
+  df = df[isNumericOrBoolean]
+  
+  # transform input data frame to matrix
+  x <- as.matrix(df)
+  
+  # run correlation analysis using Hmisc package
+  correlation_matrix <- Hmisc::rcorr(x, type = "spearman")
+  R <- correlation_matrix$r # Matrix of correlation coeficients
+  p <- correlation_matrix$P # Matrix of p-value 
+  
+  # transform correlations to specific character format
+  Rformatted = formatC(R, format = 'f', digits = digits, decimal.mark = decimal.mark)
+  
+  # if there are any negative numbers, we want to put a space before the positives to align all
+  if (sum(R < 0) > 0) {
+    Rformatted = ifelse(R > 0, paste0(' ', Rformatted), Rformatted)
+  }
+  
+  # add significance levels if desired
+  if (show_significance) {
+    # define notions for significance levels; spacing is important.
+    stars <- ifelse(is.na(p), "   ", ifelse(p < .001, "***", ifelse(p < .01, "** ", ifelse(p < .05, "*  ", "   "))))
+    Rformatted = paste0(Rformatted, stars)
+  }
+  # build a new matrix that includes the formatted correlations and their significance stars
+  Rnew <- matrix(Rformatted, ncol = ncol(x))
+  rownames(Rnew) <- colnames(x)
+  colnames(Rnew) <- paste(colnames(x), "", sep =" ")
+  
+  # replace undesired values
+  if (use == 'upper') {
+    Rnew[lower.tri(Rnew, diag = replace_diagonal)] <- replacement
+  } else if (use == 'lower') {
+    Rnew[upper.tri(Rnew, diag = replace_diagonal)] <- replacement
+  } else if (replace_diagonal) {
+    diag(Rnew) <- replacement
+  }
+  
+  return(Rnew)
+}
+
+# z-transform scores
+
+US$cn_z <- scale(US$cn)
+US$secident_z <- scale(US$secident)
+US$xeno_z <- scale(US$xeno)
+US$joy_z <- scale(US$joy)
+US$eff_z <- scale(US$eff)
+US$pi_1_own_z <- scale(US$pi_1_own)
+US$pi_1_ave_z <- scale(US$pi_1_ave)
+US$pi_2_own_z <- scale(US$pi_2_own)
+US$pi_2_ave_z <- scale(US$pi_2_ave)
+US$fc_1_s_z <- scale(US$fc_1_s)
+US$fc_1_o_agr_z <- scale(US$fc_1_o_agr)
+US$fc_2_s_z <- scale(US$fc_2_s)
+US$fc_2_o_agr_z <- scale(US$fc_2_o_agr)
+US$age_z <- scale(US$age)
+US$sd_z <- scale(US$sd)
+US$cor_values_z <- scale(US$cor_values)
+US$cor_health_z <- scale(US$cor_health)
+
+corr <- US %>%
+  dplyr::select(., cn, secident, xeno, joy, eff, pi_1_own, pi_1_ave, pi_2_own, pi_2_ave, fc_1_s, fc_1_o_agr, fc_2_s, fc_2_o_agr, age, sd, cor_values, cor_health)
+
+corr <- US %>%
+  dplyr::select(., cn_z, secident_z, xeno_z, joy_z, eff_z, pi_1_own_z, pi_1_ave_z, pi_2_own_z, pi_2_ave_z, fc_1_s_z, fc_1_o_agr_z, fc_2_s_z, fc_2_o_agr_z, age_z, sd_z, cor_values_z, cor_health_z)
+corr
+
+
+correlation_matrix(corr)
+
+# without outlier xeno
+corr2 <- US %>%
+  dplyr::filter(., id != "p090" & id != "189" & id!= "p192" & id!= "p196") %>%
+  dplyr::select(., cn, secident, xeno, joy, eff, pi_1_own, pi_1_ave, pi_2_own, pi_2_ave, fc_1_s, fc_1_o_agr, fc_2_s, fc_2_o_agr, age)
+
+correlation_matrix(corr2)
+
+#' save_correlation_matrix
+#' Creates and save to file a fully formatted correlation matrix, using `correlation_matrix` and `Hmisc::rcorr` in the backend
+#' @param df dataframe; passed to `correlation_matrix`
+#' @param filename either a character string naming a file or a connection open for writing. "" indicates output to the console; passed to `write.csv`
+#' @param ... any other arguments passed to `correlation_matrix`
+#'
+#' @return NULL
+#'
+#' @examples
+#' `save_correlation_matrix(df = iris, filename = 'iris-correlation-matrix.csv')`
+#' `save_correlation_matrix(df = mtcars, filename = 'mtcars-correlation-matrix.csv', digits = 3, use = 'lower')`
+save_correlation_matrix = function(df, filename, ...) {
+  return(write.csv(correlation_matrix(df, ...), file = filename))
+}
+
+save_correlation_matrix(df = corr, filename = "Intercorrelation Matrix new2.csv")
+
+# biserial correlation vote and unexp
+
+US %>%
+  dplyr::mutate(vote = as.numeric(vote)) %>% cor.test(~ vote + joy)
+
+
+# partial correlation, controlled for secident
+pc_secident1 <- pcor.test(US$cn, US$xeno, US$secident, method = "spearman")
+pc_secident1
+pc_secident2 <- pcor.test(US$cn, US$joy, US$secident, method = "spearman")
+pc_secident2
+pc_secident3 <- pcor.test(US$cn, US$eff, US$secident, method = "spearman")
+pc_secident3
+pc_secident4 <- pcor.test(US$cn, US$pi_1_own, US$secident, method = "spearman")
+pc_secident4
+pc_secident5 <- pcor.test(US$cn, US$pi_1_ave, US$secident, method = "spearman")
+pc_secident5
+pc_secident6 <- pcor.test(US$cn, US$pi_2_own, US$secident, method = "spearman")
+pc_secident6
+pc_secident7 <- pcor.test(US$cn, US$pi_2_ave, US$secident, method = "spearman")
+pc_secident7
+pc_secident8 <- pcor.test(US$cn, US$fc_1_s, US$secident, method = "spearman")
+pc_secident8
+pc_secident9 <- pcor.test(US$cn, US$fc_1_o_agr, US$secident, method = "spearman")
+pc_secident9
+pc_secident10 <- pcor.test(US$cn, US$fc_2_s, US$secident, method = "spearman")
+pc_secident10
+pc_secident11 <- pcor.test(US$cn, US$fc_2_o_agr, US$secident, method = "spearman")
+pc_secident11
+
+# controlled for cn
+pc_cn1 <- pcor.test(US$secident, US$xeno, US$cn, method = "spearman")
+pc_cn1
+pc_cn2 <- pcor.test(US$secident, US$joy, US$cn, method = "spearman")
+pc_cn2
+pc_cn3 <- pcor.test(US$secident, US$eff, US$cn, method = "spearman")
+pc_cn3
+pc_cn4 <- pcor.test(US$secident, US$pi_1_own, US$cn, method = "spearman")
+pc_cn4
+pc_cn5 <- pcor.test(US$secident, US$pi_1_ave, US$cn, method = "spearman")
+pc_cn5
+pc_cn6 <- pcor.test(US$secident, US$pi_2_own, US$cn, method = "spearman")
+pc_cn6
+pc_cn7 <- pcor.test(US$secident, US$pi_2_ave, US$cn, method = "spearman")
+pc_cn7
+pc_cn8 <- pcor.test(US$secident, US$fc_1_s, US$cn, method = "spearman")
+pc_cn8
+pc_cn9 <- pcor.test(US$secident, US$fc_1_o_agr, US$cn, method = "spearman")
+pc_cn9
+pc_cn10 <- pcor.test(US$secident, US$fc_2_s, US$cn, method = "spearman")
+pc_cn10
+pc_cn11 <- pcor.test(US$secident, US$fc_2_o_agr, US$cn, method = "spearman")
+pc_cn11
+
+# partial correlation, controlled for secident (without outlier xeno)
+
+pc_secident1a <- pcor.test(corr2$cn, corr2$xeno, corr2$secident, method = "spearman")
+pc_secident1a
+
+# controlled for cn (without outlier xeno)
+pc_cn1a <- pcor.test(corr2$secident, corr2$xeno, corr2$cn, method = "spearman")
+pc_cn1a
+
+# --> it doesn´t seem to make a difference whether the outliers are considered or not, the trend (cn is higher associated with xeno when secident is not controlled for, and weaker when it is controlled for, as well as that secident turns n.s. when cn is controlled for) stays the same, values are in similar range
+
+
+# correlation with ingroup_satis instead of secident
+
+corr3 <- US %>%
+  dplyr::select(., cn, ingroup_satis, xeno, joy, eff, pi_1_own, pi_1_ave, pi_2_own, pi_2_ave, fc_1_s, fc_1_o_agr, fc_2_s, fc_2_o_agr, age)
+
+correlation_matrix(corr3)
+
+# partial correlation controlled for ingroup_satis (ingroup_satis instead of secident)
+
+pc_ingroup_satis1 <- pcor.test(corr3$cn, corr3$xeno, corr3$ingroup_satis, method = "spearman")
+pc_ingroup_satis1
+pc_ingroup_satis2 <- pcor.test(corr3$cn, corr3$joy, corr3$ingroup_satis, method = "spearman")
+pc_ingroup_satis2
+pc_ingroup_satis3 <- pcor.test(corr3$cn, corr3$eff, corr3$ingroup_satis, method = "spearman")
+pc_ingroup_satis3
+pc_ingroup_satis4 <- pcor.test(corr3$cn, corr3$pi_1_own, corr3$ingroup_satis, method = "spearman")
+pc_ingroup_satis4
+pc_ingroup_satis5 <- pcor.test(corr3$cn, corr3$pi_1_ave, corr3$ingroup_satis, method = "spearman")
+pc_ingroup_satis5
+pc_ingroup_satis6 <- pcor.test(corr3$cn, corr3$pi_2_own, corr3$ingroup_satis, method = "spearman")
+pc_ingroup_satis6
+pc_ingroup_satis7 <- pcor.test(corr3$cn, corr3$pi_2_ave, corr3$ingroup_satis, method = "spearman")
+pc_ingroup_satis7
+pc_ingroup_satis8 <- pcor.test(corr3$cn, corr3$fc_1_s, corr3$ingroup_satis, method = "spearman")
+pc_ingroup_satis8
+pc_ingroup_satis9 <- pcor.test(corr3$cn, corr3$fc_1_o_agr, corr3$ingroup_satis, method = "spearman")
+pc_ingroup_satis9
+pc_ingroup_satis10 <- pcor.test(corr3$cn, corr3$fc_2_s, corr3$ingroup_satis, method = "spearman")
+pc_ingroup_satis10
+pc_ingroup_satis11 <- pcor.test(corr3$cn, corr3$fc_2_o_agr, corr3$ingroup_satis, method = "spearman")
+pc_ingroup_satis11
+
+# partial correlation controlled for cn (ingroup_satis instead of secident)
+pc_cn1a <- pcor.test(corr3$ingroup_satis, corr3$xeno, corr3$cn, method = "spearman")
+pc_cn1a
+pc_cn2a <- pcor.test(corr3$ingroup_satis, corr3$joy, corr3$cn, method = "spearman")
+pc_cn2a
+pc_cn3a <- pcor.test(corr3$ingroup_satis, corr3$eff, corr3$cn, method = "spearman")
+pc_cn3a
+pc_cn4a <- pcor.test(corr3$ingroup_satis, corr3$pi_1_own, corr3$cn, method = "spearman")
+pc_cn4a
+pc_cn5a <- pcor.test(corr3$ingroup_satis, corr3$pi_1_ave, corr3$cn, method = "spearman")
+pc_cn5a
+pc_cn6a <- pcor.test(corr3$ingroup_satis, corr3$pi_2_own, corr3$cn, method = "spearman")
+pc_cn6a
+pc_cn7a <- pcor.test(corr3$ingroup_satis, corr3$pi_2_ave, corr3$cn, method = "spearman")
+pc_cn7a
+pc_cn8a <- pcor.test(corr3$ingroup_satis, corr3$fc_1_s, corr3$cn, method = "spearman")
+pc_cn8a
+pc_cn9a <- pcor.test(corr3$ingroup_satis, corr3$fc_1_o_agr, corr3$cn, method = "spearman")
+pc_cn9a
+pc_cn10a <- pcor.test(corr3$ingroup_satis, corr3$fc_2_s, corr3$cn, method = "spearman")
+pc_cn10a
+pc_cn11a <- pcor.test(corr3$ingroup_satis, corr3$fc_2_o_agr, corr3$cn, method = "spearman")
+pc_cn11a
+
+# --> it doesn´t make a difference either, the values stay in the same range and the trend is the same
+# --> tested with pearson correlation and partial correlation, too, and the value range, as well as the trends stay the same!
+
+# polyserial correlation between covariates (sd, cor_values and cor_health) and sign
+sign_freq <- table(US$sign)
+prop.table(sign_freq)
+
+# p = .92; q = .08, y = .15
+# SE = .04
+
+polyserial(US$sd, US$sign) # .06
+# z = r/SE = 1.5 --> p-value = 0.13362 n.s.
+
+
+polyserial(US$cor_health, US$sign) # -.20
+# z = r/SE = -.50 --> p-value = .61708 n.s.
+
+polyserial(US$cor_values, US$sign) # .22
+# z = r/SE = .55 --> p-value = .58232 n.s.
+```
+
+## Hypotheses testing
+
+# Subset data for hypothesis testing
+```{r, subsets and factors}
+# subset for t1 (H1 & H2)
+US_t1 <- US %>%
+  filter(time == "1") %>%
+  dplyr::mutate(
+  vote_relev = forcats::fct_relevel(vote, "Republicans", "Democrats")
+  )
+US_t1
+
+# subset for plot
+US_t1_plot <- US %>%
+  filter(time == "1")
+US_t1_plot  
+
+# without outlier in fc_1_s
+fc_1_s_clean <- US %>%
+  dplyr::filter(id != "p022" & id != "p079" & id!= "p101" & id != "p140" & id != "p156" & id != "p167" & id != "192")
+
+US_t1_clean <- fc_1_s_clean %>%
+  filter(time == "1") %>%
+  dplyr::mutate(
+  vote_relev = forcats::fct_relevel(vote, "Republicans", "Democrats")
+  )
+
+# without outliers in fc_1_o_agr
+US_t1_clean2 <- US %>%
+  filter(time == "1" & id != "p160")
+
+US_t1$time <- factor(US_t1$time)
+US_t1$vote <- factor(US_t1$vote)
+
+US_t1_clean$time <- factor(US_t1_clean$time)
+US_t1_clean$vote <- factor(US_t1_clean$vote)
+
+US_t1_clean2$time <- factor(US_t1_clean2$time)
+US_t1_clean2$vote <- factor(US_t1_clean2$vote)
+
+# subset for Democrats in t1 (H2)
+US_vote_Dem_t1 <- subset(US_t1, vote == "Democrats")
+
+US_vote_Dem_t1$time <- factor(US_vote_Dem_t1$time)
+US_vote_Dem_t1$vote <- factor(US_vote_Dem_t1$vote)
+
+# subset for Republicans in t1 (H2)
+US_vote_Rep_t1 <- subset(US_t1, vote == "Republicans")
+
+US_vote_Rep_t1$time <- factor(US_vote_Rep_t1$time)
+US_vote_Rep_t1$vote <- factor(US_vote_Rep_t1$vote)
+
+# subset Republicans & unexpected (H3 ...)
+unexp_Rep <- subset(US, vote == "Republicans" & unexp == "Unexpected") 
+
+# without outlier
+
+unexp_Rep_clean <- subset(US, vote == "Republicans" & unexp == "Unexpected" & id!= "p160")
+unexp_Rep_clean
+
+unexp_Rep$vote <- factor(unexp_Rep$vote)
+unexp_Rep$time <- factor(unexp_Rep$time)
+
+unexp_Rep_clean$vote <- factor(unexp_Rep_clean$vote)
+unexp_Rep_clean$time <- factor(unexp_Rep_clean$time)
+
+# subset Democrats & unexpected (H4)
+unexp_Dem <- subset(US, vote == "Democrats" & unexp == "Unexpected")
+unexp_Dem # only 4 participants
+
+# subset Democrats (H4 & H5)
+US_Dem <- subset(US, vote == "Democrats")
+
+# subset Republicans (H6...)
+US_Rep <- subset(US,vote == "Republicans")
+
+# Subgroup racialized identity (Exploratory)
+subgroup <- subset(US, ethn == "White or European American" & xeno >= "5")
+subgroup
+
+# no values above 3.25 (above 4 in single items, respectively) for xeno
+
+# PI amongst Democrats (Exploratory)
+Dem_exp_t1 <- subset(US, vote == "Democrats" & unexp == "Expected" & time == "1")
+Dem_exp_t1
+
+# FC Republicans (Exploratory)
+US_t2 <- subset(US, time =="2")
+US_t2
+
+unexp_Rep_t2 <- subset(US, vote == "Republicans", unexp = "Unexpected", time =="2")
+unexp_Rep_t2
+
+
+```
+
+# H1
+```{r, H1, include=TRUE}
+# Two-tailed t-test
+
+# f_1_s
+f_1_s_.t.test <- t.test(fc_1_s ~ vote, data = US_t1)
+f_1_s_.t.test
+
+# effect size
+
+t<-f_1_s_.t.test$statistic[[1]]
+df<-f_1_s_.t.test$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# without outliers
+
+# f_1_s
+f_1_s_.t.test_clean <- t.test(fc_1_s ~ vote, data = US_t1_clean, SD = TRUE)
+f_1_s_.t.test_clean
+
+# effect size
+
+t<-f_1_s_.t.test_clean$statistic[[1]]
+df<-f_1_s_.t.test_clean$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+
+# f_1_o_agr
+f_1_o_agr.t.test <- t.test(fc_1_o_agr ~ vote, data = US_t1)
+f_1_o_agr.t.test
+
+# effect size
+
+t<-f_1_o_agr.t.test$statistic[[1]]
+df<-f_1_o_agr.t.test$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# without outliers
+f_1_o_agr.t.testa <- t.test(fc_1_o_agr ~ vote, data = US_t1_clean2)
+f_1_o_agr.t.testa
+
+# effect size
+
+t<-f_1_o_agr.t.testa$statistic[[1]]
+df<-f_1_o_agr.t.testa$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# f_2_s
+f_2_s_.t.test <- t.test(fc_2_s ~ vote, data = US_t1)
+f_2_s_.t.test
+
+# effect size
+
+t<-f_2_s_.t.test$statistic[[1]]
+df<-f_2_s_.t.test$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# f_2_o_agr
+
+f_2_o_agr.t.test <- t.test(fc_2_o_agr ~ vote, data = US_t1)
+f_2_o_agr.t.test
+
+# effect size
+
+t<-f_2_o_agr.t.test$statistic[[1]]
+df<-f_2_o_agr.t.test$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# plot
+
+fc_summary <- US_t1 %>% 
+  dplyr::group_by(vote) %>%
+  dplyr::summarise(n = n(),
+                   mean_fc_1_s = mean(fc_1_s), 
+                   se_fc_1_s = sd(fc_1_s)/sqrt(n()), 
+                   lower_ci_fc_1_s = mean_fc_1_s - (1.96* se_fc_1_s),
+                   upper_ci_fc_1_s = mean_fc_1_s + (1.96* se_fc_1_s),
+                   mean_fc_2_s = mean(fc_2_s), 
+                   se_fc_2_s =sd(fc_2_s)/sqrt(n()), 
+                   lower_ci_fc_2_s = mean_fc_2_s - (1.96* se_fc_2_s),
+                   upper_ci_fc_2_s = mean_fc_2_s + (1.96* se_fc_2_s),
+                   mean_fc_1_o_agr = mean(fc_1_o_agr), 
+                   se_fc_1_o_agr = sd(fc_1_o_agr)/sqrt(n()), 
+                   lower_ci_fc_1_o_agr = mean_fc_1_o_agr - (1.96* se_fc_1_o_agr),
+                   upper_ci_fc_1_o_agr = mean_fc_1_o_agr + (1.96* se_fc_1_o_agr),
+                   mean_fc_2_o_agr = mean(fc_2_o_agr), 
+                   se_fc_2_o_agr = sd(fc_2_s)/sqrt(n()),
+                   lower_ci_fc_2_o_agr = mean_fc_2_o_agr - (1.96* se_fc_2_o_agr),
+                   upper_ci_fc_2_o_agr = mean_fc_2_o_agr + (1.96* se_fc_2_o_agr),
+                   )
+
+fc_summary %>%
+  ggplot2::ggplot(aes (x = vote, y = mean_fc_2_o_agr)) +
+           geom_line(stat="summary", fun = mean, aes(group = NA)) +
+           geom_errorbar(aes(ymin = lower_ci_fc_2_o_agr, ymax = upper_ci_fc_2_o_agr), width = .2) +
+           geom_point(size = 3, pch = 23, fill = "grey", colour = "grey") +
+           scale_x_discrete(name = "Party support") +
+           scale_y_continuous(name = "Estimated agreement (%)", limits = c(50, 65)) +
+           cowplot::theme_cowplot()
+
+# add coord_flip() for reversed scales
+
+
+
+
+# One-tailed t-test
+# f_1_s
+fc_1_s_one_tailed <- t.test(fc_1_s ~ vote_relev, US_t1, alternative = "greater")
+fc_1_s_one_tailed
+
+# effect size
+
+t<-fc_1_s_one_tailed$statistic[[1]]
+df<-fc_1_s_one_tailed$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# without outliers
+
+# f_1_s
+f_1_s_one_tailed_clean <- t.test(fc_1_s ~ vote_relev, data = US_t1_clean, alternative = "greater")
+f_1_s_one_tailed_clean
+
+# effect size
+
+t<-f_1_s_one_tailed_clean$statistic[[1]]
+df<-f_1_s_one_tailed_clean$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# f_1_o_agr
+f_1_o_agr_one_tailed <- t.test(fc_1_o_agr ~ vote_relev, data = US_t1, alternative = "greater")
+f_1_o_agr_one_tailed
+
+# effect size
+
+t<-f_1_o_agr_one_tailed$statistic[[1]]
+df<-f_1_o_agr_one_tailed$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# without outliers
+f_1_o_agr_one_tailed_clean <- t.test(fc_1_o_agr ~ vote_relev, data = US_t1_clean2, alternative = "greater")
+f_1_o_agr_one_tailed_clean
+
+# effect size
+
+t<-f_1_o_agr_one_tailed_clean$statistic[[1]]
+df<-f_1_o_agr_one_tailed_clean$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# f_2_s
+f_2_s_one_tailed <- t.test(fc_2_s ~ vote_relev, data = US_t1, alternative = "greater")
+f_2_s_one_tailed
+
+# effect size
+
+t<-f_2_s_one_tailed$statistic[[1]]
+df<-f_2_s_one_tailed$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# f_2_o_agr
+
+f_2_o_agr_one_tailed <- t.test(fc_2_o_agr ~ vote_relev, data = US_t1, alternative = "greater")
+f_2_o_agr_one_tailed
+
+# effect size
+
+t<-f_2_o_agr_one_tailed$statistic[[1]]
+df<-f_2_o_agr_one_tailed$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+```
+
+# H2
+```{r, H2, include=TRUE}
+# Democrats
+# pairwise t-test
+pi_1_t_test <- t.test(US_vote_Dem_t1$pi_1_own, mu = 4.241379)
+pi_1_t_test
+  
+t<-pi_1_t_test$statistic[[1]]
+df<-pi_1_t_test$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+pi_2_t_test <- t.test(US_vote_Dem_t1$pi_2_own, mu = 5)
+pi_2_t_test
+  
+t<-pi_2_t_test$statistic[[1]]
+df<-pi_2_t_test$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# Republicans
+# pairwise t-test
+pi_1_t_testa <- t.test(US_vote_Rep_t1$pi_1_own, mu = 4.576923)
+pi_1_t_testa
+  
+t<-pi_1_t_testa$statistic[[1]]
+df<-pi_1_t_testa$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+pi_2_t_testa <- t.test(US_vote_Rep_t1$pi_2_own, mu = 5.25)
+pi_2_t_testa
+  
+t<-pi_2_t_testa$statistic[[1]]
+df<-pi_2_t_testa$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# descriptive statistics for plots (plot itself was generated in Excel)
+pi_plot <- US_t1 %>%
+  dplyr::group_by(., vote) %>%
+  dplyr::summarise(., mean_pi_1_own = mean(pi_1_own), sd_pi_1_own = sd(pi_1_own), mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave), mean_pi_2_own = mean(pi_2_own), sd_pi_2_own = sd(pi_2_own), mean_pi_2_ave = mean(pi_2_ave), sd_pi_2_ave = sd(pi_2_ave))
+pi_plot
+```
+
+# H3
+```{r, H3, include= TRUE}
+# fc_1_o_agr
+# pairwise t-tests
+fc_1_paired <- t.test(fc_1_o_agr ~ time, unexp_Rep, paired = TRUE)
+fc_1_paired
+  
+t<-fc_1_paired$statistic[[1]]
+df<-fc_1_paired$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# descriptives
+unexp_Rep %>% 
+  group_by(., time) %>% 
+  summarise(., mean_fc_1_o_agr = mean(fc_1_o_agr), sd_fc_1_o_agr = sd(fc_1_o_agr))
+
+# without outlier
+
+# fc_1_o_agr
+fc_1_paired_clean <- t.test(fc_1_o_agr ~ time, unexp_Rep_clean, paired = TRUE)
+fc_1_paired_clean
+  
+t<-fc_1_paired_clean$statistic[[1]]
+df<-fc_1_paired_clean$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# fc_2_o_agr
+fc_2_paired <- t.test(fc_2_o_agr ~ time, unexp_Rep, paired = TRUE)
+fc_2_paired
+  
+t<-fc_2_paired$statistic[[1]]
+df<-fc_2_paired$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# descriptives
+unexp_Rep %>% 
+  group_by(., time) %>% 
+  summarise(., mean_fc_2_o_agr = mean(fc_2_o_agr), sd_fc_2_o_agr = sd(fc_2_o_agr))
+```
+
+# H4
+```{r, H4, include= TRUE}
+# Democrats
+# pairwise t-tests
+
+# pi_1_ave
+pi_1_paired <- t.test(pi_1_ave ~ time, US_Dem, paired = TRUE)
+pi_1_paired
+
+t<-pi_1_paired$statistic[[1]]
+df<-pi_1_paired$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# descriptives
+US_Dem %>% 
+  group_by(., time) %>% 
+  summarise(., mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave))
+
+# pi_2_ave
+pi_2_paired <- t.test(pi_2_ave ~ time, US_Dem, paired = TRUE)
+pi_2_paired
+
+t<-pi_2_paired$statistic[[1]]
+df<-pi_2_paired$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# descriptives
+US_Dem %>% 
+  group_by(., time) %>% 
+  summarise(., mean_pi_2_ave = mean(pi_2_ave), sd_pi_2_ave = sd(pi_2_ave))
+
+# Republicans
+# pi_1_ave
+pi_1_paireda <- t.test(pi_1_ave ~ time, unexp_Rep, paired = TRUE)
+pi_1_paireda
+
+t<-pi_1_paireda$statistic[[1]]
+df<-pi_1_paireda$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# descriptives
+unexp_Rep %>% 
+  group_by(., time) %>% 
+  summarise(., mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave))
+
+# pi_2_ave
+pi_2_paireda <- t.test(pi_2_ave ~ time, unexp_Rep, paired = TRUE)
+pi_2_paireda
+
+t<-pi_2_paireda$statistic[[1]]
+df<-pi_2_paireda$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# descriptives
+unexp_Rep %>% 
+  group_by(., time) %>% 
+  summarise(., mean_p2_1_ave = mean(pi_2_ave), sd_pi_2_ave = sd(pi_2_ave))
+```
+
+# H5
+```{r, H5, include= TRUE}
+# Democrats
+# pairwise t-tests
+
+# Joy
+joy_paired <- t.test(joy ~ time, US_Dem, paired = TRUE)
+joy_paired
+
+t<-joy_paired$statistic[[1]]
+df< joy_paired$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# descriptives
+US_Dem %>% 
+  group_by(., time) %>% 
+  summarise(., mean_joy = mean(joy), sd_joy = sd(joy))
+
+# Eff
+eff_paired <- t.test(eff ~ time, US_Dem, paired = TRUE)
+eff_paired
+
+t<-eff_paired$statistic[[1]]
+df< eff_paired$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# descriptives
+US_Dem %>% 
+  group_by(., time) %>% 
+  summarise(., mean_eff = mean(eff), sd_eff = sd(eff))
+
+# Republicans
+# pairwise t-tests
+joy_paireda <- t.test(joy ~ time, unexp_Rep, paired = TRUE)
+joy_paireda
+
+t<-joy_paireda$statistic[[1]]
+df< joy_paireda$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# descriptives
+unexp_Rep %>% 
+  group_by(., time) %>% 
+  summarise(., mean_joy = mean(joy), sd_joy = sd(joy))
+
+# eff
+eff_paireda <- t.test(eff ~ time, unexp_Rep, paired = TRUE)
+eff_paireda
+
+t<-eff_paireda$statistic[[1]]
+df< eff_paireda$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# descriptives
+unexp_Rep %>% 
+  group_by(., time) %>% 
+  summarise(., mean_eff = mean(eff), sd_eff = sd(eff))
+```
+
+#H6
+```{r}
+# sign amongst unexp Rep
+
+table(unexp_Rep$time, unexp_Rep$sign)
+
+# overview
+num_sign<- US_Rep %>%
+  group_by(., time,id, unexp, sign, donate, share) %>%
+  filter(., sign == "1" & unexp != "Neither expected nor unexpected") %>%
+  summarise(., n = n())
+num_sign
+
+# among those that signed at t1 and t2: 2* donate increases, 2* donate decreases; 2* share decreases, 1* increases, 1* remains the same
+
+chisq.test(unexp_Rep$time, unexp_Rep$sign)
+
+# descriptives for behavioural measures
+
+# petition signing
+
+unexp_Rep %>%
+  dplyr::select(., time, sign) %>%
+  group_by(time, sign) %>%
+  summarise(n = n(),
+            perc = n/nrow(unexp_Rep)*100) %>%
+  kableExtra::kable(col.names = c("*Time*", "*Signed*", "*N*", "*%*"),
+                    digits = 2)
+
+# donating
+
+unexp_Rep %>%
+  dplyr::select(time, share, donate) %>%
+  group_by(time) %>%
+  filter(!is.na(share) & !is.na(donate)) %>%
+  summarise(mean = mean(share),
+            sd = sd(share),
+            min = min(share),
+            max = max(share),
+            mean_don = mean(donate),
+            sd_don = sd(donate),
+            min_don = min(donate),
+            max_don = max(donate)
+            )
+  
+```
+
+## Exploratory
+```{r}
+Dem_exp_descr <- Dem_exp_t1 %>%
+  summarise(., mean_pi_1_own = mean(pi_1_own), sd_pi_1_own = sd(pi_1_own), mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave), mean_pi_2_own = mean(pi_2_own), sd_pi_2_own = sd(pi_2_own), mean_pi_2_ave = mean(pi_2_ave), sd_pi_2_ave = sd(pi_2_ave))
+Dem_exp_descr
+
+# pi_1
+pi_1_t_test_exp <- t.test(Dem_exp_t1$pi_1_own, mu = 4.383562)
+pi_1_t_test_exp
+  
+t<-pi_1_t_test_exp$statistic[[1]]
+df<-pi_1_t_test_exp$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# pi_2
+pi_2_t_test_exp <- t.test(Dem_exp_t1$pi_1_own, mu = 4.986301)
+pi_2_t_test_exp
+  
+t<-pi_2_t_test_exp$statistic[[1]]
+df<-pi_2_t_test_exp$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# t1 & t2 comparison
+
+Dem_exp <- US %>%
+  filter(., vote == "Democrats" & unexp == "Expected")
+Dem_exp
+
+# pi_1_ave
+pi_1_paired_exp <- t.test(pi_1_ave ~ time, Dem_exp, paired = TRUE)
+pi_1_paired_exp
+
+t<-pi_1_paired_exp$statistic[[1]]
+df<-pi_1_paired_exp$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# descriptives
+Dem_exp %>% 
+  group_by(., time) %>% 
+  summarise(., mean_pi_1_ave = mean(pi_1_ave), sd_pi_1_ave = sd(pi_1_ave))
+
+# pi_2_ave
+pi_2_paired_exp <- t.test(pi_2_ave ~ time, Dem_exp, paired = TRUE)
+pi_2_paired_exp
+
+t<-pi_2_paired_exp$statistic[[1]]
+df<-pi_2_paired_exp$parameter[[1]]
+r <- sqrt(t^2/(t^2+df))
+round(r, 3)
+
+# descriptives
+Dem_exp %>% 
+  group_by(., time) %>% 
+  summarise(., mean_pi_2_ave = mean(pi_2_ave), sd_pi_2_ave = sd(pi_2_ave))
+
+```
+
+
+
+
+
+
+
+
+
+
+
+

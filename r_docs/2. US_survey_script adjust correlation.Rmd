@@ -1,0 +1,179 @@
+---
+title: "US_progression review"
+author: "CH"
+date: "04/05/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# packages ####
+library(here) # find relative path
+library(readr) # read dataset
+library(tidyverse) # data wrangling
+library(dplyr) # data wrangling
+library(remotes) # for downloading packages not on CRAN
+library(Routliers) # outlier detection
+library(psych) # normality, reliability
+library(lavaan) # CFA
+library(ggplot2) # graphs
+library(MVN) # assumption check CFA
+library(papaja) # APA tables
+library(knitr) # kable function
+library(Hmisc) # for correlation
+library(ppcor) # partial correlation
+library(polycor) # polyserial correlation
+library(forcats) # factor relevel
+library(QuantPsyc) # standardized coefficients
+library(pscl) # R2 for logistic regression
+library(InformationValue) # model diagnostics logistic regression
+library(car) # vif
+
+
+# loading dataset ####
+data <- here::here("data/US_data.csv")
+
+US_data <- readr::read_csv(data) %>%
+  as_tibble() 
+
+# change variable labels
+
+US_data <- US_data %>%
+  mutate(gend = case_when(
+    gend == "1" ~ "Female",
+    gend == "2" ~ "Male",
+    gend == "3" ~ "Non-binary"
+  ))
+
+US_data <- US_data %>%
+  mutate(ethn = case_when(
+    ethn == "1" ~ "Asian-American",
+    ethn == "2" ~ "Black or African American",
+    ethn == "3" ~ "Hispanic or Latino American",
+    ethn == "4" ~ "Native American",
+    ethn == "5" ~ "White or European American",
+    ethn == "6" ~ "Other"
+  ))
+
+US_data <- US_data %>%
+  mutate(degree =case_when(
+    degree == "1" ~ "No degree",
+    degree == "2" ~ "High School",
+    degree == "3" ~ "Bachelor´s degree",
+    degree == "4" ~ "Master´s degree",
+    degree == "5" ~ "Doctoral degree",
+    degree == "6" ~ "Professional degree",
+    degree == "7" ~ "Other"
+  ))
+
+US_data <- US_data %>%
+  mutate(employ = case_when(
+    employ == "1" ~ "Working - paid employee",
+    employ == "2" ~ "Working - self-employed",
+    employ == "3" ~ "Not working - temporary layoff from a job",
+    employ == "4" ~ "Not working - looking for a job",
+    employ == "5" ~ "Not working - retired",
+    employ == "6" ~ "Not working - disabled",
+    employ == "7" ~ "Not working - student",
+    employ == "8" ~ "Other"
+  ))
+
+US_data <- US_data %>%
+  mutate(income = case_when(
+    income == "1" ~ "$0 - $10,000",
+    income == "2" ~ "$10,000 - $20,000",
+    income == "3" ~ "$20,000 - $30,000",
+    income == "4" ~ "$30,000 - $40,000",
+    income == "5" ~ "$40,000 - $50,000",
+    income == "6" ~ "over $50,000"
+  ))
+
+# create new variables
+US <- US_data %>%
+  mutate(cn = (cn_1 + cn_2 + cn_3 + cn_4 + cn_5)/5,
+        secident = (secident_1 + secident_2 + secident_3 + secident_4 + secident_5 +
+        secident_6 + secident_7 + secident_8 + secident_9 + secident_10)/10,
+        ingroup_satis = (secident_4 + secident_5 + secident_6 + secident_7)/4,
+        xeno = (xeno_1 + xeno_2 + xeno_3 + xeno_4)/4, 
+        joy = (joy_1 + joy_2)/2,
+        eff = (eff_1 + eff_2)/2) %>%
+  as.tibble()
+US
+```
+
+```{r biserial correlations, partial correlations and chi-square}
+US_unexpvsexp <- US %>%
+  dplyr::filter(unexp != "2")
+
+table(US_unexpvsexp$vote, US_unexpvsexp$unexp)
+
+chisq.test(US_unexpvsexp$vote, US_unexpvsexp$unexp)
+cor.test(~ US$vote + US$cn, method = "spearman")
+cor.test(~ US$vote + US$secident, method = "spearman")
+cor.test(~ US$vote + US$xeno, method = "spearman")
+cor.test(~ US$vote + US$joy, method = "spearman")
+cor.test(~ US$vote + US$eff, method = "spearman")
+cor.test(~ US$vote + US$pi_1_own, method = "spearman")
+cor.test(~ US$vote + US$pi_1_ave, method = "spearman")
+cor.test(~ US$vote + US$pi_2_own, method = "spearman")
+cor.test(~ US$vote + US$pi_2_ave, method = "spearman")
+cor.test(~ US$vote + US$fc_1_s, method = "spearman")
+cor.test(~ US$vote + US$fc_1_o_agr, method = "spearman")
+cor.test(~ US$vote + US$fc_2_s, method = "spearman")
+cor.test(~ US$vote + US$fc_2_o_agr, method = "spearman")
+
+table(US$vote, US$sign)
+chisq.test(US$vote, US$sign)
+
+cor.test(~ US_unexpvsexp$unexp + US_unexpvsexp$cn, method = "spearman")
+cor.test(~ US_unexpvsexp$unexp + US_unexpvsexp$secident, method = "spearman")
+cor.test(~ US_unexpvsexp$unexp + US_unexpvsexp$xeno, method = "spearman")
+cor.test(~ US_unexpvsexp$unexp + US_unexpvsexp$joy, method = "spearman")
+cor.test(~ US_unexpvsexp$unexp + US_unexpvsexp$eff, method = "spearman")
+cor.test(~ US_unexpvsexp$unexp + US_unexpvsexp$pi_1_own, method = "spearman")
+cor.test(~ US_unexpvsexp$unexp + US_unexpvsexp$pi_1_ave, method = "spearman")
+cor.test(~ US_unexpvsexp$unexp + US_unexpvsexp$pi_2_own, method = "spearman")
+cor.test(~ US_unexpvsexp$unexp + US_unexpvsexp$pi_2_ave, method = "spearman")
+cor.test(~ US_unexpvsexp$unexp + US_unexpvsexp$fc_1_s, method = "spearman")
+cor.test(~ US_unexpvsexp$unexp + US_unexpvsexp$fc_1_o_agr, method = "spearman")
+cor.test(~ US_unexpvsexp$unexp + US_unexpvsexp$fc_2_s, method = "spearman")
+cor.test(~ US_unexpvsexp$unexp + US_unexpvsexp$fc_2_o_agr, method = "spearman")
+
+table(US_unexpvsexp$unexp, US_unexpvsexp$sign)
+chisq.test(US_unexpvsexp$unexp, US_unexpvsexp$sign)
+
+cor.test(~ US$sign + US$cn, method = "spearman")
+cor.test(~ US$sign + US$secident, method = "spearman")
+cor.test(~ US$sign + US$xeno, method = "spearman")
+cor.test(~ US$sign + US$joy, method = "spearman")
+cor.test(~ US$sign + US$eff, method = "spearman")
+cor.test(~ US$sign + US$pi_1_own, method = "spearman")
+cor.test(~ US$sign + US$pi_1_ave, method = "spearman")
+cor.test(~ US$sign + US$pi_2_own, method = "spearman")
+cor.test(~ US$sign + US$pi_2_ave, method = "spearman")
+cor.test(~ US$sign + US$fc_1_s, method = "spearman")
+cor.test(~ US$sign + US$fc_1_o_agr, method = "spearman")
+cor.test(~ US$sign + US$fc_2_s, method = "spearman")
+cor.test(~ US$sign + US$fc_2_o_agr, method = "spearman")
+
+# missing partial correlations from cn and secident
+
+pcor.test(US$cn, US$vote, US$secident, method = "spearman")
+pcor.test(US_unexpvsexp$cn, US_unexpvsexp$unexp, US_unexpvsexp$secident, method = "spearman")
+pcor.test(US_unexpvsexp$cn, US_unexpvsexp$sign, US_unexpvsexp$secident, method = "spearman")
+
+pcor.test(US$secident, US$vote, US$cn, method = "spearman")
+pcor.test(US_unexpvsexp$secident, US_unexpvsexp$unexp, US_unexpvsexp$cn, method = "spearman")
+pcor.test(US_unexpvsexp$secident, US_unexpvsexp$sign, US_unexpvsexp$cn, method = "spearman")
+
+pcor.test(US$cn, US$sign, US$secident, method = "spearman")
+pcor.test(US$secident, US$sign, US$cn, method = "spearman")
+```
+```{r descriptives sign}
+min(US$sign)
+max(US$sign)
+```
+
